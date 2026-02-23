@@ -130,6 +130,7 @@ export function CredentialsLoginForm({
             icon={LogIn}
             className="w-full disabled:opacity-70"
             disabled={loading}
+            style={{ marginTop: "1rem" }}
           >
             {loading ? "Entrando..." : "Entrar com email e senha"}
           </ActionButton>
