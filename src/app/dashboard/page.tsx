@@ -8,6 +8,7 @@ import { SectionShell } from "@/components/theme/section-shell";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { prisma } from "@/lib/prisma";
 import { ApplicationStatus } from "@prisma/client";
+import { FamilyDashboardKpiSection } from "./family-pending-review-modal";
 import {
   BadgeCheck,
   BriefcaseBusiness,
@@ -253,6 +254,22 @@ type OpenJobPreview = {
   };
 };
 
+type ProfessionalContractPreview = {
+  id: string;
+  status: "IN_PROGRESS" | "COMPLETED" | "CANCELED";
+  startedAt: Date;
+  updatedAt: Date;
+  job: {
+    id: string;
+    title: string;
+    city: string;
+    state: string;
+  };
+  family: {
+    name: string | null;
+  };
+};
+
 function RecentOpenJobs({ items }: { items: OpenJobPreview[] }) {
   return (
     <section className="theme-card rounded-[34px] px-5 py-6 sm:px-7 sm:py-7">
@@ -299,6 +316,59 @@ function RecentOpenJobs({ items }: { items: OpenJobPreview[] }) {
   );
 }
 
+function contractStatusTone(status: ProfessionalContractPreview["status"]) {
+  if (status === "IN_PROGRESS") {
+    return "info" as const;
+  }
+  if (status === "COMPLETED") {
+    return "success" as const;
+  }
+  return "danger" as const;
+}
+
+function ProfessionalContractsPreview({ items }: { items: ProfessionalContractPreview[] }) {
+  return (
+    <section id="contratos-recentes" className="theme-card rounded-[34px] px-5 py-6 sm:px-7 sm:py-7">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="theme-chip theme-chip-yellow w-fit">Contratos</p>
+          <h2 className="mt-3 text-3xl">Contratos recentes</h2>
+          <p className="mt-2 text-sm text-[var(--theme-body)]">
+            Veja os últimos contratos vinculados às suas candidaturas.
+          </p>
+        </div>
+        <CtaButton href="/professional" variant="outline" size="sm" icon={LayoutDashboard}>
+          Gerenciar na área profissional
+        </CtaButton>
+      </div>
+
+      {items.length === 0 ? (
+        <p className="theme-card-soft mt-5 rounded-2xl px-4 py-3 text-sm text-[var(--theme-muted)]">
+          Nenhum contrato encontrado no momento.
+        </p>
+      ) : (
+        <ul className="mt-5 grid gap-3 md:grid-cols-2">
+          {items.map((contract) => (
+            <li key={contract.id} className="theme-list-card p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge tone={contractStatusTone(contract.status)}>{contract.status}</StatusBadge>
+                <StatusBadge tone="blue">
+                  {contract.job.city}/{contract.job.state}
+                </StatusBadge>
+              </div>
+              <h3 className="mt-3 text-xl leading-tight">{contract.job.title}</h3>
+              <p className="mt-2 text-sm text-[var(--theme-body)]">Família: {contract.family.name ?? "Família"}</p>
+              <p className="mt-1 text-xs text-[var(--theme-muted)]">
+                Atualizado em {formatDate(contract.updatedAt)}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export default async function DashboardPage() {
   const session = await auth();
 
@@ -324,6 +394,7 @@ export default async function DashboardPage() {
       receivedApplicationsCount,
       pendingApplicationsCount,
       recentReceivedApplications,
+      dashboardApplications,
     ] = await Promise.all([
       prisma.jobPost.count({ where: { familyId: session.user.id } }),
       prisma.conversation.count({ where: { familyId: session.user.id } }),
@@ -376,6 +447,46 @@ export default async function DashboardPage() {
           },
         },
       }),
+      prisma.jobApplication.findMany({
+        where: {
+          job: {
+            familyId: session.user.id,
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 60,
+        select: {
+          id: true,
+          status: true,
+          createdAt: true,
+          coverMessage: true,
+          isFavoriteByFamily: true,
+          job: {
+            select: {
+              title: true,
+              city: true,
+              state: true,
+            },
+          },
+          professional: {
+            select: {
+              name: true,
+              email: true,
+              image: true,
+              professionalProfile: {
+                select: {
+                  id: true,
+                  city: true,
+                  state: true,
+                  verificationStatus: true,
+                  serviceTypes: true,
+                  experienceYears: true,
+                },
+              },
+            },
+          },
+        },
+      }),
     ]);
 
     return (
@@ -399,15 +510,38 @@ export default async function DashboardPage() {
           }
         />
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
-          <DataCard label="Vagas criadas" value={jobs} tone="tint" />
-          <DataCard label="Candidaturas recebidas" value={receivedApplicationsCount} tone="surface" href="#candidaturas-recebidas" />
-          <DataCard label="Pendentes de decisão" value={pendingApplicationsCount} tone="surface" href="#candidaturas-recebidas" />
-          <DataCard label="Conversas" value={conversations} tone="surface" />
-          <DataCard label="Notificações não lidas" value={notifications} tone="surface" />
-          <DataCard label="Contratos ativos" value={contractsInProgress} tone="deep" />
-          <DataCard label="Contratos concluídos" value={contractsCompleted} tone="surface" />
-        </section>
+        <FamilyDashboardKpiSection
+          jobs={jobs}
+          receivedApplicationsCount={receivedApplicationsCount}
+          pendingApplicationsCount={pendingApplicationsCount}
+          conversations={conversations}
+          notifications={notifications}
+          contractsInProgress={contractsInProgress}
+          contractsCompleted={contractsCompleted}
+          initialApplications={dashboardApplications.map((application) => ({
+            id: application.id,
+            status: application.status,
+            createdAt: application.createdAt.toISOString(),
+            coverMessage: application.coverMessage,
+            isFavoriteByFamily: application.isFavoriteByFamily,
+            job: {
+              title: application.job.title,
+              city: application.job.city,
+              state: application.job.state,
+            },
+            professional: {
+              name: application.professional.name,
+              email: application.professional.email,
+              image: application.professional.image,
+              profileId: application.professional.professionalProfile?.id ?? null,
+              city: application.professional.professionalProfile?.city ?? null,
+              state: application.professional.professionalProfile?.state ?? null,
+              verificationStatus: application.professional.professionalProfile?.verificationStatus ?? null,
+              serviceTypes: application.professional.professionalProfile?.serviceTypes ?? [],
+              experienceYears: application.professional.professionalProfile?.experienceYears ?? null,
+            },
+          }))}
+        />
 
         <FamilyQuickActions />
 
@@ -424,6 +558,7 @@ export default async function DashboardPage() {
     contractsCompleted,
     recentApplications,
     recentOpenJobs,
+    recentContracts,
   ] = await Promise.all([
     prisma.jobApplication.count({ where: { professionalId: session.user.id } }),
     prisma.conversation.count({ where: { professionalId: session.user.id } }),
@@ -479,6 +614,32 @@ export default async function DashboardPage() {
         },
       },
     }),
+    prisma.contract.findMany({
+      where: {
+        professionalId: session.user.id,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 4,
+      select: {
+        id: true,
+        status: true,
+        startedAt: true,
+        updatedAt: true,
+        job: {
+          select: {
+            id: true,
+            title: true,
+            city: true,
+            state: true,
+          },
+        },
+        family: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    }),
   ]);
 
   return (
@@ -504,10 +665,10 @@ export default async function DashboardPage() {
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <DataCard label="Candidaturas" value={applications} tone="tint" href="#candidaturas-recentes" />
-        <DataCard label="Conversas" value={conversations} tone="surface" />
+        <DataCard label="Conversas" value={conversations} tone="surface" href="/chat" />
         <DataCard label="Notificações não lidas" value={notifications} tone="surface" />
-        <DataCard label="Contratos ativos" value={contractsInProgress} tone="deep" />
-        <DataCard label="Contratos concluídos" value={contractsCompleted} tone="surface" />
+        <DataCard label="Contratos ativos" value={contractsInProgress} tone="deep" href="#contratos-recentes" />
+        <DataCard label="Contratos concluídos" value={contractsCompleted} tone="surface" href="#contratos-recentes" />
       </section>
 
       <ProfessionalQuickActions />
@@ -515,6 +676,8 @@ export default async function DashboardPage() {
       <ProfessionalApplicationsPreview items={recentApplications} />
 
       <RecentOpenJobs items={recentOpenJobs} />
+
+      <ProfessionalContractsPreview items={recentContracts} />
     </AppShell>
   );
 }

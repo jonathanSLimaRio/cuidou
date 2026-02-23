@@ -130,7 +130,7 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
   }
 
   return (
-    <section className="theme-card rounded-[34px] px-6 py-8 sm:px-8">
+    <section id="gestao-contratos" className="theme-card rounded-[34px] px-6 py-8 sm:px-8">
       <p className="theme-chip theme-chip-blue w-fit">Contratos</p>
       <h2 className="mt-4 text-3xl">Gestão de contratos</h2>
       <p className="mt-2 text-sm text-[var(--theme-body)]">

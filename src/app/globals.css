@@ -506,6 +506,62 @@ a.btn-primary:visited {
   color: var(--theme-muted);
 }
 
+.theme-modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.theme-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(14, 23, 85, 0.42);
+}
+
+.theme-modal-panel {
+  position: relative;
+  width: min(96vw, 64rem);
+  max-height: min(92dvh, 56rem);
+  overflow: hidden;
+  border: 1px solid var(--theme-border);
+  border-radius: var(--theme-radius-lg);
+  background: rgba(255, 255, 255, 0.99);
+  box-shadow: var(--theme-shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.theme-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  border-bottom: 1px solid rgba(143, 62, 236, 0.14);
+  padding: 1rem 1rem 0.9rem;
+}
+
+.theme-modal-close {
+  min-height: 2.25rem;
+  min-width: 2.25rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--theme-navy);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.theme-modal-content {
+  overflow: auto;
+  padding: 1rem;
+}
+
 .theme-auth-shell {
   display: grid;
   gap: 1.5rem;

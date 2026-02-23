@@ -9,6 +9,8 @@ type DataCardProps = {
   hint?: string;
   tone?: DataCardTone;
   href?: string;
+  onClick?: () => void;
+  ariaLabel?: string;
 };
 
 const toneMap: Record<DataCardTone, string> = {
@@ -17,12 +19,12 @@ const toneMap: Record<DataCardTone, string> = {
   deep: "theme-card-deep",
 };
 
-export function DataCard({ label, value, hint, tone = "surface", href }: DataCardProps) {
+export function DataCard({ label, value, hint, tone = "surface", href, onClick, ariaLabel }: DataCardProps) {
   const isDeep = tone === "deep";
   const articleClassName = `${toneMap[tone]} rounded-3xl px-4 py-4`;
 
   const content = (
-    <article className={articleClassName}>
+    <div className={articleClassName}>
       <p className={`text-sm ${isDeep ? "text-white/75" : "text-[var(--theme-muted)]"}`}>{label}</p>
       <p className={`mt-3 text-3xl font-display leading-none ${isDeep ? "text-white" : "text-[var(--theme-navy)]"}`}>
         {value}
@@ -32,19 +34,32 @@ export function DataCard({ label, value, hint, tone = "surface", href }: DataCar
           {hint}
         </p>
       ) : null}
-    </article>
+    </div>
   );
 
-  if (!href) {
-    return content;
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="group block rounded-3xl transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-purple-secondary)]"
+      >
+        {content}
+      </Link>
+    );
   }
 
-  return (
-    <Link
-      href={href}
-      className="group block rounded-3xl transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-purple-secondary)]"
-    >
-      {content}
-    </Link>
-  );
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={ariaLabel}
+        className="group block w-full rounded-3xl border-0 bg-transparent p-0 text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-purple-secondary)]"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <article>{content}</article>;
 }

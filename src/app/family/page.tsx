@@ -102,9 +102,15 @@ export default async function FamilyAreaPage() {
             id: true,
             name: true,
             email: true,
+            image: true,
             professionalProfile: {
               select: {
                 id: true,
+                city: true,
+                state: true,
+                verificationStatus: true,
+                serviceTypes: true,
+                experienceYears: true,
               },
             },
           },
@@ -214,7 +220,13 @@ export default async function FamilyAreaPage() {
             id: application.professional.id,
             name: application.professional.name,
             email: application.professional.email,
+            image: application.professional.image,
             profileId: application.professional.professionalProfile?.id ?? null,
+            city: application.professional.professionalProfile?.city ?? null,
+            state: application.professional.professionalProfile?.state ?? null,
+            verificationStatus: application.professional.professionalProfile?.verificationStatus ?? null,
+            serviceTypes: application.professional.professionalProfile?.serviceTypes ?? [],
+            experienceYears: application.professional.professionalProfile?.experienceYears ?? null,
           },
         }));
 
@@ -272,7 +284,7 @@ export default async function FamilyAreaPage() {
         </article>
       </section>
 
-      <section className="theme-card rounded-[34px] px-5 py-6 sm:px-7 sm:py-7">
+      <section id="minhas-vagas" className="theme-card rounded-[34px] px-5 py-6 sm:px-7 sm:py-7">
         <p className="theme-chip theme-chip-blue w-fit">Nova vaga</p>
         <h2 className="mt-3 text-3xl">Publicar vaga com agenda estruturada</h2>
         <p className="mt-2 text-sm text-[var(--theme-body)]">

@@ -2,21 +2,25 @@
 
 import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
+import { DataCard } from "@/components/theme/data-card";
+import { ModalShell } from "@/components/theme/modal-shell";
 import { ProfessionalSummaryCard } from "@/components/theme/professional-summary-card";
-import { StatusBadge } from "@/components/theme/status-badge";
 import { ApplicationStatus } from "@prisma/client";
-import { Check, Heart, HeartOff, X } from "lucide-react";
+import { Check, Heart, HeartOff, MessageCircleMore, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
-type PipelineApplication = {
+type ReviewApplication = {
   id: string;
   status: ApplicationStatus;
   createdAt: string;
   coverMessage: string | null;
   isFavoriteByFamily: boolean;
-  fromInvitation: boolean;
+  job: {
+    title: string;
+    city: string;
+    state: string;
+  };
   professional: {
-    id: string;
     name: string | null;
     email: string | null;
     image: string | null;
@@ -29,17 +33,22 @@ type PipelineApplication = {
   };
 };
 
-type JobApplicationsGroup = {
-  jobId: string;
-  jobTitle: string;
-  city: string;
-  state: string;
-  applications: PipelineApplication[];
+type FamilyDashboardKpiSectionProps = {
+  jobs: number;
+  receivedApplicationsCount: number;
+  pendingApplicationsCount: number;
+  conversations: number;
+  notifications: number;
+  contractsInProgress: number;
+  contractsCompleted: number;
+  initialApplications: ReviewApplication[];
 };
 
-type Props = {
-  initialGroups: JobApplicationsGroup[];
-};
+type ReviewTab = "pending" | "all";
+
+function canDecide(status: ApplicationStatus) {
+  return status === ApplicationStatus.SUBMITTED || status === ApplicationStatus.SHORTLISTED;
+}
 
 function pendingLabel(createdAtIso: string) {
   const createdAt = new Date(createdAtIso);
@@ -61,7 +70,7 @@ function statusMeta(status: ApplicationStatus) {
     return {
       label: status,
       tone: "success" as const,
-      stateLabel: "Contrato em andamento ou finalizado conforme fluxo da vaga",
+      stateLabel: "Candidatura aceita",
     };
   }
 
@@ -69,7 +78,7 @@ function statusMeta(status: ApplicationStatus) {
     return {
       label: status,
       tone: "danger" as const,
-      stateLabel: "Candidatura encerrada",
+      stateLabel: "Candidatura recusada",
     };
   }
 
@@ -80,44 +89,40 @@ function statusMeta(status: ApplicationStatus) {
   };
 }
 
-function canDecide(status: ApplicationStatus) {
-  return status === ApplicationStatus.SUBMITTED || status === ApplicationStatus.SHORTLISTED;
-}
-
-export function ApplicationsPipeline({ initialGroups }: Props) {
+export function FamilyDashboardKpiSection({
+  jobs,
+  receivedApplicationsCount,
+  pendingApplicationsCount,
+  conversations,
+  notifications,
+  contractsInProgress,
+  contractsCompleted,
+  initialApplications,
+}: FamilyDashboardKpiSectionProps) {
   const { error: showError, success } = useToast();
-  const [groups, setGroups] = useState(initialGroups);
+  const [isOpen, setIsOpen] = useState(false);
+  const [tab, setTab] = useState<ReviewTab>("pending");
+  const [applications, setApplications] = useState(initialApplications);
   const [busyActionById, setBusyActionById] = useState<Record<string, "accept" | "reject" | "favorite" | null>>(
     {},
   );
+  const [pendingCount, setPendingCount] = useState(pendingApplicationsCount);
 
-  const totalApplications = useMemo(
-    () => groups.reduce((acc, group) => acc + group.applications.length, 0),
-    [groups],
-  );
+  const filteredApplications = useMemo(() => {
+    if (tab === "all") {
+      return applications;
+    }
+    return applications.filter((application) => canDecide(application.status));
+  }, [applications, tab]);
 
-  const totalPending = useMemo(
-    () =>
-      groups.reduce(
-        (acc, group) =>
-          acc +
-          group.applications.filter(
-            (item) => item.status === ApplicationStatus.SUBMITTED || item.status === ApplicationStatus.SHORTLISTED,
-          ).length,
-        0,
-      ),
-    [groups],
-  );
+  function openPendingTab() {
+    setTab("pending");
+    setIsOpen(true);
+  }
 
-  function setApplicationPatch(applicationId: string, patch: Partial<PipelineApplication>) {
-    setGroups((current) =>
-      current.map((group) => ({
-        ...group,
-        applications: group.applications.map((application) =>
-          application.id === applicationId ? { ...application, ...patch } : application,
-        ),
-      })),
-    );
+  function openAllTab() {
+    setTab("all");
+    setIsOpen(true);
   }
 
   function setBusy(applicationId: string, action: "accept" | "reject" | "favorite" | null) {
@@ -127,7 +132,15 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
     }));
   }
 
+  function patchApplication(applicationId: string, patch: Partial<ReviewApplication>) {
+    setApplications((current) =>
+      current.map((item) => (item.id === applicationId ? { ...item, ...patch } : item)),
+    );
+  }
+
   async function acceptApplication(applicationId: string) {
+    const target = applications.find((item) => item.id === applicationId);
+    const wasPending = target ? canDecide(target.status) : false;
     setBusy(applicationId, "accept");
 
     try {
@@ -141,9 +154,12 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
         return;
       }
 
-      setApplicationPatch(applicationId, {
+      patchApplication(applicationId, {
         status: result.application.status,
       });
+      if (wasPending) {
+        setPendingCount((current) => Math.max(0, current - 1));
+      }
       success("Candidatura aceita.");
     } catch {
       showError("Erro inesperado ao aceitar candidatura.");
@@ -152,7 +168,9 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
     }
   }
 
-  async function rejectApplication(applicationId: string, favorite: boolean) {
+  async function rejectApplication(applicationId: string) {
+    const target = applications.find((item) => item.id === applicationId);
+    const wasPending = target ? canDecide(target.status) : false;
     setBusy(applicationId, "reject");
 
     try {
@@ -161,7 +179,9 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ favorite }),
+        body: JSON.stringify({
+          favorite: target?.isFavoriteByFamily ?? false,
+        }),
       });
       const result = await response.json();
 
@@ -170,10 +190,13 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
         return;
       }
 
-      setApplicationPatch(applicationId, {
+      patchApplication(applicationId, {
         status: result.application.status,
         isFavoriteByFamily: result.application.isFavoriteByFamily,
       });
+      if (wasPending) {
+        setPendingCount((current) => Math.max(0, current - 1));
+      }
       success("Candidatura recusada.");
     } catch {
       showError("Erro inesperado ao recusar candidatura.");
@@ -200,7 +223,7 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
         return;
       }
 
-      setApplicationPatch(applicationId, {
+      patchApplication(applicationId, {
         isFavoriteByFamily: result.application.isFavoriteByFamily,
       });
     } catch {
@@ -211,42 +234,78 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
   }
 
   return (
-    <section id="pipeline-candidaturas" className="theme-card rounded-[34px] px-6 py-8 sm:px-8">
-      <p className="theme-chip theme-chip-indigo w-fit">Pipeline de candidaturas</p>
-      <h2 className="mt-3 text-3xl">Decisão da família</h2>
-      <p className="mt-2 text-sm text-[var(--theme-body)]">
-        {totalApplications} candidatura(s) no total • {totalPending} pendente(s) de decisão.
-      </p>
+    <>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
+        <DataCard label="Vagas criadas" value={jobs} tone="tint" href="/family#minhas-vagas" />
+        <DataCard
+          label="Candidaturas recebidas"
+          value={receivedApplicationsCount}
+          tone="surface"
+          onClick={openAllTab}
+          ariaLabel="Abrir análise de candidaturas recebidas"
+        />
+        <DataCard
+          label="Pendentes de decisão"
+          value={pendingCount}
+          tone="surface"
+          onClick={openPendingTab}
+          ariaLabel="Abrir análise de pendências de candidatura"
+        />
+        <DataCard label="Conversas" value={conversations} tone="surface" href="/chat" />
+        <DataCard label="Notificações não lidas" value={notifications} tone="surface" />
+        <DataCard label="Contratos ativos" value={contractsInProgress} tone="deep" href="/family#gestao-contratos" />
+        <DataCard label="Contratos concluídos" value={contractsCompleted} tone="surface" href="/family#gestao-contratos" />
+      </section>
 
-      {groups.length === 0 ? (
-        <p className="theme-card-soft mt-5 rounded-2xl px-4 py-3 text-sm text-[var(--theme-muted)]">
-          Nenhuma candidatura recebida ainda.
-        </p>
-      ) : (
-        <div className="mt-5 space-y-4">
-          {groups.map((group) => (
-            <article key={group.jobId} className="theme-list-card p-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-xl leading-tight text-[var(--theme-navy)]">{group.jobTitle}</h3>
-                <StatusBadge tone="blue">
-                  {group.city}/{group.state}
-                </StatusBadge>
-              </div>
+      <ModalShell
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Análise rápida de candidaturas"
+        description="Avalie pendências sem sair do dashboard. Para gestão completa, use o pipeline da família."
+      >
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <ActionButton
+              type="button"
+              size="sm"
+              variant={tab === "pending" ? "primary" : "secondary"}
+              icon={Check}
+              onClick={() => setTab("pending")}
+            >
+              Pendentes
+            </ActionButton>
+            <ActionButton
+              type="button"
+              size="sm"
+              variant={tab === "all" ? "primary" : "secondary"}
+              icon={MessageCircleMore}
+              onClick={() => setTab("all")}
+            >
+              Todas
+            </ActionButton>
+          </div>
 
-              <ul className="mt-3 space-y-3">
-                {group.applications.map((application) => {
-                  const meta = statusMeta(application.status);
-                  const isBusy = Boolean(busyActionById[application.id]);
+          {filteredApplications.length === 0 ? (
+            <p className="theme-card-soft rounded-2xl px-4 py-3 text-sm text-[var(--theme-muted)]">
+              Nenhuma candidatura encontrada neste filtro.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {filteredApplications.map((application) => {
+                const meta = statusMeta(application.status);
+                const isBusy = Boolean(busyActionById[application.id]);
 
-                  return (
-                    <li key={application.id}>
+                return (
+                  <li key={application.id} className="theme-list-card p-4">
+                    <h3 className="text-lg text-[var(--theme-navy)]">{application.job.title}</h3>
+                    <p className="mt-1 text-xs text-[var(--theme-muted)]">
+                      {application.job.city}/{application.job.state}
+                    </p>
+                    <div className="mt-3">
                       <ProfessionalSummaryCard
                         professional={application.professional}
                         applicationStatusLabel={meta.label}
                         applicationStatusTone={meta.tone}
-                        sourceLabel={
-                          application.fromInvitation ? "Candidatura enviada via convite" : "Candidatura direta"
-                        }
                         stateLabel={
                           canDecide(application.status)
                             ? `${meta.stateLabel} • ${pendingLabel(application.createdAt)}`
@@ -272,7 +331,7 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
                                   icon={X}
                                   variant="secondary"
                                   disabled={isBusy}
-                                  onClick={() => rejectApplication(application.id, application.isFavoriteByFamily)}
+                                  onClick={() => rejectApplication(application.id)}
                                 >
                                   Recusar
                                 </ActionButton>
@@ -291,14 +350,20 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
                           </>
                         }
                       />
-                    </li>
-                  );
-                })}
-              </ul>
-            </article>
-          ))}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          <div className="flex justify-end">
+            <ActionButton href="/family#pipeline-candidaturas" icon={MessageCircleMore} size="sm" variant="secondary">
+              Abrir pipeline completo
+            </ActionButton>
+          </div>
         </div>
-      )}
-    </section>
+      </ModalShell>
+    </>
   );
 }
