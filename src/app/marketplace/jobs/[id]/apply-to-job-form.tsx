@@ -7,9 +7,10 @@ import { FormEvent, useState } from "react";
 type Props = {
   jobId: string;
   alreadyApplied: boolean;
+  precheckWarning?: string | null;
 };
 
-export function ApplyToJobForm({ jobId, alreadyApplied }: Props) {
+export function ApplyToJobForm({ jobId, alreadyApplied, precheckWarning }: Props) {
   const [coverMessage, setCoverMessage] = useState(
     "Tenho interesse na vaga e posso compartilhar mais detalhes da minha experiência.",
   );
@@ -67,6 +68,7 @@ export function ApplyToJobForm({ jobId, alreadyApplied }: Props) {
       <p className="text-sm text-[var(--theme-body)]">
         Envie uma mensagem inicial para se candidatar.
       </p>
+      {precheckWarning ? <p className="theme-alert theme-alert-warning">{precheckWarning}</p> : null}
       <textarea
         className="theme-textarea"
         value={coverMessage}

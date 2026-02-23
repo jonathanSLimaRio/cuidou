@@ -2,6 +2,8 @@
 
 import { ActionButton } from "@/components/theme/action-button";
 import { CtaButton } from "@/components/theme/cta-button";
+import { StatusBadge } from "@/components/theme/status-badge";
+import { ScheduleMatchLevel } from "@/lib/job-schedule";
 import { Send, UserRoundPlus } from "lucide-react";
 import { useState } from "react";
 
@@ -11,6 +13,11 @@ type FamilyOpenJob = {
   city: string;
   state: string;
   applicationsCount: number;
+  compatibility: {
+    level: ScheduleMatchLevel;
+    label: string;
+    description: string;
+  };
 };
 
 type Props = {
@@ -25,6 +32,23 @@ export function InviteToJobForm({ professionalId, jobs }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const selectedJob = jobs.find((job) => job.id === selectedJobId) ?? jobs[0];
+
+  function compatibilityTone(level: ScheduleMatchLevel) {
+    if (level === "HIGH") {
+      return "success" as const;
+    }
+
+    if (level === "PARTIAL") {
+      return "warning" as const;
+    }
+
+    if (level === "LOW") {
+      return "danger" as const;
+    }
+
+    return "neutral" as const;
+  }
 
   async function submit() {
     if (!selectedJobId) {
@@ -97,11 +121,21 @@ export function InviteToJobForm({ professionalId, jobs }: Props) {
         >
           {jobs.map((job) => (
             <option key={job.id} value={job.id}>
-              {job.title} ({job.city}/{job.state}) - {job.applicationsCount} candidatura(s)
+              {job.title} ({job.city}/{job.state}) - {job.applicationsCount} candidatura(s) -{" "}
+              {job.compatibility.label}
             </option>
           ))}
         </select>
       </label>
+
+      {selectedJob ? (
+        <div className="space-y-1 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-3 py-2">
+          <StatusBadge tone={compatibilityTone(selectedJob.compatibility.level)}>
+            {selectedJob.compatibility.label}
+          </StatusBadge>
+          <p className="text-xs text-[var(--theme-muted)]">{selectedJob.compatibility.description}</p>
+        </div>
+      ) : null}
 
       <label className="space-y-1">
         <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Mensagem opcional</span>
@@ -117,6 +151,7 @@ export function InviteToJobForm({ professionalId, jobs }: Props) {
       {error ? <p className="theme-alert theme-alert-danger">{error}</p> : null}
       {warning ? <p className="theme-alert theme-alert-warning">{warning}</p> : null}
       {success ? <p className="theme-alert theme-alert-success">{success}</p> : null}
+      <p className="text-xs text-[var(--theme-muted)]">Este convite expira em 7 dias.</p>
 
       <ActionButton type="button" icon={Send} onClick={submit} disabled={loading}>
         {loading ? "Enviando..." : "Convidar para vaga"}

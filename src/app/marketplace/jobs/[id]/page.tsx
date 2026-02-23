@@ -4,9 +4,9 @@ import { CtaButton } from "@/components/theme/cta-button";
 import { DataTableShell } from "@/components/theme/data-table-shell";
 import { PageHeader } from "@/components/theme/page-header";
 import { StatusBadge } from "@/components/theme/status-badge";
-import { WEEKDAY_LABEL } from "@/lib/job-schedule";
+import { getScheduleMatchLevel, WEEKDAY_LABEL } from "@/lib/job-schedule";
 import { prisma } from "@/lib/prisma";
-import { BriefcaseBusiness, LayoutDashboard, LogIn, Search } from "lucide-react";
+import { LayoutDashboard, LogIn, UserRoundSearch } from "lucide-react";
 import { notFound } from "next/navigation";
 import { ApplyToJobForm } from "./apply-to-job-form";
 
@@ -58,17 +58,38 @@ export default async function MarketplaceJobDetailPage({ params }: Params) {
   }
 
   let alreadyApplied = false;
+  let precheckWarning: string | null = null;
   if (session?.user?.role === "PROFESSIONAL") {
-    const existing = await prisma.jobApplication.findUnique({
-      where: {
-        jobId_professionalId: {
-          jobId: job.id,
-          professionalId: session.user.id,
+    const [existing, professionalProfile] = await Promise.all([
+      prisma.jobApplication.findUnique({
+        where: {
+          jobId_professionalId: {
+            jobId: job.id,
+            professionalId: session.user.id,
+          },
         },
-      },
-      select: { id: true },
-    });
+        select: { id: true },
+      }),
+      prisma.professionalProfile.findUnique({
+        where: { userId: session.user.id },
+        select: {
+          availabilitySlots: {
+            select: {
+              weekday: true,
+              shift: true,
+              isAvailable: true,
+            },
+          },
+        },
+      }),
+    ]);
+
     alreadyApplied = Boolean(existing);
+
+    const match = getScheduleMatchLevel(job.scheduleSlots, professionalProfile?.availabilitySlots ?? []);
+    if (match.level !== "HIGH") {
+      precheckWarning = match.description;
+    }
   }
 
   const loginHref = `/login?next=${encodeURIComponent(`/marketplace/jobs/${job.id}`)}`;
@@ -184,7 +205,11 @@ export default async function MarketplaceJobDetailPage({ params }: Params) {
 
           {session?.user?.role === "PROFESSIONAL" ? (
             job.status === "OPEN" ? (
-              <ApplyToJobForm jobId={job.id} alreadyApplied={alreadyApplied} />
+              <ApplyToJobForm
+                jobId={job.id}
+                alreadyApplied={alreadyApplied}
+                precheckWarning={precheckWarning}
+              />
             ) : (
               <p className="theme-card-soft rounded-2xl px-4 py-3 text-sm text-[var(--theme-muted)]">
                 Esta vaga não está aberta para novas candidaturas no momento.
@@ -198,15 +223,9 @@ export default async function MarketplaceJobDetailPage({ params }: Params) {
             </CtaButton>
           ) : null}
 
-          {session?.user?.role === "ADMIN" ? (
-            <CtaButton href="/admin" variant="outline" icon={BriefcaseBusiness}>
-              Revisar no admin
-            </CtaButton>
-          ) : null}
-
           {session?.user?.role === "FAMILY" && session.user.id !== job.familyId ? (
-            <CtaButton href="/marketplace/jobs" variant="outline" icon={Search}>
-              Voltar para vagas
+            <CtaButton href="/marketplace/professionals" variant="outline" icon={UserRoundSearch}>
+              Ver profissionais para convidar
             </CtaButton>
           ) : null}
         </div>

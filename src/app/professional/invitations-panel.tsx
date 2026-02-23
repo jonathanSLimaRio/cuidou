@@ -1,10 +1,12 @@
 "use client";
 
 import { ActionButton } from "@/components/theme/action-button";
+import { OpportunityStateCard } from "@/components/theme/opportunity-state-card";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { invitationStatusLabel, invitationStatusTone } from "@/lib/invitation-ui";
+import { ScheduleMatchLevel } from "@/lib/job-schedule";
 import { JobInvitationStatus } from "@prisma/client";
-import { Check, X } from "lucide-react";
+import { Check, CircleAlert, X } from "lucide-react";
 import { useState } from "react";
 
 type InvitationItem = {
@@ -21,6 +23,16 @@ type InvitationItem = {
     state: string;
     serviceType: "BABYSITTER" | "ELDER_CAREGIVER";
     status: "OPEN" | "PAUSED" | "CLOSED" | "ARCHIVED";
+  };
+  scheduleSummary: Array<{
+    weekday: string;
+    label: string;
+    ranges: string[];
+  }>;
+  compatibility: {
+    level: ScheduleMatchLevel;
+    label: string;
+    description: string;
   };
   family: {
     id: string;
@@ -39,9 +51,11 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
   const [invitations, setInvitations] = useState(initialInvitations);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [coverMessages, setCoverMessages] = useState<Record<string, string>>(() =>
     Object.fromEntries(initialInvitations.map((item) => [item.id, defaultCoverMessage])),
   );
+  const [declineReasonById, setDeclineReasonById] = useState<Record<string, string>>({});
 
   function updateInvitation(invitationId: string, patch: Partial<InvitationItem>) {
     setInvitations((current) =>
@@ -58,6 +72,7 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
 
     setBusyId(invitationId);
     setError(null);
+    setSuccess(null);
 
     try {
       const response = await fetch(`/api/invitations/${invitationId}/accept`, {
@@ -80,6 +95,7 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
         status: result.invitation.status,
         responseMessage: result.invitation.responseMessage,
       });
+      setSuccess("Candidatura enviada com sucesso; aguardando decisão da família.");
     } catch {
       setError("Erro inesperado ao aceitar convite.");
     } finally {
@@ -88,10 +104,10 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
   }
 
   async function decline(invitationId: string) {
-    const reason = window.prompt("Motivo da recusa (opcional):")?.trim();
-
+    const reason = declineReasonById[invitationId]?.trim();
     setBusyId(invitationId);
     setError(null);
+    setSuccess(null);
 
     try {
       const response = await fetch(`/api/invitations/${invitationId}/decline`, {
@@ -121,6 +137,22 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
     }
   }
 
+  function compatibilityTone(level: ScheduleMatchLevel) {
+    if (level === "HIGH") {
+      return "success" as const;
+    }
+
+    if (level === "PARTIAL") {
+      return "warning" as const;
+    }
+
+    if (level === "LOW") {
+      return "danger" as const;
+    }
+
+    return "neutral" as const;
+  }
+
   return (
     <section className="theme-card rounded-[34px] px-6 py-8 sm:px-8">
       <p className="theme-chip theme-chip-yellow w-fit">Convites recebidos</p>
@@ -130,6 +162,7 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
       </p>
 
       {error ? <p className="theme-alert theme-alert-danger mt-4">{error}</p> : null}
+      {success ? <p className="theme-alert theme-alert-success mt-4">{success}</p> : null}
 
       {invitations.length === 0 ? (
         <p className="theme-card-soft mt-5 rounded-2xl px-4 py-3 text-sm text-[var(--theme-muted)]">
@@ -139,27 +172,55 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
         <ul className="mt-5 space-y-3">
           {invitations.map((invitation) => (
             <li key={invitation.id} className="theme-list-card p-5">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <h3 className="text-xl leading-tight text-[var(--theme-navy)]">{invitation.job.title}</h3>
-                  <p className="mt-1 text-xs text-[var(--theme-muted)]">
-                    Família: {invitation.family.name ?? "Família"} • {invitation.job.city}/
-                    {invitation.job.state}
-                  </p>
-                </div>
-                <StatusBadge tone={invitationStatusTone(invitation.status)}>
-                  {invitationStatusLabel[invitation.status]}
-                </StatusBadge>
-              </div>
+              {(() => {
+                const stateLabel =
+                  invitation.status === JobInvitationStatus.PENDING
+                    ? `Convite pendente de resposta • Expira em ${new Date(invitation.expiresAt).toLocaleDateString("pt-BR")}`
+                    : invitation.status === JobInvitationStatus.ACCEPTED
+                      ? "Candidatura enviada via convite"
+                      : invitation.status === JobInvitationStatus.DECLINED
+                        ? "Convite recusado"
+                        : invitation.status === JobInvitationStatus.EXPIRED
+                          ? "Convite expirado"
+                          : "Convite cancelado";
 
-              <p className="mt-2 text-xs text-[var(--theme-muted)]">
-                Enviado em {new Date(invitation.createdAt).toLocaleDateString("pt-BR")} • Expira em{" "}
-                {new Date(invitation.expiresAt).toLocaleDateString("pt-BR")}
-              </p>
-
-              {invitation.message ? (
-                <p className="mt-2 text-sm text-[var(--theme-body)]">Mensagem da família: {invitation.message}</p>
-              ) : null}
+                return (
+              <OpportunityStateCard
+                title={invitation.job.title}
+                subtitle={`Família: ${invitation.family.name ?? "Família"} • ${invitation.job.city}/${invitation.job.state}`}
+                statusLabel={invitationStatusLabel[invitation.status]}
+                statusTone={invitationStatusTone(invitation.status)}
+                stateLabel={stateLabel}
+                details={
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      <StatusBadge tone={compatibilityTone(invitation.compatibility.level)}>
+                        {invitation.compatibility.label}
+                      </StatusBadge>
+                      <StatusBadge tone="neutral">
+                        Enviado em {new Date(invitation.createdAt).toLocaleDateString("pt-BR")}
+                      </StatusBadge>
+                    </div>
+                    <p className="text-xs text-[var(--theme-muted)]">{invitation.compatibility.description}</p>
+                    {invitation.scheduleSummary.length > 0 ? (
+                      <p className="text-xs text-[var(--theme-muted)]">
+                        Agenda da vaga:{" "}
+                        {invitation.scheduleSummary
+                          .map((item) => `${item.label} (${item.ranges.join(", ")})`)
+                          .join(" • ")}
+                      </p>
+                    ) : null}
+                    {invitation.message ? (
+                      <p className="text-sm text-[var(--theme-body)]">Mensagem da família: {invitation.message}</p>
+                    ) : null}
+                    {invitation.responseMessage ? (
+                      <p className="text-sm text-[var(--theme-body)]">Resposta: {invitation.responseMessage}</p>
+                    ) : null}
+                  </div>
+                }
+              />
+                );
+              })()}
 
               {invitation.status === JobInvitationStatus.PENDING ? (
                 <div className="mt-3 space-y-3">
@@ -172,6 +233,22 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
                       value={coverMessages[invitation.id] ?? defaultCoverMessage}
                       onChange={(event) =>
                         setCoverMessages((current) => ({
+                          ...current,
+                          [invitation.id]: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">
+                      Motivo da recusa (opcional)
+                    </span>
+                    <textarea
+                      className="theme-textarea min-h-20"
+                      placeholder="Se quiser, explique por que está recusando."
+                      value={declineReasonById[invitation.id] ?? ""}
+                      onChange={(event) =>
+                        setDeclineReasonById((current) => ({
                           ...current,
                           [invitation.id]: event.target.value,
                         }))
@@ -200,8 +277,15 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
                     </ActionButton>
                   </div>
                 </div>
-              ) : invitation.responseMessage ? (
-                <p className="mt-2 text-sm text-[var(--theme-body)]">Resposta: {invitation.responseMessage}</p>
+              ) : invitation.status === JobInvitationStatus.ACCEPTED ? (
+                <p className="theme-alert theme-alert-success mt-3">
+                  Candidatura enviada via convite. Aguardando decisão da família.
+                </p>
+              ) : invitation.status === JobInvitationStatus.DECLINED ? (
+                <p className="theme-alert theme-alert-warning mt-3 inline-flex items-center gap-2">
+                  <CircleAlert size={16} />
+                  Convite recusado.
+                </p>
               ) : null}
             </li>
           ))}

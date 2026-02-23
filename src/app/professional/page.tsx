@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/theme/empty-state";
 import { PageHeader } from "@/components/theme/page-header";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { expirePendingInvitationsWithNotifications } from "@/lib/invitations";
+import { buildScheduleSummary, getScheduleMatchLevel } from "@/lib/job-schedule";
 import { prisma } from "@/lib/prisma";
 import { LayoutDashboard, Search } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -71,6 +72,14 @@ export default async function ProfessionalAreaPage() {
             state: true,
             serviceType: true,
             status: true,
+            scheduleSlots: {
+              select: {
+                weekday: true,
+                startTime: true,
+                endTime: true,
+              },
+              orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+            },
           },
         },
         family: {
@@ -163,6 +172,11 @@ export default async function ProfessionalAreaPage() {
           ...invitation,
           createdAt: invitation.createdAt.toISOString(),
           expiresAt: invitation.expiresAt.toISOString(),
+          scheduleSummary: buildScheduleSummary(invitation.job.scheduleSlots),
+          compatibility: getScheduleMatchLevel(
+            invitation.job.scheduleSlots,
+            profile?.availabilitySlots ?? [],
+          ),
         }))}
       />
 

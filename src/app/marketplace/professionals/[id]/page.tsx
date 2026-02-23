@@ -3,6 +3,7 @@ import { AppShell } from "@/components/theme/app-shell";
 import { CtaButton } from "@/components/theme/cta-button";
 import { PageHeader } from "@/components/theme/page-header";
 import { StatusBadge } from "@/components/theme/status-badge";
+import { getScheduleMatchLevel } from "@/lib/job-schedule";
 import { prisma } from "@/lib/prisma";
 import { LayoutDashboard, LogIn, Search } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -91,6 +92,13 @@ export default async function MarketplaceProfessionalDetailPage({ params }: Para
             _count: {
               select: {
                 applications: true,
+              },
+            },
+            scheduleSlots: {
+              select: {
+                weekday: true,
+                startTime: true,
+                endTime: true,
               },
             },
           },
@@ -234,6 +242,10 @@ export default async function MarketplaceProfessionalDetailPage({ params }: Para
                   city: job.city,
                   state: job.state,
                   applicationsCount: job._count.applications,
+                  compatibility: getScheduleMatchLevel(
+                    job.scheduleSlots,
+                    professional.availabilitySlots,
+                  ),
                 }))}
               />
               <CtaButton href="/family" variant="outline" icon={Search}>
@@ -248,11 +260,6 @@ export default async function MarketplaceProfessionalDetailPage({ params }: Para
             </CtaButton>
           ) : null}
 
-          {session?.user?.role === "ADMIN" ? (
-            <CtaButton href="/admin" variant="outline" icon={LayoutDashboard}>
-              Revisar no admin
-            </CtaButton>
-          ) : null}
         </div>
       </section>
     </AppShell>

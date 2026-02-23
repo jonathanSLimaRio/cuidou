@@ -1,6 +1,7 @@
 "use client";
 
 import { ActionButton } from "@/components/theme/action-button";
+import { OpportunityStateCard } from "@/components/theme/opportunity-state-card";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { invitationStatusLabel, invitationStatusTone } from "@/lib/invitation-ui";
 import { JobInvitationStatus } from "@prisma/client";
@@ -31,6 +32,13 @@ type JobInvitationGroup = {
 type Props = {
   initialGroups: JobInvitationGroup[];
 };
+
+function pendingLabel(createdAtIso: string) {
+  const createdAt = new Date(createdAtIso);
+  const diffMs = Date.now() - createdAt.getTime();
+  const days = Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+  return `Pendente há ${days} dia${days > 1 ? "s" : ""}`;
+}
 
 export function InvitationsPanel({ initialGroups }: Props) {
   const [groups, setGroups] = useState(initialGroups);
@@ -105,29 +113,31 @@ export function InvitationsPanel({ initialGroups }: Props) {
               <ul className="mt-3 space-y-2">
                 {group.items.map((invitation) => (
                   <li key={invitation.id} className="rounded-2xl border border-[var(--theme-border)] bg-white px-4 py-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-[var(--theme-navy)]">
-                        {invitation.professional.name ?? invitation.professional.email ?? "Profissional"}
-                      </p>
-                      <StatusBadge tone={invitationStatusTone(invitation.status)}>
-                        {invitationStatusLabel[invitation.status]}
-                      </StatusBadge>
-                    </div>
-
-                    <p className="mt-1 text-xs text-[var(--theme-muted)]">
-                      Enviado em {new Date(invitation.createdAt).toLocaleDateString("pt-BR")} • Expira em{" "}
-                      {new Date(invitation.expiresAt).toLocaleDateString("pt-BR")}
-                    </p>
-
-                    {invitation.message ? (
-                      <p className="mt-2 text-sm text-[var(--theme-body)]">Mensagem: {invitation.message}</p>
-                    ) : null}
-
-                    {invitation.responseMessage ? (
-                      <p className="mt-2 text-sm text-[var(--theme-body)]">
-                        Resposta: {invitation.responseMessage}
-                      </p>
-                    ) : null}
+                    <OpportunityStateCard
+                      title={invitation.professional.name ?? invitation.professional.email ?? "Profissional"}
+                      statusLabel={invitationStatusLabel[invitation.status]}
+                      statusTone={invitationStatusTone(invitation.status)}
+                      stateLabel={
+                        invitation.status === JobInvitationStatus.PENDING
+                          ? `Convite pendente de resposta • ${pendingLabel(invitation.createdAt)}`
+                          : `Enviado em ${new Date(invitation.createdAt).toLocaleDateString("pt-BR")}`
+                      }
+                      details={
+                        <div className="space-y-2">
+                          <p className="text-xs text-[var(--theme-muted)]">
+                            Expira em {new Date(invitation.expiresAt).toLocaleDateString("pt-BR")}
+                          </p>
+                          {invitation.message ? (
+                            <p className="text-sm text-[var(--theme-body)]">Mensagem: {invitation.message}</p>
+                          ) : null}
+                          {invitation.responseMessage ? (
+                            <p className="text-sm text-[var(--theme-body)]">
+                              Resposta: {invitation.responseMessage}
+                            </p>
+                          ) : null}
+                        </div>
+                      }
+                    />
 
                     {invitation.status === JobInvitationStatus.PENDING ? (
                       <div className="mt-3 flex flex-wrap gap-2">

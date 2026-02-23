@@ -10,6 +10,7 @@ import { JobInvitationStatus } from "@prisma/client";
 import { CalendarClock, CalendarPlus, LayoutDashboard, Search, Users } from "lucide-react";
 import { redirect } from "next/navigation";
 import { FamilyContractsPanel } from "./contracts-panel";
+import { ApplicationsPipeline } from "./applications-pipeline";
 import { InvitationsPanel } from "./invitations-panel";
 import { JobForm } from "./job-form";
 
@@ -44,7 +45,7 @@ export default async function FamilyAreaPage() {
 
   await expirePendingInvitationsWithNotifications({ familyId: session.user.id });
 
-  const [profile, jobs, contracts] = await Promise.all([
+  const [profile, jobs, contracts, applications, acceptedInvitationPairs] = await Promise.all([
     prisma.familyProfile.findUnique({ where: { userId: session.user.id } }),
     prisma.jobPost.findMany({
       where: { familyId: session.user.id },
@@ -79,6 +80,47 @@ export default async function FamilyAreaPage() {
         },
       },
       take: 30,
+    }),
+    prisma.jobApplication.findMany({
+      where: {
+        job: {
+          familyId: session.user.id,
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        job: {
+          select: {
+            id: true,
+            title: true,
+            city: true,
+            state: true,
+          },
+        },
+        professional: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            professionalProfile: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
+      },
+      take: 200,
+    }),
+    prisma.jobInvitation.findMany({
+      where: {
+        familyId: session.user.id,
+        status: JobInvitationStatus.ACCEPTED,
+      },
+      select: {
+        jobId: true,
+        professionalId: true,
+      },
     }),
   ]);
 
@@ -150,6 +192,41 @@ export default async function FamilyAreaPage() {
         })),
     }))
     .filter((group) => group.items.length > 0);
+
+  const acceptedInvitationPairSet = new Set(
+    acceptedInvitationPairs.map((item) => `${item.jobId}:${item.professionalId}`),
+  );
+
+  const applicationGroups = jobs
+    .map((job) => {
+      const jobApplications = applications
+        .filter((application) => application.jobId === job.id)
+        .map((application) => ({
+          id: application.id,
+          status: application.status,
+          createdAt: application.createdAt.toISOString(),
+          coverMessage: application.coverMessage,
+          isFavoriteByFamily: application.isFavoriteByFamily,
+          fromInvitation: acceptedInvitationPairSet.has(
+            `${application.jobId}:${application.professionalId}`,
+          ),
+          professional: {
+            id: application.professional.id,
+            name: application.professional.name,
+            email: application.professional.email,
+            profileId: application.professional.professionalProfile?.id ?? null,
+          },
+        }));
+
+      return {
+        jobId: job.id,
+        jobTitle: job.title,
+        city: job.city,
+        state: job.state,
+        applications: jobApplications,
+      };
+    })
+    .filter((group) => group.applications.length > 0);
 
   return (
     <AppShell
@@ -301,6 +378,8 @@ export default async function FamilyAreaPage() {
           </ul>
         )}
       </section>
+
+      <ApplicationsPipeline initialGroups={applicationGroups} />
 
       <InvitationsPanel initialGroups={invitationGroups} />
 

@@ -46,6 +46,8 @@ export type ScheduleMatchWarning = {
   message: string;
 };
 
+export type ScheduleMatchLevel = "HIGH" | "PARTIAL" | "LOW" | "UNKNOWN";
+
 export function timeToMinutes(value: string) {
   const [hours, minutes] = value.split(":").map(Number);
   return hours * 60 + minutes;
@@ -150,5 +152,46 @@ export function getScheduleMatchWarning(
     matchedSlots,
     totalSlots: slots.length,
     message: `Compatibilidade parcial de agenda (${matchedSlots}/${slots.length} horários). Você ainda pode prosseguir.`,
+  };
+}
+
+export function getScheduleMatchLevel(
+  slots: JobScheduleSlotInput[],
+  availability: ProfessionalShiftAvailability[],
+) {
+  const warning = getScheduleMatchWarning(slots, availability);
+
+  if (!warning) {
+    return {
+      level: "HIGH" as const,
+      label: "Compatibilidade alta",
+      description: "Os horários da vaga estão alinhados com a disponibilidade informada.",
+      warning: null,
+    };
+  }
+
+  if (warning.type === "PARTIAL_CONFLICT") {
+    return {
+      level: "PARTIAL" as const,
+      label: "Compatibilidade parcial",
+      description: warning.message,
+      warning,
+    };
+  }
+
+  if (warning.type === "TOTAL_CONFLICT") {
+    return {
+      level: "LOW" as const,
+      label: "Compatibilidade baixa",
+      description: warning.message,
+      warning,
+    };
+  }
+
+  return {
+    level: "UNKNOWN" as const,
+    label: "Compatibilidade indisponível",
+    description: warning.message,
+    warning,
   };
 }
