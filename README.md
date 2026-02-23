@@ -6,13 +6,13 @@ Marketplace (sem pagamentos) para conectar famílias, babás e cuidadoras de ido
 
 - Next.js 16 (App Router + TypeScript)
 - Prisma ORM 7 + PostgreSQL
-- Auth.js v5 (Google login)
+- Auth.js v5 (Google + email/senha)
 - WordPress REST API (upload de documentos e anexos)
 - Resend (emails transacionais)
 
 ## Funcionalidades implementadas
 
-- Login social com Google.
+- Login social com Google e login local por email/senha.
 - Onboarding com papel único por conta (`FAMILY`, `PROFESSIONAL`, `ADMIN`).
 - Perfis de família e profissional.
 - Upload e moderação documental do profissional.
@@ -83,6 +83,17 @@ npm run prisma:seed
 ```bash
 npm run dev
 ```
+
+## Credenciais locais de desenvolvimento (temporário)
+
+As contas abaixo são criadas/atualizadas por `npm run prisma:seed` para testes em ambiente dev:
+
+- Admin: `admin.local@cuidou.dev`
+- Família: `familia.local@cuidou.dev`
+- Cuidadora: `cuidadora.local@cuidou.dev`
+- Senha (todas): `Cuidou123!`
+
+Aviso: remova ou rotacione essas credenciais antes de qualquer uso fora de desenvolvimento.
 
 ## Variáveis de ambiente
 

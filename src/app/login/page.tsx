@@ -62,10 +62,10 @@ export default async function LoginPage({
 
               <div>
                 <h2 className="text-3xl leading-tight text-white">
-                  Entre na Cuidou e acompanhe todo o fluxo de contratação.
+                  Escolha seu método de acesso e entre na Cuidou.
                 </h2>
                 <p className="mt-3 text-sm leading-relaxed text-white/85">
-                  Use Google ou email/senha para acessar vagas, candidaturas, contratos e mensagens.
+                  Você pode entrar com Google ou email/senha, e criar cadastro local quando precisar.
                 </p>
               </div>
 
@@ -88,9 +88,9 @@ export default async function LoginPage({
 
           <section className="theme-card p-6 sm:p-8">
             <p className="theme-chip theme-chip-blue">Login</p>
-            <h1 className="mt-4 text-3xl sm:text-4xl">Entrar na Cuidou</h1>
+            <h1 className="mt-4 text-3xl sm:text-4xl">Escolha como entrar</h1>
             <p className="mt-3 text-sm leading-relaxed text-[var(--theme-muted)]">
-              Entre com Google ou email/senha para acessar sua jornada na plataforma.
+              Use seu método preferido para login. Se ainda não tiver conta local, faça seu cadastro.
             </p>
 
             <div className="mt-6 space-y-3 text-sm text-[var(--theme-body)]">
@@ -120,13 +120,21 @@ export default async function LoginPage({
               initialError={resolvedSearchParams.error}
             />
 
-            <div className="mt-4">
+            <div className="mt-4 space-y-2">
+              <CtaButton
+                href={`/signup?next=${encodeURIComponent(nextPath)}`}
+                variant="outline"
+                className="w-full"
+                icon={UserPlus}
+              >
+                Criar cadastro
+              </CtaButton>
               <Link
                 href={`/signup?next=${encodeURIComponent(nextPath)}`}
                 className="inline-flex items-center gap-2 text-sm font-medium text-[var(--theme-indigo)] underline"
               >
                 <AppIcon icon={UserPlus} size="sm" />
-                Criar cadastro local (aprovação manual)
+                Preferir abrir a tela completa de cadastro local
               </Link>
             </div>
           </section>

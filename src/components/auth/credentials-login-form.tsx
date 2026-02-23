@@ -131,7 +131,7 @@ export function CredentialsLoginForm({
           className="w-full disabled:opacity-70"
           disabled={loading}
         >
-          {loading ? "Entrando..." : "Entrar com email"}
+          {loading ? "Entrando..." : "Entrar com email e senha"}
         </ActionButton>
       </form>
 

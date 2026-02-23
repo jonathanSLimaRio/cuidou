@@ -9,6 +9,7 @@ import {
   Weekday,
 } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { hash } from "bcryptjs";
 import { Pool } from "pg";
 
 const connectionString = process.env.DATABASE_URL;
@@ -28,6 +29,10 @@ const prisma = new PrismaClient({
 const DEMO_EMAIL_DOMAIN = "demo.cuidou.local";
 const DEMO_WORDPRESS_FILE =
   "https://paulojuniorrosa1770257599139.0452147.meusitehostgator.com.br/wp-content/uploads/2026/02/demo-document.pdf";
+const LOCAL_DEV_PASSWORD = "Cuidou123!";
+const LOCAL_DEV_ADMIN_EMAIL = "admin.local@cuidou.dev";
+const LOCAL_DEV_FAMILY_EMAIL = "familia.local@cuidou.dev";
+const LOCAL_DEV_CAREGIVER_EMAIL = "cuidadora.local@cuidou.dev";
 
 type DemoFamilySeed = {
   slug: string;
@@ -553,6 +558,191 @@ async function seedSuperAdmin() {
   console.log(`Created super admin: ${superAdminEmail}`);
 }
 
+async function seedLocalDevUsers() {
+  const now = new Date();
+  const passwordHash = await hash(LOCAL_DEV_PASSWORD, 12);
+
+  await prisma.user.upsert({
+    where: { email: LOCAL_DEV_ADMIN_EMAIL },
+    update: {
+      name: "Admin Local",
+      role: UserRole.ADMIN,
+      status: UserStatus.ACTIVE,
+      passwordHash,
+      acceptedTermsAt: now,
+      acceptedPrivacyAt: now,
+    },
+    create: {
+      email: LOCAL_DEV_ADMIN_EMAIL,
+      name: "Admin Local",
+      role: UserRole.ADMIN,
+      status: UserStatus.ACTIVE,
+      passwordHash,
+      acceptedTermsAt: now,
+      acceptedPrivacyAt: now,
+    },
+  });
+
+  const familyUser = await prisma.user.upsert({
+    where: { email: LOCAL_DEV_FAMILY_EMAIL },
+    update: {
+      name: "Família Local",
+      role: UserRole.FAMILY,
+      status: UserStatus.ACTIVE,
+      passwordHash,
+      acceptedTermsAt: now,
+      acceptedPrivacyAt: now,
+    },
+    create: {
+      email: LOCAL_DEV_FAMILY_EMAIL,
+      name: "Família Local",
+      role: UserRole.FAMILY,
+      status: UserStatus.ACTIVE,
+      passwordHash,
+      acceptedTermsAt: now,
+      acceptedPrivacyAt: now,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  await prisma.familyProfile.upsert({
+    where: { userId: familyUser.id },
+    update: {
+      contactName: "Fernanda Local",
+      bio: "Família de desenvolvimento para testes de jornada local.",
+      state: "SP",
+      city: "São Paulo",
+      neighborhood: "Pinheiros",
+    },
+    create: {
+      userId: familyUser.id,
+      contactName: "Fernanda Local",
+      bio: "Família de desenvolvimento para testes de jornada local.",
+      state: "SP",
+      city: "São Paulo",
+      neighborhood: "Pinheiros",
+    },
+  });
+
+  const caregiverUser = await prisma.user.upsert({
+    where: { email: LOCAL_DEV_CAREGIVER_EMAIL },
+    update: {
+      name: "Cuidadora Local",
+      role: UserRole.PROFESSIONAL,
+      status: UserStatus.ACTIVE,
+      passwordHash,
+      acceptedTermsAt: now,
+      acceptedPrivacyAt: now,
+    },
+    create: {
+      email: LOCAL_DEV_CAREGIVER_EMAIL,
+      name: "Cuidadora Local",
+      role: UserRole.PROFESSIONAL,
+      status: UserStatus.ACTIVE,
+      passwordHash,
+      acceptedTermsAt: now,
+      acceptedPrivacyAt: now,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  const caregiverProfile = await prisma.professionalProfile.upsert({
+    where: { userId: caregiverUser.id },
+    update: {
+      bio: "Profissional local de desenvolvimento para testar fluxo de contratação.",
+      experienceYears: 7,
+      serviceTypes: [ServiceType.ELDER_CAREGIVER],
+      availability: "Segunda a sexta, manhã e tarde.",
+      state: "SP",
+      city: "São Paulo",
+      neighborhood: "Vila Mariana",
+      hourlyRateMin: 35,
+      hourlyRateMax: 55,
+      verificationStatus: VerificationStatus.VERIFIED,
+      verificationNotes: "Conta local de desenvolvimento verificada por seed.",
+    },
+    create: {
+      userId: caregiverUser.id,
+      bio: "Profissional local de desenvolvimento para testar fluxo de contratação.",
+      experienceYears: 7,
+      serviceTypes: [ServiceType.ELDER_CAREGIVER],
+      availability: "Segunda a sexta, manhã e tarde.",
+      state: "SP",
+      city: "São Paulo",
+      neighborhood: "Vila Mariana",
+      hourlyRateMin: 35,
+      hourlyRateMax: 55,
+      verificationStatus: VerificationStatus.VERIFIED,
+      verificationNotes: "Conta local de desenvolvimento verificada por seed.",
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  await prisma.professionalAvailabilitySlot.deleteMany({
+    where: { professionalProfileId: caregiverProfile.id },
+  });
+
+  await prisma.professionalAvailabilityException.deleteMany({
+    where: { professionalProfileId: caregiverProfile.id },
+  });
+
+  await prisma.professionalAvailabilitySlot.createMany({
+    data: [
+      {
+        professionalProfileId: caregiverProfile.id,
+        weekday: Weekday.MONDAY,
+        shift: Shift.MORNING,
+        isAvailable: true,
+      },
+      {
+        professionalProfileId: caregiverProfile.id,
+        weekday: Weekday.TUESDAY,
+        shift: Shift.AFTERNOON,
+        isAvailable: true,
+      },
+      {
+        professionalProfileId: caregiverProfile.id,
+        weekday: Weekday.WEDNESDAY,
+        shift: Shift.MORNING,
+        isAvailable: true,
+      },
+      {
+        professionalProfileId: caregiverProfile.id,
+        weekday: Weekday.THURSDAY,
+        shift: Shift.AFTERNOON,
+        isAvailable: true,
+      },
+      {
+        professionalProfileId: caregiverProfile.id,
+        weekday: Weekday.FRIDAY,
+        shift: Shift.MORNING,
+        isAvailable: true,
+      },
+    ],
+  });
+
+  await prisma.professionalDocument.deleteMany({
+    where: { professionalProfileId: caregiverProfile.id },
+  });
+
+  await prisma.professionalDocument.create({
+    data: {
+      professionalProfileId: caregiverProfile.id,
+      documentType: DocumentType.IDENTITY,
+      fileUrl: DEMO_WORDPRESS_FILE,
+      status: VerificationStatus.VERIFIED,
+    },
+  });
+
+  console.log("Seeded local dev users (admin, family, caregiver).");
+}
+
 async function seedDemoFamilies() {
   const familyIdsBySlug = new Map<string, string>();
   const now = new Date();
@@ -794,6 +984,7 @@ async function deleteStaleDemoUsers() {
 
 async function main() {
   await seedSuperAdmin();
+  await seedLocalDevUsers();
   await deleteStaleDemoUsers();
   const familyIdsBySlug = await seedDemoFamilies();
   await seedDemoProfessionals();

@@ -1,4 +1,4 @@
-import { auth, signIn, signOut } from "@/auth";
+import { auth, signOut } from "@/auth";
 import { AppIcon } from "@/components/theme/app-icon";
 import { CtaButton } from "@/components/theme/cta-button";
 import { DrawerNav } from "@/components/theme/drawer-nav";
@@ -107,16 +107,9 @@ export async function SiteHeader() {
                 </form>
               </>
             ) : (
-              <form
-                action={async () => {
-                  "use server";
-                  await signIn("google", { redirectTo: "/dashboard" });
-                }}
-              >
-                <CtaButton type="submit" variant="primary" size="sm" icon={LogIn}>
-                  Entrar com Google
-                </CtaButton>
-              </form>
+              <CtaButton href="/login" variant="primary" size="sm" icon={LogIn}>
+                Entrar
+              </CtaButton>
             )}
           </nav>
 
@@ -165,17 +158,9 @@ export async function SiteHeader() {
                 </form>
               </>
             ) : (
-              <form
-                className="pt-1"
-                action={async () => {
-                  "use server";
-                  await signIn("google", { redirectTo: "/dashboard" });
-                }}
-              >
-                <CtaButton type="submit" variant="primary" className="w-full" icon={LogIn}>
-                  Entrar com Google
-                </CtaButton>
-              </form>
+              <CtaButton href="/login" variant="primary" className="w-full" icon={LogIn}>
+                Entrar
+              </CtaButton>
             )}
           </DrawerNav>
         </div>

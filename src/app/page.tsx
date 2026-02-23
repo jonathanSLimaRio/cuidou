@@ -1,4 +1,4 @@
-import { auth, signIn } from "@/auth";
+import { auth } from "@/auth";
 import { ActionButton } from "@/components/theme/action-button";
 import { AppIcon } from "@/components/theme/app-icon";
 import { BlobDecor } from "@/components/theme/blob-decor";
@@ -189,16 +189,9 @@ export default async function Home() {
                     Ir para dashboard
                   </CtaButton>
                 ) : (
-                  <form
-                    action={async () => {
-                      "use server";
-                      await signIn("google", { redirectTo: "/dashboard" });
-                    }}
-                  >
-                    <CtaButton type="submit" size="lg" icon={LogIn}>
-                      Entrar com Google
-                    </CtaButton>
-                  </form>
+                  <CtaButton href="/login" size="lg" icon={LogIn}>
+                    Entrar
+                  </CtaButton>
                 )}
 
                 <CtaButton href="/marketplace/jobs" variant="outline" size="lg" icon={BriefcaseBusiness}>
@@ -402,16 +395,9 @@ export default async function Home() {
                 Acessar painel
               </CtaButton>
             ) : (
-              <form
-                action={async () => {
-                  "use server";
-                  await signIn("google", { redirectTo: "/dashboard" });
-                }}
-              >
-                <CtaButton type="submit" variant="light" size="lg" icon={LogIn}>
-                  Criar conta com Google
-                </CtaButton>
-              </form>
+              <CtaButton href="/login" variant="light" size="lg" icon={LogIn}>
+                Entrar
+              </CtaButton>
             )}
             <CtaButton
               href="/marketplace/jobs"
