@@ -1,26 +1,292 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --theme-navy: #262f71;
+  --theme-indigo: #4559b3;
+  --theme-indigo-strong: #0e1755;
+  --theme-pink: #ffb9cc;
+  --theme-pink-strong: #f79eb8;
+  --theme-yellow: #ffd786;
+  --theme-sky: #88d4f2;
+  --theme-sky-strong: #59bfd6;
+  --theme-cream: #fff8ea;
+  --theme-bg: #f6f8ff;
+  --theme-body: #4f5b8a;
+  --theme-muted: #7f808c;
+  --theme-border: #dce3ff;
+  --theme-radius-lg: 28px;
+  --theme-radius-xl: 36px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--theme-bg);
+  --color-foreground: var(--theme-body);
+  --font-sans: var(--font-nunito);
+  --font-display: var(--font-fredoka);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  color: var(--theme-body);
+  font-family: var(--font-nunito), "Segoe UI", sans-serif;
+  background:
+    radial-gradient(45rem 24rem at -8% 4%, rgba(255, 185, 204, 0.45), transparent 65%),
+    radial-gradient(34rem 20rem at 105% 14%, rgba(136, 212, 242, 0.45), transparent 68%),
+    linear-gradient(180deg, #f7f9ff 0%, #f2f5ff 40%, #f8fbff 100%);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-display {
+  color: var(--theme-navy);
+  font-family: var(--font-fredoka), "Trebuchet MS", sans-serif;
+  letter-spacing: 0.01em;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--theme-indigo);
+  outline-offset: 2px;
+}
+
+main {
+  position: relative;
+  z-index: 1;
+}
+
+.theme-page {
+  position: relative;
+  padding: 2rem 0 4rem;
+}
+
+.theme-container {
+  width: 100%;
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.theme-auth-shell {
+  display: grid;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.theme-auth-side {
+  display: none;
+}
+
+.theme-card {
+  border: 1px solid var(--theme-border);
+  border-radius: var(--theme-radius-lg);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 24px 60px -44px rgba(20, 37, 118, 0.85);
+}
+
+.theme-card-soft {
+  border: 1px solid var(--theme-border);
+  border-radius: var(--theme-radius-lg);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 255, 0.9));
+  box-shadow: 0 16px 36px -32px rgba(30, 46, 128, 0.7);
+}
+
+.theme-list-card {
+  border: 1px solid var(--theme-border);
+  border-radius: 1.1rem;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.theme-list-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 28px -24px rgba(24, 40, 116, 0.7);
+}
+
+.theme-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 0.2rem 0.75rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.theme-chip-blue {
+  color: var(--theme-indigo-strong);
+  background: rgba(136, 212, 242, 0.38);
+  border-color: rgba(89, 191, 214, 0.35);
+}
+
+.theme-chip-pink {
+  color: #9a3556;
+  background: rgba(255, 185, 204, 0.4);
+  border-color: rgba(247, 158, 184, 0.35);
+}
+
+.theme-chip-yellow {
+  color: #916513;
+  background: rgba(255, 215, 134, 0.45);
+  border-color: rgba(247, 195, 90, 0.35);
+}
+
+.theme-chip-indigo {
+  color: white;
+  background: var(--theme-indigo);
+  border-color: transparent;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-soft {
+  min-height: 2.75rem;
+  border-radius: 999px;
+  padding: 0.6rem 1.1rem;
+  font-family: var(--font-fredoka), "Trebuchet MS", sans-serif;
+  font-size: 0.95rem;
+  line-height: 1;
+  font-weight: 500;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-primary {
+  color: white;
+  background: var(--theme-indigo);
+  border: 1px solid transparent;
+}
+
+.btn-primary:hover {
+  background: var(--theme-indigo-strong);
+}
+
+.btn-secondary {
+  color: var(--theme-indigo);
+  background: white;
+  border: 1px solid var(--theme-indigo);
+}
+
+.btn-secondary:hover {
+  color: white;
+  background: var(--theme-indigo);
+}
+
+.btn-soft {
+  color: var(--theme-indigo-strong);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(6px);
+}
+
+.btn-soft:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.theme-field {
+  min-height: 2.75rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 0.95rem;
+  background: white;
+  padding: 0.55rem 0.8rem;
+  color: var(--theme-indigo-strong);
+}
+
+.theme-field::placeholder {
+  color: #97a0c4;
+}
+
+.theme-muted {
+  color: var(--theme-muted);
+}
+
+.theme-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(142, 156, 225, 0),
+    rgba(142, 156, 225, 0.6),
+    rgba(142, 156, 225, 0)
+  );
+}
+
+.animate-fade-up {
+  animation: fade-up 0.52s ease both;
+}
+
+.animate-float-slow {
+  animation: float-slow 6.6s ease-in-out infinite;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@media (min-width: 768px) {
+  .theme-auth-shell {
+    grid-template-columns: minmax(16rem, 1fr) minmax(24rem, 1.05fr);
+  }
+
+  .theme-auth-side {
+    position: relative;
+    display: flex;
+    overflow: hidden;
+    border: 1px solid var(--theme-border);
+    border-radius: var(--theme-radius-xl);
+    background: linear-gradient(165deg, var(--theme-indigo-strong), var(--theme-indigo));
+    color: white;
+    box-shadow: 0 28px 62px -40px rgba(19, 32, 105, 0.92);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

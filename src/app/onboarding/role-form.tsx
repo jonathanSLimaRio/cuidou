@@ -50,36 +50,36 @@ export function OnboardingRoleForm() {
   }
 
   return (
-    <div className="mt-6 space-y-4">
+    <div className="mt-7 space-y-5">
       <div className="grid gap-3 sm:grid-cols-2">
         <button
           type="button"
           onClick={() => setRole("FAMILY")}
-          className={`rounded-lg border px-4 py-3 text-left ${
+          className={`theme-list-card text-left ${
             role === "FAMILY"
-              ? "border-zinc-900 bg-zinc-100"
-              : "border-black/10 bg-white"
+              ? "border-[var(--theme-indigo)] bg-[var(--theme-pink)]/35"
+              : ""
           }`}
         >
-          <p className="font-medium">Família</p>
-          <p className="text-sm text-zinc-600">Publicar vagas e contratar</p>
+          <p className="font-display text-lg text-[var(--theme-navy)]">Família</p>
+          <p className="mt-1 text-sm text-[var(--theme-muted)]">Publicar vagas e contratar</p>
         </button>
 
         <button
           type="button"
           onClick={() => setRole("PROFESSIONAL")}
-          className={`rounded-lg border px-4 py-3 text-left ${
+          className={`theme-list-card text-left ${
             role === "PROFESSIONAL"
-              ? "border-zinc-900 bg-zinc-100"
-              : "border-black/10 bg-white"
+              ? "border-[var(--theme-indigo)] bg-[var(--theme-sky)]/30"
+              : ""
           }`}
         >
-          <p className="font-medium">Profissional</p>
-          <p className="text-sm text-zinc-600">Candidatar-se às vagas</p>
+          <p className="font-display text-lg text-[var(--theme-navy)]">Profissional</p>
+          <p className="mt-1 text-sm text-[var(--theme-muted)]">Candidatar-se às vagas</p>
         </button>
       </div>
 
-      <label className="flex items-start gap-2 text-sm text-zinc-700">
+      <label className="flex items-start gap-2 rounded-xl border border-[var(--theme-border)] bg-white px-3 py-2 text-sm text-[var(--theme-body)]">
         <input
           type="checkbox"
           checked={acceptTerms}
@@ -89,7 +89,7 @@ export function OnboardingRoleForm() {
         Aceito os Termos de Uso.
       </label>
 
-      <label className="flex items-start gap-2 text-sm text-zinc-700">
+      <label className="flex items-start gap-2 rounded-xl border border-[var(--theme-border)] bg-white px-3 py-2 text-sm text-[var(--theme-body)]">
         <input
           type="checkbox"
           checked={acceptPrivacy}
@@ -99,13 +99,17 @@ export function OnboardingRoleForm() {
         Aceito a Política de Privacidade (LGPD).
       </label>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      ) : null}
 
       <button
         type="button"
         onClick={submit}
         disabled={loading}
-        className="rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+        className="btn-primary w-full disabled:opacity-60"
       >
         {loading ? "Salvando..." : "Finalizar onboarding"}
       </button>

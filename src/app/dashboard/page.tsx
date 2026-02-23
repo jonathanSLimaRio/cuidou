@@ -1,6 +1,9 @@
 import { auth } from "@/auth";
+import { CtaButton } from "@/components/theme/cta-button";
+import { MetricCard } from "@/components/theme/metric-card";
+import { PageHero } from "@/components/theme/page-hero";
+import { SectionShell } from "@/components/theme/section-shell";
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -35,31 +38,60 @@ export default async function DashboardPage() {
       ]);
 
     return (
-      <main className="mx-auto w-full max-w-5xl px-6 py-10">
-        <h1 className="text-2xl font-semibold text-zinc-900">Dashboard da Família</h1>
-        <p className="mt-2 text-zinc-600">Gerencie vagas, contratos, candidaturas e conversas.</p>
+      <main className="theme-page">
+        <div className="theme-container space-y-6">
+          <PageHero
+            eyebrow="Dashboard"
+            title="Painel da Família"
+            description="Acompanhe vagas, candidaturas, contratos e conversas em um único espaço."
+            actions={
+              <>
+                <CtaButton href="/family">Ir para área da família</CtaButton>
+                <CtaButton href="/marketplace/jobs" variant="outline">
+                  Ver vagas públicas
+                </CtaButton>
+                <CtaButton href="/chat" variant="soft">
+                  Abrir chat
+                </CtaButton>
+              </>
+            }
+          />
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <Card title="Vagas criadas" value={jobs} />
-          <Card title="Conversas" value={conversations} />
-          <Card title="Notificações não lidas" value={notifications} />
-          <Card title="Contratos ativos" value={contractsInProgress} />
-          <Card title="Contratos concluídos" value={contractsCompleted} />
-        </div>
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <MetricCard label="Vagas criadas" value={jobs} tone="pink" />
+            <MetricCard label="Conversas" value={conversations} tone="blue" />
+            <MetricCard label="Notificações não lidas" value={notifications} tone="yellow" />
+            <MetricCard label="Contratos ativos" value={contractsInProgress} tone="indigo" />
+            <MetricCard label="Contratos concluídos" value={contractsCompleted} tone="white" />
+          </section>
 
-        <div className="mt-8 flex gap-3">
-          <Link href="/family" className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white">
-            Ir para área da família
-          </Link>
-          <Link
-            href="/marketplace/jobs"
-            className="rounded-lg border border-black/10 bg-white px-4 py-2 text-sm text-zinc-800"
+          <SectionShell
+            tone="tint"
+            eyebrow="Resumo rápido"
+            title="Fluxo atual da família"
+            description="Publique vagas, aprove candidaturas e conduza a contratação com histórico registrado."
           >
-            Ver vagas públicas
-          </Link>
-          <Link href="/chat" className="rounded-lg border border-black/10 bg-white px-4 py-2 text-sm text-zinc-800">
-            Abrir chat
-          </Link>
+            <div className="grid gap-4 md:grid-cols-3">
+              <article className="theme-list-card">
+                <h2 className="text-xl font-display text-[var(--theme-navy)]">Publicação de vagas</h2>
+                <p className="mt-2 text-sm text-[var(--theme-body)]">
+                  Crie e gerencie vagas com controle de status e volume de candidaturas.
+                </p>
+              </article>
+              <article className="theme-list-card">
+                <h2 className="text-xl font-display text-[var(--theme-navy)]">Contratos explícitos</h2>
+                <p className="mt-2 text-sm text-[var(--theme-body)]">
+                  Contratos seguem estados em andamento, concluído e cancelado.
+                </p>
+              </article>
+              <article className="theme-list-card">
+                <h2 className="text-xl font-display text-[var(--theme-navy)]">Contato protegido</h2>
+                <p className="mt-2 text-sm text-[var(--theme-body)]">
+                  Conversa privada apenas após aceite, com anexos e mensagens rápidas.
+                </p>
+              </article>
+            </div>
+          </SectionShell>
         </div>
       </main>
     );
@@ -79,41 +111,61 @@ export default async function DashboardPage() {
     ]);
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-10">
-      <h1 className="text-2xl font-semibold text-zinc-900">Dashboard do Profissional</h1>
-      <p className="mt-2 text-zinc-600">Acompanhe candidaturas, contratos e conversas.</p>
+    <main className="theme-page">
+      <div className="theme-container space-y-6">
+        <PageHero
+          eyebrow="Dashboard"
+          title="Painel do Profissional"
+          description="Acompanhe oportunidades, candidaturas enviadas, contratos e mensagens ativas."
+          actions={
+            <>
+              <CtaButton href="/professional">Ir para área profissional</CtaButton>
+              <CtaButton href="/marketplace/jobs" variant="outline">
+                Buscar vagas
+              </CtaButton>
+              <CtaButton href="/chat" variant="soft">
+                Abrir chat
+              </CtaButton>
+            </>
+          }
+        />
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <Card title="Candidaturas" value={applications} />
-        <Card title="Conversas" value={conversations} />
-        <Card title="Notificações não lidas" value={notifications} />
-        <Card title="Contratos ativos" value={contractsInProgress} />
-        <Card title="Contratos concluídos" value={contractsCompleted} />
-      </div>
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <MetricCard label="Candidaturas" value={applications} tone="pink" />
+          <MetricCard label="Conversas" value={conversations} tone="blue" />
+          <MetricCard label="Notificações não lidas" value={notifications} tone="yellow" />
+          <MetricCard label="Contratos ativos" value={contractsInProgress} tone="indigo" />
+          <MetricCard label="Contratos concluídos" value={contractsCompleted} tone="white" />
+        </section>
 
-      <div className="mt-8 flex gap-3">
-        <Link href="/professional" className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white">
-          Ir para área profissional
-        </Link>
-        <Link
-          href="/marketplace/jobs"
-          className="rounded-lg border border-black/10 bg-white px-4 py-2 text-sm text-zinc-800"
+        <SectionShell
+          tone="tint"
+          eyebrow="Resumo rápido"
+          title="Sua jornada na Cuidou"
+          description="Mantenha perfil e agenda atualizados para melhorar seu matching com novas vagas."
         >
-          Buscar vagas
-        </Link>
-        <Link href="/chat" className="rounded-lg border border-black/10 bg-white px-4 py-2 text-sm text-zinc-800">
-          Abrir chat
-        </Link>
+          <div className="grid gap-4 md:grid-cols-3">
+            <article className="theme-list-card">
+              <h2 className="text-xl font-display text-[var(--theme-navy)]">Perfil completo</h2>
+              <p className="mt-2 text-sm text-[var(--theme-body)]">
+                Complete bio, especialidades e localização para maior visibilidade.
+              </p>
+            </article>
+            <article className="theme-list-card">
+              <h2 className="text-xl font-display text-[var(--theme-navy)]">Agenda por turnos</h2>
+              <p className="mt-2 text-sm text-[var(--theme-body)]">
+                Defina dias e turnos disponíveis com exceções por data.
+              </p>
+            </article>
+            <article className="theme-list-card">
+              <h2 className="text-xl font-display text-[var(--theme-navy)]">Reputação</h2>
+              <p className="mt-2 text-sm text-[var(--theme-body)]">
+                Avaliações pós-contratação fortalecem confiança para próximas vagas.
+              </p>
+            </article>
+          </div>
+        </SectionShell>
       </div>
     </main>
-  );
-}
-
-function Card({ title, value }: { title: string; value: number }) {
-  return (
-    <div className="rounded-xl border border-black/10 bg-white p-5">
-      <p className="text-sm text-zinc-500">{title}</p>
-      <p className="mt-2 text-3xl font-semibold text-zinc-900">{value}</p>
-    </div>
   );
 }

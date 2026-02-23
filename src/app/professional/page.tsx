@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
+import { CtaButton } from "@/components/theme/cta-button";
+import { PageHero } from "@/components/theme/page-hero";
+import { SectionShell } from "@/components/theme/section-shell";
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AvailabilityManager } from "./availability-manager";
 
@@ -53,68 +55,94 @@ export default async function ProfessionalAreaPage() {
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-10">
-      <h1 className="text-2xl font-semibold text-zinc-900">Área do Profissional</h1>
-      <p className="mt-2 text-zinc-600">Atualize perfil, agenda, documentos e candidaturas.</p>
+    <main className="theme-page">
+      <div className="theme-container space-y-6">
+        <PageHero
+          eyebrow="Área profissional"
+          title="Mantenha perfil e agenda sempre atualizados"
+          description="Gerencie verificações, candidaturas enviadas e disponibilidade semanal para novas oportunidades."
+          actions={
+            <>
+              <CtaButton href="/dashboard">Voltar ao dashboard</CtaButton>
+              <CtaButton href="/marketplace/jobs" variant="outline">
+                Buscar vagas
+              </CtaButton>
+            </>
+          }
+        />
 
-      <section className="mt-8 rounded-xl border border-black/10 bg-white p-5">
-        <h2 className="text-lg font-medium text-zinc-900">Perfil profissional</h2>
-        <p className="mt-2 text-sm text-zinc-700">
-          Verificação: {profile?.verificationStatus ?? "NOT_SUBMITTED"}
-        </p>
-        <p className="text-sm text-zinc-700">
-          Localização: {profile?.city ?? "-"} / {profile?.state ?? "-"}
-        </p>
-        <p className="text-sm text-zinc-700">
-          Especialidades: {profile?.serviceTypes.join(", ") || "não definidas"}
-        </p>
-      </section>
+        <SectionShell tone="light" eyebrow="Perfil" title="Resumo profissional">
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="theme-list-card">
+              <p className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Verificação</p>
+              <p className="mt-2 text-lg font-display text-[var(--theme-navy)]">
+                {profile?.verificationStatus ?? "NOT_SUBMITTED"}
+              </p>
+            </div>
+            <div className="theme-list-card">
+              <p className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Localização</p>
+              <p className="mt-2 text-lg font-display text-[var(--theme-navy)]">
+                {profile?.city ?? "-"} / {profile?.state ?? "-"}
+              </p>
+            </div>
+            <div className="theme-list-card">
+              <p className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Especialidades</p>
+              <p className="mt-2 text-lg font-display text-[var(--theme-navy)]">
+                {profile?.serviceTypes.join(", ") || "Não definidas"}
+              </p>
+            </div>
+          </div>
+        </SectionShell>
 
-      <AvailabilityManager
-        initialWeeklySlots={
-          profile?.availabilitySlots.map((slot) => ({
-            weekday: slot.weekday,
-            shift: slot.shift,
-            isAvailable: slot.isAvailable,
-          })) ?? []
-        }
-        initialExceptions={
-          profile?.availabilityExceptions.map((item) => ({
-            date: item.date.toISOString().slice(0, 10),
-            shift: item.shift,
-            isAvailable: item.isAvailable,
-            note: item.note,
-          })) ?? []
-        }
-        legacyAvailabilityText={profile?.availability}
-      />
+        <AvailabilityManager
+          initialWeeklySlots={
+            profile?.availabilitySlots.map((slot) => ({
+              weekday: slot.weekday,
+              shift: slot.shift,
+              isAvailable: slot.isAvailable,
+            })) ?? []
+          }
+          initialExceptions={
+            profile?.availabilityExceptions.map((item) => ({
+              date: item.date.toISOString().slice(0, 10),
+              shift: item.shift,
+              isAvailable: item.isAvailable,
+              note: item.note,
+            })) ?? []
+          }
+          legacyAvailabilityText={profile?.availability}
+        />
 
-      <section className="mt-6 rounded-xl border border-black/10 bg-white p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium text-zinc-900">Candidaturas enviadas</h2>
-          <Link
-            href="/marketplace/jobs"
-            className="text-sm font-medium text-zinc-700 hover:text-zinc-900"
-          >
-            Buscar vagas
-          </Link>
-        </div>
-
-        <ul className="mt-4 space-y-3">
+        <SectionShell
+          tone="tint"
+          eyebrow="Candidaturas"
+          title="Candidaturas enviadas"
+          description="Acompanhe status e contexto das vagas onde você já demonstrou interesse."
+        >
           {applications.length === 0 ? (
-            <li className="text-sm text-zinc-600">Nenhuma candidatura enviada ainda.</li>
+            <div className="theme-card-soft rounded-3xl p-5 text-sm text-[var(--theme-muted)]">
+              Nenhuma candidatura enviada ainda.
+            </div>
           ) : (
-            applications.map((application) => (
-              <li key={application.id} className="rounded-lg border border-black/10 p-4">
-                <p className="font-medium text-zinc-900">{application.job.title}</p>
-                <p className="text-sm text-zinc-600">
-                  {application.job.city}/{application.job.state} - {application.status}
-                </p>
-              </li>
-            ))
+            <ul className="grid gap-4 md:grid-cols-2">
+              {applications.map((application) => (
+                <li key={application.id} className="theme-list-card p-5">
+                  <div className="flex flex-wrap gap-2">
+                    <span className="theme-chip theme-chip-blue">
+                      {application.job.city}/{application.job.state}
+                    </span>
+                    <span className="theme-chip theme-chip-yellow">{application.status}</span>
+                  </div>
+
+                  <h2 className="mt-4 text-2xl font-display text-[var(--theme-navy)]">
+                    {application.job.title}
+                  </h2>
+                </li>
+              ))}
+            </ul>
           )}
-        </ul>
-      </section>
+        </SectionShell>
+      </div>
     </main>
   );
 }

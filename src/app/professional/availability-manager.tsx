@@ -161,25 +161,35 @@ export function AvailabilityManager({
   }
 
   return (
-    <section className="mt-6 rounded-xl border border-black/10 bg-white p-5">
-      <h2 className="text-lg font-medium text-zinc-900">Agenda semanal por turnos</h2>
-      <p className="mt-2 text-sm text-zinc-600">
+    <section className="theme-card rounded-[36px] px-6 py-8 sm:px-8">
+      <p className="theme-chip theme-chip-blue w-fit">Agenda semanal</p>
+      <h2 className="mt-4 text-3xl font-display text-[var(--theme-navy)]">
+        Disponibilidade por turnos
+      </h2>
+      <p className="mt-2 text-sm text-[var(--theme-body)]">
         Defina sua disponibilidade por dia da semana e turnos fixos.
       </p>
 
       {legacyAvailabilityText ? (
-        <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <p className="mt-4 rounded-xl border border-[#f4d087] bg-[var(--theme-yellow)]/30 px-3 py-2 text-xs text-[#8c6515]">
           Disponibilidade legada (texto): {legacyAvailabilityText}
         </p>
       ) : null}
 
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-5 overflow-x-auto rounded-2xl border border-[var(--theme-border)] bg-white p-2">
         <table className="w-full min-w-[620px] border-collapse text-sm">
           <thead>
             <tr>
-              <th className="border border-black/10 bg-zinc-50 p-2 text-left">Dia</th>
-              {shifts.map((shift) => (
-                <th key={shift} className="border border-black/10 bg-zinc-50 p-2 text-center">
+              <th className="rounded-l-xl bg-[var(--theme-cream)] p-2 text-left font-display text-[var(--theme-navy)]">
+                Dia
+              </th>
+              {shifts.map((shift, index) => (
+                <th
+                  key={shift}
+                  className={`bg-[var(--theme-cream)] p-2 text-center font-display text-[var(--theme-navy)] ${
+                    index === shifts.length - 1 ? "rounded-r-xl" : ""
+                  }`}
+                >
                   {shiftLabel[shift]}
                 </th>
               ))}
@@ -187,14 +197,15 @@ export function AvailabilityManager({
           </thead>
           <tbody>
             {weekdays.map((weekday) => (
-              <tr key={weekday}>
-                <td className="border border-black/10 p-2 font-medium">{weekdayLabel[weekday]}</td>
+              <tr key={weekday} className="border-b border-[var(--theme-border)] last:border-0">
+                <td className="p-2 font-display text-[var(--theme-navy)]">{weekdayLabel[weekday]}</td>
                 {shifts.map((shift) => (
-                  <td key={`${weekday}-${shift}`} className="border border-black/10 p-2 text-center">
+                  <td key={`${weekday}-${shift}`} className="p-2 text-center">
                     <input
                       type="checkbox"
                       checked={matrix[weekday][shift]}
                       onChange={() => toggle(weekday, shift)}
+                      className="h-4 w-4 rounded border-[var(--theme-border)] text-[var(--theme-indigo)]"
                     />
                   </td>
                 ))}
@@ -204,25 +215,28 @@ export function AvailabilityManager({
         </table>
       </div>
 
-      <div className="mt-6">
-        <h3 className="text-sm font-medium text-zinc-900">Exceções por data</h3>
-        <p className="mt-1 text-xs text-zinc-600">
+      <div className="mt-7">
+        <h3 className="text-xl font-display text-[var(--theme-navy)]">Exceções por data</h3>
+        <p className="mt-1 text-sm text-[var(--theme-muted)]">
           Use para bloquear ou liberar turnos em dias específicos.
         </p>
 
         <div className="mt-3 space-y-3">
           {exceptions.map((item, index) => (
-            <div key={`exception-${index}`} className="grid gap-2 rounded-md border border-black/10 p-3 sm:grid-cols-5">
+            <div
+              key={`exception-${index}`}
+              className="grid gap-2 rounded-2xl border border-[var(--theme-border)] bg-white p-3 sm:grid-cols-5"
+            >
               <input
                 type="date"
                 value={item.date}
                 onChange={(event) => updateException(index, { date: event.target.value })}
-                className="rounded-md border border-black/10 px-2 py-1"
+                className="theme-field"
               />
               <select
                 value={item.shift}
                 onChange={(event) => updateException(index, { shift: event.target.value as Shift })}
-                className="rounded-md border border-black/10 px-2 py-1"
+                className="theme-field"
               >
                 {shifts.map((shift) => (
                   <option key={shift} value={shift}>
@@ -235,7 +249,7 @@ export function AvailabilityManager({
                 onChange={(event) =>
                   updateException(index, { isAvailable: event.target.value === "available" })
                 }
-                className="rounded-md border border-black/10 px-2 py-1"
+                className="theme-field"
               >
                 <option value="unavailable">Indisponível</option>
                 <option value="available">Disponível</option>
@@ -245,12 +259,12 @@ export function AvailabilityManager({
                 value={item.note ?? ""}
                 placeholder="Observação"
                 onChange={(event) => updateException(index, { note: event.target.value })}
-                className="rounded-md border border-black/10 px-2 py-1"
+                className="theme-field"
               />
               <button
                 type="button"
                 onClick={() => removeException(index)}
-                className="rounded-md border border-red-200 px-2 py-1 text-red-700 hover:bg-red-50"
+                className="btn-secondary"
               >
                 Remover
               </button>
@@ -258,23 +272,27 @@ export function AvailabilityManager({
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={addException}
-          className="mt-3 rounded-md border border-black/10 px-3 py-1.5 text-sm hover:bg-zinc-50"
-        >
+        <button type="button" onClick={addException} className="btn-secondary mt-3">
           Adicionar exceção
         </button>
       </div>
 
-      {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
-      {message ? <p className="mt-4 text-sm text-emerald-700">{message}</p> : null}
+      {error ? (
+        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      ) : null}
+      {message ? (
+        <p className="mt-4 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+          {message}
+        </p>
+      ) : null}
 
       <button
         type="button"
         disabled={saving}
         onClick={save}
-        className="mt-4 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+        className="btn-primary mt-4 disabled:opacity-60"
       >
         {saving ? "Salvando..." : "Salvar agenda"}
       </button>

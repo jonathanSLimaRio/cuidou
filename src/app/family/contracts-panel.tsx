@@ -23,6 +23,18 @@ type Props = {
   initialContracts: ContractItem[];
 };
 
+function statusTone(status: ContractStatus) {
+  if (status === ContractStatus.IN_PROGRESS) {
+    return "theme-chip-blue";
+  }
+
+  if (status === ContractStatus.COMPLETED) {
+    return "theme-chip-yellow";
+  }
+
+  return "theme-chip-pink";
+}
+
 export function FamilyContractsPanel({ initialContracts }: Props) {
   const [contracts, setContracts] = useState(initialContracts);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -114,37 +126,51 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
   }
 
   return (
-    <section className="mt-6 rounded-xl border border-black/10 bg-white p-5">
-      <h2 className="text-lg font-medium text-zinc-900">Contratos</h2>
-      <p className="mt-1 text-sm text-zinc-600">
+    <section className="theme-card rounded-[36px] px-6 py-8 sm:px-8">
+      <p className="theme-chip theme-chip-blue w-fit">Contratos</p>
+      <h2 className="mt-4 text-3xl font-display text-[var(--theme-navy)]">
+        Gestão de contratos
+      </h2>
+      <p className="mt-2 text-sm text-[var(--theme-body)]">
         Gerencie contratos em andamento, concluídos e cancelados.
       </p>
 
-      {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+      {error ? (
+        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      ) : null}
 
-      <ul className="mt-4 space-y-3">
+      <ul className="mt-5 space-y-3">
         {contracts.length === 0 ? (
-          <li className="text-sm text-zinc-600">Nenhum contrato criado ainda.</li>
+          <li className="theme-card-soft rounded-2xl px-4 py-3 text-sm text-[var(--theme-muted)]">
+            Nenhum contrato criado ainda.
+          </li>
         ) : (
           contracts.map((contract) => (
-            <li key={contract.id} className="rounded-lg border border-black/10 p-4">
-              <p className="font-medium text-zinc-900">{contract.job.title}</p>
-              <p className="text-sm text-zinc-600">
+            <li key={contract.id} className="theme-list-card p-5">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <h3 className="text-xl font-display text-[var(--theme-navy)]">{contract.job.title}</h3>
+                <span className={`theme-chip ${statusTone(contract.status)}`}>{contract.status}</span>
+              </div>
+
+              <p className="mt-2 text-sm text-[var(--theme-body)]">
                 Profissional: {contract.professional.name ?? "-"}
               </p>
-              <p className="text-sm text-zinc-600">Status: {contract.status}</p>
 
               {contract.status === ContractStatus.CANCELED && contract.cancelReason ? (
-                <p className="mt-1 text-xs text-zinc-500">Motivo: {contract.cancelReason}</p>
+                <p className="mt-2 rounded-xl bg-[var(--theme-pink)]/25 px-3 py-2 text-xs text-[#983f5a]">
+                  Motivo: {contract.cancelReason}
+                </p>
               ) : null}
 
               {contract.status === ContractStatus.IN_PROGRESS ? (
-                <div className="mt-3 flex gap-2">
+                <div className="mt-4 flex flex-wrap gap-2">
                   <button
                     type="button"
                     disabled={busyId === contract.id}
                     onClick={() => completeContract(contract.id)}
-                    className="rounded-md bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-600 disabled:opacity-60"
+                    className="btn-primary disabled:opacity-60"
                   >
                     Concluir
                   </button>
@@ -152,7 +178,7 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
                     type="button"
                     disabled={busyId === contract.id}
                     onClick={() => cancelContract(contract.id)}
-                    className="rounded-md bg-red-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600 disabled:opacity-60"
+                    className="btn-secondary disabled:opacity-60"
                   >
                     Cancelar
                   </button>
