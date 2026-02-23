@@ -28,6 +28,9 @@ model User {
   applications                JobApplication[]       @relation("ProfessionalApplications")
   conversationsAsFamily       Conversation[]         @relation("FamilyConversations")
   conversationsAsProfessional Conversation[]         @relation("ProfessionalConversations")
+  contractsAsFamily           Contract[]             @relation("FamilyContracts")
+  contractsAsProfessional     Contract[]             @relation("ProfessionalContracts")
+  contractsCanceled           Contract[]             @relation("ContractCanceledBy")
   sentMessages                Message[]              @relation("MessageSender")
   notifications               Notification[]
   reviewsGiven                Review[]               @relation("ReviewsGiven")
@@ -107,9 +110,42 @@ model ProfessionalProfile {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  documents ProfessionalDocument[]
-  reports   Report[]               @relation("ReportsTargetProfessionalProfile")
+  user                   User                                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents              ProfessionalDocument[]
+  availabilitySlots      ProfessionalAvailabilitySlot[]
+  availabilityExceptions ProfessionalAvailabilityException[]
+  reports                Report[]                            @relation("ReportsTargetProfessionalProfile")
+}
+
+model ProfessionalAvailabilitySlot {
+  id                    String   @id @default(cuid())
+  professionalProfileId String
+  weekday               Weekday
+  shift                 Shift
+  isAvailable           Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  professionalProfile ProfessionalProfile @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([professionalProfileId, weekday, shift])
+  @@index([professionalProfileId])
+}
+
+model ProfessionalAvailabilityException {
+  id                    String   @id @default(cuid())
+  professionalProfileId String
+  date                  DateTime @db.Date
+  shift                 Shift
+  isAvailable           Boolean  @default(false)
+  note                  String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  professionalProfile ProfessionalProfile @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([professionalProfileId, date, shift])
+  @@index([professionalProfileId, date])
 }
 
 model ProfessionalDocument {
@@ -149,6 +185,7 @@ model JobPost {
 
   family        User             @relation("FamilyJobs", fields: [familyId], references: [id], onDelete: Cascade)
   applications  JobApplication[]
+  contracts     Contract[]
   conversations Conversation[]
   reports       Report[]         @relation("ReportsTargetJob")
   reviews       Review[]
@@ -173,11 +210,38 @@ model JobApplication {
 
   job          JobPost       @relation(fields: [jobId], references: [id], onDelete: Cascade)
   professional User          @relation("ProfessionalApplications", fields: [professionalId], references: [id], onDelete: Cascade)
+  contract     Contract?
   conversation Conversation?
   reviews      Review[]
 
   @@unique([jobId, professionalId])
   @@index([jobId, status])
+  @@index([professionalId, status])
+}
+
+model Contract {
+  id             String         @id @default(cuid())
+  jobId          String
+  applicationId  String         @unique
+  familyId       String
+  professionalId String
+  status         ContractStatus @default(IN_PROGRESS)
+  startedAt      DateTime
+  completedAt    DateTime?
+  canceledAt     DateTime?
+  canceledById   String?
+  cancelReason   String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  job          JobPost        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  application  JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  family       User           @relation("FamilyContracts", fields: [familyId], references: [id], onDelete: Cascade)
+  professional User           @relation("ProfessionalContracts", fields: [professionalId], references: [id], onDelete: Cascade)
+  canceledBy   User?          @relation("ContractCanceledBy", fields: [canceledById], references: [id], onDelete: SetNull)
+
+  @@index([jobId, status])
+  @@index([familyId, status])
   @@index([professionalId, status])
 }
 
@@ -205,19 +269,38 @@ model Conversation {
 }
 
 model Message {
-  id             String    @id @default(cuid())
+  id             String      @id @default(cuid())
   conversationId String
   senderId       String
-  content        String    @db.Text
-  createdAt      DateTime  @default(now())
+  content        String      @db.Text
+  kind           MessageKind @default(TEXT)
+  quickReplyKey  String?
+  createdAt      DateTime    @default(now())
   readAt         DateTime?
 
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  reports      Report[]     @relation("ReportsTargetMessage")
+  conversation Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User                @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  attachments  MessageAttachment[]
+  reports      Report[]            @relation("ReportsTargetMessage")
 
   @@index([conversationId, createdAt])
   @@index([senderId])
+}
+
+model MessageAttachment {
+  id          String   @id @default(cuid())
+  messageId   String
+  pathname    String
+  url         String
+  downloadUrl String
+  mimeType    String
+  sizeBytes   Int
+  fileName    String
+  createdAt   DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
 }
 
 model Review {
@@ -332,6 +415,23 @@ enum ServiceType {
   ELDER_CAREGIVER
 }
 
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum Shift {
+  MORNING
+  AFTERNOON
+  EVENING
+  OVERNIGHT
+}
+
 enum VerificationStatus {
   NOT_SUBMITTED
   UNDER_REVIEW
@@ -354,6 +454,18 @@ enum ApplicationStatus {
   WITHDRAWN
 }
 
+enum ContractStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum MessageKind {
+  TEXT
+  QUICK_REPLY
+  TEXT_WITH_ATTACHMENTS
+}
+
 enum ReportStatus {
   OPEN
   IN_REVIEW
@@ -373,6 +485,7 @@ enum NotificationType {
   APPLICATION_RECEIVED
   APPLICATION_STATUS_UPDATED
   CHAT_MESSAGE
+  CONTRACT_STATUS_UPDATED
   DOCUMENT_STATUS_UPDATED
   REPORT_STATUS_UPDATED
   SYSTEM
@@ -393,6 +506,8 @@ enum AuditAction {
   JOB_STATUS_UPDATED
   USER_STATUS_UPDATED
   ADMIN_INVITE_CREATED
+  CONTRACT_COMPLETED
+  CONTRACT_CANCELED
 }
 
 enum AuditTargetType {
@@ -401,4 +516,5 @@ enum AuditTargetType {
   JOB
   REPORT
   ADMIN_INVITE
+  CONTRACT
 }

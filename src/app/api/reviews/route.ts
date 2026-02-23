@@ -6,7 +6,7 @@ import { parseJsonBody } from "@/lib/request";
 import { reviewSchema } from "@/lib/schemas";
 import {
   ApplicationStatus,
-  JobStatus,
+  ContractStatus,
   NotificationType,
   UserRole,
 } from "@prisma/client";
@@ -30,7 +30,6 @@ export async function POST(request: Request) {
       job: {
         select: {
           id: true,
-          status: true,
           familyId: true,
           title: true,
         },
@@ -39,6 +38,11 @@ export async function POST(request: Request) {
         select: {
           id: true,
           name: true,
+        },
+      },
+      contract: {
+        select: {
+          status: true,
         },
       },
     },
@@ -52,23 +56,18 @@ export async function POST(request: Request) {
     return fail(400, "Only accepted applications can be reviewed");
   }
 
-  if (application.job.status !== JobStatus.CLOSED) {
-    return fail(400, "Close the job before reviewing");
+  if (!application.contract || application.contract.status !== ContractStatus.COMPLETED) {
+    return fail(400, "Only completed contracts can be reviewed");
   }
 
   const reviewerId = authResult.user.id;
 
-  if (
-    reviewerId !== application.job.familyId &&
-    reviewerId !== application.professionalId
-  ) {
+  if (reviewerId !== application.job.familyId && reviewerId !== application.professionalId) {
     return fail(403, "You cannot review this application");
   }
 
   const revieweeId =
-    reviewerId === application.job.familyId
-      ? application.professionalId
-      : application.job.familyId;
+    reviewerId === application.job.familyId ? application.professionalId : application.job.familyId;
 
   if (reviewerId === revieweeId) {
     return fail(400, "Invalid review target");

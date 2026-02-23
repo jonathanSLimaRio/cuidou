@@ -3,7 +3,13 @@ import { sendEmail } from "@/lib/email";
 import { fail, ok } from "@/lib/http";
 import { notifyMany } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
-import { ApplicationStatus, NotificationType, UserRole } from "@prisma/client";
+import {
+  ApplicationStatus,
+  ContractStatus,
+  JobStatus,
+  NotificationType,
+  UserRole,
+} from "@prisma/client";
 
 type Params = {
   params: Promise<{
@@ -44,6 +50,12 @@ export async function POST(_: Request, { params }: Params) {
           phone: true,
         },
       },
+      contract: {
+        select: {
+          id: true,
+          status: true,
+        },
+      },
     },
   });
 
@@ -60,6 +72,24 @@ export async function POST(_: Request, { params }: Params) {
     application.status !== ApplicationStatus.SHORTLISTED
   ) {
     return fail(400, "This application can no longer be accepted");
+  }
+
+  const activeContract = await prisma.contract.findFirst({
+    where: {
+      jobId: application.jobId,
+      status: ContractStatus.IN_PROGRESS,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (activeContract) {
+    return fail(409, "This job already has an in-progress contract");
+  }
+
+  if (application.contract) {
+    return fail(409, "This application already has an associated contract");
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -85,9 +115,28 @@ export async function POST(_: Request, { params }: Params) {
       },
     });
 
+    const contract = await tx.contract.create({
+      data: {
+        jobId: application.jobId,
+        applicationId,
+        familyId: application.job.familyId,
+        professionalId: application.professionalId,
+        status: ContractStatus.IN_PROGRESS,
+        startedAt: now,
+      },
+    });
+
+    await tx.jobPost.update({
+      where: { id: application.jobId },
+      data: {
+        status: JobStatus.PAUSED,
+      },
+    });
+
     return {
       updatedApplication,
       conversation,
+      contract,
     };
   });
 
@@ -111,19 +160,40 @@ export async function POST(_: Request, { params }: Params) {
         applicationId,
       },
     },
+    {
+      userId: application.job.familyId,
+      type: NotificationType.CONTRACT_STATUS_UPDATED,
+      title: "Contrato iniciado",
+      body: `O contrato da vaga \"${application.job.title}\" está em andamento.`,
+      data: {
+        contractId: result.contract.id,
+        status: ContractStatus.IN_PROGRESS,
+      },
+    },
+    {
+      userId: application.professionalId,
+      type: NotificationType.CONTRACT_STATUS_UPDATED,
+      title: "Contrato iniciado",
+      body: `Seu contrato para a vaga \"${application.job.title}\" está em andamento.`,
+      data: {
+        contractId: result.contract.id,
+        status: ContractStatus.IN_PROGRESS,
+      },
+    },
   ]);
 
   if (application.professional.email) {
     await sendEmail({
       to: application.professional.email,
       subject: "Sua candidatura foi aprovada",
-      html: `<p>Sua candidatura para a vaga <strong>${application.job.title}</strong> foi aprovada. Você já pode conversar com a família na plataforma.</p>`,
+      html: `<p>Sua candidatura para a vaga <strong>${application.job.title}</strong> foi aprovada. O contrato foi iniciado e você já pode conversar com a família na plataforma.</p>`,
     });
   }
 
   return ok({
     application: result.updatedApplication,
     conversation: result.conversation,
+    contract: result.contract,
     unlockedContact: {
       professional: {
         name: application.professional.name,

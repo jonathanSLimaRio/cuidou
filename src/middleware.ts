@@ -6,6 +6,7 @@ const protectedPagePrefixes = [
   "/onboarding",
   "/family",
   "/professional",
+  "/chat",
   "/admin",
 ];
 

@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AvailabilityManager } from "./availability-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,12 @@ export default async function ProfessionalAreaPage() {
           },
           take: 5,
         },
+        availabilitySlots: {
+          orderBy: [{ weekday: "asc" }, { shift: "asc" }],
+        },
+        availabilityExceptions: {
+          orderBy: [{ date: "asc" }, { shift: "asc" }],
+        },
       },
     }),
     prisma.jobApplication.findMany({
@@ -48,7 +55,7 @@ export default async function ProfessionalAreaPage() {
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-10">
       <h1 className="text-2xl font-semibold text-zinc-900">Área do Profissional</h1>
-      <p className="mt-2 text-zinc-600">Atualize perfil, documentos e candidaturas.</p>
+      <p className="mt-2 text-zinc-600">Atualize perfil, agenda, documentos e candidaturas.</p>
 
       <section className="mt-8 rounded-xl border border-black/10 bg-white p-5">
         <h2 className="text-lg font-medium text-zinc-900">Perfil profissional</h2>
@@ -62,6 +69,25 @@ export default async function ProfessionalAreaPage() {
           Especialidades: {profile?.serviceTypes.join(", ") || "não definidas"}
         </p>
       </section>
+
+      <AvailabilityManager
+        initialWeeklySlots={
+          profile?.availabilitySlots.map((slot) => ({
+            weekday: slot.weekday,
+            shift: slot.shift,
+            isAvailable: slot.isAvailable,
+          })) ?? []
+        }
+        initialExceptions={
+          profile?.availabilityExceptions.map((item) => ({
+            date: item.date.toISOString().slice(0, 10),
+            shift: item.shift,
+            isAvailable: item.isAvailable,
+            note: item.note,
+          })) ?? []
+        }
+        legacyAvailabilityText={profile?.availability}
+      />
 
       <section className="mt-6 rounded-xl border border-black/10 bg-white p-5">
         <div className="flex items-center justify-between">

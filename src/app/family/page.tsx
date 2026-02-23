@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { FamilyContractsPanel } from "./contracts-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export default async function FamilyAreaPage() {
     redirect("/dashboard");
   }
 
-  const [profile, jobs] = await Promise.all([
+  const [profile, jobs, contracts] = await Promise.all([
     prisma.familyProfile.findUnique({ where: { userId: session.user.id } }),
     prisma.jobPost.findMany({
       where: { familyId: session.user.id },
@@ -30,12 +31,31 @@ export default async function FamilyAreaPage() {
       },
       take: 20,
     }),
+    prisma.contract.findMany({
+      where: {
+        familyId: session.user.id,
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        job: {
+          select: {
+            title: true,
+          },
+        },
+        professional: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      take: 30,
+    }),
   ]);
 
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-10">
       <h1 className="text-2xl font-semibold text-zinc-900">Área da Família</h1>
-      <p className="mt-2 text-zinc-600">Gerencie perfil, vagas e candidaturas.</p>
+      <p className="mt-2 text-zinc-600">Gerencie perfil, vagas, candidaturas e contratos.</p>
 
       <section className="mt-8 rounded-xl border border-black/10 bg-white p-5">
         <h2 className="text-lg font-medium text-zinc-900">Perfil</h2>
@@ -73,6 +93,16 @@ export default async function FamilyAreaPage() {
           )}
         </ul>
       </section>
+
+      <FamilyContractsPanel
+        initialContracts={contracts.map((contract) => ({
+          ...contract,
+          createdAt: contract.createdAt.toISOString(),
+          startedAt: contract.startedAt.toISOString(),
+          completedAt: contract.completedAt?.toISOString() ?? null,
+          canceledAt: contract.canceledAt?.toISOString() ?? null,
+        }))}
+      />
     </main>
   );
 }

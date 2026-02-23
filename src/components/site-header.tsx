@@ -24,6 +24,9 @@ export async function SiteHeader() {
               <Link href="/dashboard" className="hover:text-zinc-900">
                 Dashboard
               </Link>
+              <Link href="/chat" className="hover:text-zinc-900">
+                Chat
+              </Link>
               <form
                 action={async () => {
                   "use server";

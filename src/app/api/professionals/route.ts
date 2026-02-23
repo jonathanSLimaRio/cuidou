@@ -1,6 +1,6 @@
 import { ok } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
-import { VerificationStatus } from "@prisma/client";
+import { VerificationStatus, Weekday } from "@prisma/client";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,7 +12,9 @@ export async function GET(request: Request) {
   const pageSize = Math.min(Math.max(Number(searchParams.get("pageSize") ?? "20"), 1), 100);
 
   const where = {
-    ...(serviceType ? { serviceTypes: { has: serviceType as "BABYSITTER" | "ELDER_CAREGIVER" } } : {}),
+    ...(serviceType
+      ? { serviceTypes: { has: serviceType as "BABYSITTER" | "ELDER_CAREGIVER" } }
+      : {}),
     state,
     city,
     ...(verifiedOnly ? { verificationStatus: VerificationStatus.VERIFIED } : {}),
@@ -30,6 +32,18 @@ export async function GET(request: Request) {
             id: true,
             name: true,
             image: true,
+          },
+        },
+        availabilitySlots: {
+          select: {
+            weekday: true,
+            shift: true,
+            isAvailable: true,
+          },
+        },
+        _count: {
+          select: {
+            availabilityExceptions: true,
           },
         },
       },
@@ -63,13 +77,35 @@ export async function GET(request: Request) {
   );
 
   return ok({
-    items: items.map((item) => ({
-      ...item,
-      reputation: reviewMap.get(item.userId) ?? {
-        averageRating: null,
-        totalReviews: 0,
-      },
-    })),
+    items: items.map((item) => {
+      const availableShiftsByWeekday: Record<Weekday, string[]> = {
+        MONDAY: [],
+        TUESDAY: [],
+        WEDNESDAY: [],
+        THURSDAY: [],
+        FRIDAY: [],
+        SATURDAY: [],
+        SUNDAY: [],
+      };
+
+      for (const slot of item.availabilitySlots) {
+        if (slot.isAvailable) {
+          availableShiftsByWeekday[slot.weekday].push(slot.shift);
+        }
+      }
+
+      return {
+        ...item,
+        reputation: reviewMap.get(item.userId) ?? {
+          averageRating: null,
+          totalReviews: 0,
+        },
+        availabilitySummary: {
+          availableShiftsByWeekday,
+          hasExceptions: item._count.availabilityExceptions > 0,
+        },
+      };
+    }),
     page,
     pageSize,
     total,

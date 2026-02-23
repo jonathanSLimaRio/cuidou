@@ -2,6 +2,16 @@ import { z } from "zod";
 
 const roleSchema = z.enum(["FAMILY", "PROFESSIONAL"]);
 const serviceTypeSchema = z.enum(["BABYSITTER", "ELDER_CAREGIVER"]);
+export const weekdaySchema = z.enum([
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+  "SUNDAY",
+]);
+export const shiftSchema = z.enum(["MORNING", "AFTERNOON", "EVENING", "OVERNIGHT"]);
 
 export const onboardingRoleSchema = z.object({
   role: roleSchema,
@@ -22,6 +32,7 @@ export const professionalProfileSchema = z.object({
   bio: z.string().max(2000).optional(),
   experienceYears: z.number().int().min(0).max(70).optional(),
   serviceTypes: z.array(serviceTypeSchema).min(1),
+  // Legacy text field kept for backward compatibility during calendar rollout.
   availability: z.string().max(1000).optional(),
   state: z.string().min(2).max(120),
   city: z.string().min(2).max(120),
@@ -30,6 +41,52 @@ export const professionalProfileSchema = z.object({
   hourlyRateMax: z.number().int().positive().optional(),
   phone: z.string().min(8).max(30).optional(),
 });
+
+export const availabilitySlotSchema = z.object({
+  weekday: weekdaySchema,
+  shift: shiftSchema,
+  isAvailable: z.boolean(),
+});
+
+export const availabilityExceptionSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  shift: shiftSchema,
+  isAvailable: z.boolean(),
+  note: z.string().max(240).optional(),
+});
+
+export const professionalAvailabilitySchema = z
+  .object({
+    weeklySlots: z.array(availabilitySlotSchema).max(28),
+    exceptions: z.array(availabilityExceptionSchema).max(120),
+  })
+  .superRefine((value, ctx) => {
+    const weeklyKeys = new Set<string>();
+    for (const slot of value.weeklySlots) {
+      const key = `${slot.weekday}:${slot.shift}`;
+      if (weeklyKeys.has(key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Duplicated weekday/shift pair in weeklySlots",
+          path: ["weeklySlots"],
+        });
+      }
+      weeklyKeys.add(key);
+    }
+
+    const exceptionKeys = new Set<string>();
+    for (const exception of value.exceptions) {
+      const key = `${exception.date}:${exception.shift}`;
+      if (exceptionKeys.has(key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Duplicated date/shift pair in exceptions",
+          path: ["exceptions"],
+        });
+      }
+      exceptionKeys.add(key);
+    }
+  });
 
 export const createJobSchema = z.object({
   serviceType: serviceTypeSchema,
@@ -56,14 +113,28 @@ export const applicationDecisionSchema = z.object({
   favorite: z.boolean().optional(),
 });
 
-export const messageSchema = z.object({
-  content: z.string().min(1).max(4000),
-});
+export const messageSchema = z
+  .object({
+    content: z.string().max(4000).optional(),
+    quickReplyKey: z.string().min(2).max(120).optional(),
+  })
+  .refine((value) => Boolean(value.content?.trim() || value.quickReplyKey), {
+    message: "content or quickReplyKey is required",
+    path: ["content"],
+  });
 
 export const reviewSchema = z.object({
   applicationId: z.string().cuid(),
   rating: z.number().int().min(1).max(5),
   comment: z.string().max(1000).optional(),
+});
+
+export const completeContractSchema = z.object({
+  note: z.string().max(240).optional(),
+});
+
+export const cancelContractSchema = z.object({
+  reason: z.string().min(5).max(500),
 });
 
 export const reportSchema = z
@@ -112,6 +183,10 @@ export const adminDocumentReviewSchema = z.object({
 export const adminReportResolveSchema = z.object({
   status: z.enum(["RESOLVED", "DISMISSED"]),
   resolutionNotes: z.string().max(1200).optional(),
+});
+
+export const adminMetricsQuerySchema = z.object({
+  window: z.enum(["7", "30", "90"]).default("30"),
 });
 
 export const adminInviteSchema = z.object({
