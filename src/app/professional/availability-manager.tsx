@@ -1,6 +1,8 @@
 "use client";
 
+import { ActionButton } from "@/components/theme/action-button";
 import { Shift, Weekday } from "@prisma/client";
+import { Plus, Save, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 type SlotInput = {
@@ -161,35 +163,26 @@ export function AvailabilityManager({
   }
 
   return (
-    <section className="theme-card rounded-[36px] px-6 py-8 sm:px-8">
+    <section className="theme-card rounded-[34px] px-6 py-8 sm:px-8">
       <p className="theme-chip theme-chip-blue w-fit">Agenda semanal</p>
-      <h2 className="mt-4 text-3xl font-display text-[var(--theme-navy)]">
-        Disponibilidade por turnos
-      </h2>
+      <h2 className="mt-4 text-3xl">Disponibilidade por turnos</h2>
       <p className="mt-2 text-sm text-[var(--theme-body)]">
         Defina sua disponibilidade por dia da semana e turnos fixos.
       </p>
 
       {legacyAvailabilityText ? (
-        <p className="mt-4 rounded-xl border border-[#f4d087] bg-[var(--theme-yellow)]/30 px-3 py-2 text-xs text-[#8c6515]">
+        <p className="theme-alert theme-alert-warning mt-4">
           Disponibilidade legada (texto): {legacyAvailabilityText}
         </p>
       ) : null}
 
-      <div className="mt-5 overflow-x-auto rounded-2xl border border-[var(--theme-border)] bg-white p-2">
-        <table className="w-full min-w-[620px] border-collapse text-sm">
+      <div className="theme-table-wrap mt-5">
+        <table className="theme-table min-w-[640px]">
           <thead>
             <tr>
-              <th className="rounded-l-xl bg-[var(--theme-cream)] p-2 text-left font-display text-[var(--theme-navy)]">
-                Dia
-              </th>
-              {shifts.map((shift, index) => (
-                <th
-                  key={shift}
-                  className={`bg-[var(--theme-cream)] p-2 text-center font-display text-[var(--theme-navy)] ${
-                    index === shifts.length - 1 ? "rounded-r-xl" : ""
-                  }`}
-                >
+              <th>Dia</th>
+              {shifts.map((shift) => (
+                <th key={shift} className="text-center">
                   {shiftLabel[shift]}
                 </th>
               ))}
@@ -197,10 +190,10 @@ export function AvailabilityManager({
           </thead>
           <tbody>
             {weekdays.map((weekday) => (
-              <tr key={weekday} className="border-b border-[var(--theme-border)] last:border-0">
-                <td className="p-2 font-display text-[var(--theme-navy)]">{weekdayLabel[weekday]}</td>
+              <tr key={weekday}>
+                <td className="font-display text-[var(--theme-navy)]">{weekdayLabel[weekday]}</td>
                 {shifts.map((shift) => (
-                  <td key={`${weekday}-${shift}`} className="p-2 text-center">
+                  <td key={`${weekday}-${shift}`} className="text-center">
                     <input
                       type="checkbox"
                       checked={matrix[weekday][shift]}
@@ -216,10 +209,17 @@ export function AvailabilityManager({
       </div>
 
       <div className="mt-7">
-        <h3 className="text-xl font-display text-[var(--theme-navy)]">Exceções por data</h3>
-        <p className="mt-1 text-sm text-[var(--theme-muted)]">
-          Use para bloquear ou liberar turnos em dias específicos.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-2xl">Exceções por data</h3>
+            <p className="mt-1 text-sm text-[var(--theme-muted)]">
+              Use para bloquear ou liberar turnos em dias específicos.
+            </p>
+          </div>
+          <ActionButton type="button" onClick={addException} icon={Plus} variant="secondary" size="sm">
+            Adicionar exceção
+          </ActionButton>
+        </div>
 
         <div className="mt-3 space-y-3">
           {exceptions.map((item, index) => (
@@ -236,7 +236,7 @@ export function AvailabilityManager({
               <select
                 value={item.shift}
                 onChange={(event) => updateException(index, { shift: event.target.value as Shift })}
-                className="theme-field"
+                className="theme-select"
               >
                 {shifts.map((shift) => (
                   <option key={shift} value={shift}>
@@ -249,7 +249,7 @@ export function AvailabilityManager({
                 onChange={(event) =>
                   updateException(index, { isAvailable: event.target.value === "available" })
                 }
-                className="theme-field"
+                className="theme-select"
               >
                 <option value="unavailable">Indisponível</option>
                 <option value="available">Disponível</option>
@@ -261,41 +261,34 @@ export function AvailabilityManager({
                 onChange={(event) => updateException(index, { note: event.target.value })}
                 className="theme-field"
               />
-              <button
+              <ActionButton
                 type="button"
                 onClick={() => removeException(index)}
-                className="btn-secondary"
+                icon={Trash2}
+                variant="secondary"
+                size="sm"
               >
                 Remover
-              </button>
+              </ActionButton>
             </div>
           ))}
         </div>
-
-        <button type="button" onClick={addException} className="btn-secondary mt-3">
-          Adicionar exceção
-        </button>
       </div>
 
-      {error ? (
-        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
-      ) : null}
-      {message ? (
-        <p className="mt-4 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-          {message}
-        </p>
-      ) : null}
+      {error ? <p className="theme-alert theme-alert-danger mt-4">{error}</p> : null}
+      {message ? <p className="theme-alert theme-alert-success mt-4">{message}</p> : null}
 
-      <button
-        type="button"
-        disabled={saving}
-        onClick={save}
-        className="btn-primary mt-4 disabled:opacity-60"
-      >
-        {saving ? "Salvando..." : "Salvar agenda"}
-      </button>
+      <div className="sticky bottom-3 mt-5 flex justify-end">
+        <ActionButton
+          type="button"
+          icon={Save}
+          disabled={saving}
+          onClick={save}
+          className="min-w-40 shadow-[var(--theme-shadow-md)] disabled:opacity-60"
+        >
+          {saving ? "Salvando..." : "Salvar agenda"}
+        </ActionButton>
+      </div>
     </section>
   );
 }

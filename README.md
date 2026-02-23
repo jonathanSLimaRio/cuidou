@@ -96,3 +96,21 @@ Se houver registros antigos no Blob, rode:
 npm run migrate:blob-to-wordpress -- --dry-run
 npm run migrate:blob-to-wordpress
 ```
+
+## Geração de mídia IA (design) + upload WordPress
+
+Para gerar novas imagens de design e subir no WordPress com prefixo `cuidou-v2-design`:
+
+```bash
+npm run design:media
+```
+
+Opções úteis:
+
+```bash
+# gera/sube apenas algumas chaves
+npm run design:media -- --only=homeHero,loginHero
+
+# usa arquivos já existentes em output/imagegen/cuidou-v2
+npm run design:media -- --skip-generate
+```

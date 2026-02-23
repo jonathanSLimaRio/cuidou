@@ -1,7 +1,11 @@
 import { auth } from "@/auth";
+import { AppShell } from "@/components/theme/app-shell";
+import { CtaButton } from "@/components/theme/cta-button";
+import { PageHeader } from "@/components/theme/page-header";
+import { StatusBadge } from "@/components/theme/status-badge";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@prisma/client";
-import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ChatRoom } from "./room";
 
@@ -60,20 +64,28 @@ export default async function ChatConversationPage({ params }: Params) {
     session.user.id === conversation.familyId ? conversation.professional : conversation.family;
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-10">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">Conversa</h1>
-          <p className="text-sm text-zinc-600">
-            {counterpart.name ?? "Contato"} - {conversation.job.title}
-          </p>
-        </div>
-        <Link href="/chat" className="rounded-md border border-black/10 px-3 py-1.5 text-sm">
-          Voltar
-        </Link>
-      </div>
+    <AppShell
+      breadcrumbs={[
+        { label: "Home", href: "/" },
+        { label: "Chat", href: "/chat" },
+        { label: "Conversa" },
+      ]}
+    >
+      <PageHeader
+        eyebrow="Conversa"
+        title={counterpart.name ?? "Contato"}
+        description={`Vaga: ${conversation.job.title}`}
+        actions={
+          <>
+            <StatusBadge tone="info">Canal privado</StatusBadge>
+            <CtaButton href="/chat" variant="outline" icon={ArrowLeft}>
+              Voltar
+            </CtaButton>
+          </>
+        }
+      />
 
       <ChatRoom conversationId={conversation.id} currentUserId={session.user.id} />
-    </main>
+    </AppShell>
   );
 }

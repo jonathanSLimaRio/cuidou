@@ -1,81 +1,183 @@
+import { ActionButton } from "@/components/theme/action-button";
 import { CtaButton } from "@/components/theme/cta-button";
-import { PageHero } from "@/components/theme/page-hero";
-import { SectionShell } from "@/components/theme/section-shell";
+import { EmptyState } from "@/components/theme/empty-state";
+import { PageHeader } from "@/components/theme/page-header";
+import { StatusBadge } from "@/components/theme/status-badge";
+import { resolveDesignImage } from "@/lib/design-media";
 import { prisma } from "@/lib/prisma";
+import { getWordPressMediaGallery, pickWordPressImage } from "@/lib/wordpress-content";
+import { Filter, LogIn, Users } from "lucide-react";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 
-export default async function MarketplaceJobsPage() {
-  const jobs = await prisma.jobPost.findMany({
-    where: {
-      status: "OPEN",
-      isVisible: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    include: {
-      family: {
-        select: {
-          name: true,
+type SearchParams = Promise<{
+  serviceType?: string;
+  state?: string;
+  city?: string;
+}>;
+
+const serviceTypeOptions = [
+  { value: "", label: "Todos os serviços" },
+  { value: "BABYSITTER", label: "Babá" },
+  { value: "ELDER_CAREGIVER", label: "Cuidadora de idosos" },
+];
+
+export default async function MarketplaceJobsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const resolved = await searchParams;
+  const serviceType = resolved.serviceType || "";
+  const state = resolved.state?.trim() || "";
+  const city = resolved.city?.trim() || "";
+
+  const where = {
+    status: "OPEN" as const,
+    isVisible: true,
+    ...(serviceType ? { serviceType: serviceType as "BABYSITTER" | "ELDER_CAREGIVER" } : {}),
+    ...(state ? { state } : {}),
+    ...(city ? { city } : {}),
+  };
+
+  const [jobs, gallery] = await Promise.all([
+    prisma.jobPost.findMany({
+      where,
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        family: {
+          select: {
+            name: true,
+          },
+        },
+        _count: {
+          select: {
+            applications: true,
+          },
         },
       },
-    },
-    take: 50,
-  });
+      take: 60,
+    }),
+    getWordPressMediaGallery(40),
+  ]);
 
   return (
     <main className="theme-page">
       <div className="theme-container space-y-6">
-        <PageHero
+        <PageHeader
           eyebrow="Marketplace público"
           title="Vagas abertas"
-          description="Explore oportunidades para babás e cuidadoras de idosos em diferentes cidades."
-          actions={<CtaButton href="/login" variant="outline">Entrar para se candidatar</CtaButton>}
-          sideContent={
-            <div className="rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-cream)] px-4 py-3 text-sm text-[var(--theme-body)]">
-              <p className="font-display text-lg text-[var(--theme-indigo)]">{jobs.length} vagas visíveis</p>
-              <p className="mt-1">Atualização contínua conforme famílias publicam novas necessidades.</p>
-            </div>
+          description="Explore oportunidades para babás e cuidadoras em diferentes cidades e encontre o perfil de vaga ideal para sua rotina."
+          actions={
+            <>
+              <CtaButton href="/login" variant="primary" icon={LogIn}>
+                Entrar para se candidatar
+              </CtaButton>
+              <CtaButton href="/marketplace/professionals" variant="outline" icon={Users}>
+                Ver profissionais
+              </CtaButton>
+            </>
           }
+          breadcrumbs={[
+            { label: "Home", href: "/" },
+            { label: "Vagas" },
+          ]}
         />
 
-        <SectionShell tone="light">
-          {jobs.length === 0 ? (
-            <div className="theme-card-soft rounded-3xl p-6 text-center">
-              <p className="theme-chip theme-chip-yellow mx-auto w-fit">Sem resultados</p>
-              <h2 className="mt-4 text-2xl font-display text-[var(--theme-navy)]">
-                Nenhuma vaga disponível no momento
-              </h2>
-              <p className="mt-2 text-sm text-[var(--theme-muted)]">
-                Novas vagas aparecem aqui assim que forem publicadas por famílias.
-              </p>
-            </div>
-          ) : (
-            <ul className="grid gap-4 md:grid-cols-2">
-              {jobs.map((job) => (
-                <li key={job.id} className="theme-list-card p-5">
-                  <div className="flex flex-wrap gap-2">
-                    <span className="theme-chip theme-chip-blue">{job.serviceType}</span>
-                    <span className="theme-chip theme-chip-pink">
-                      {job.city}/{job.state}
-                    </span>
+        <section className="theme-card rounded-[32px] px-5 py-6 sm:px-6">
+          <form className="grid gap-3 md:grid-cols-[1.2fr_0.8fr_1fr_auto] md:items-end">
+            <label className="space-y-1">
+              <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Serviço</span>
+              <select name="serviceType" defaultValue={serviceType} className="theme-select">
+                {serviceTypeOptions.map((option) => (
+                  <option key={option.value || "all"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Estado</span>
+              <input name="state" defaultValue={state} placeholder="Ex: SP" className="theme-field" />
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Cidade</span>
+              <input name="city" defaultValue={city} placeholder="Ex: São Paulo" className="theme-field" />
+            </label>
+
+            <ActionButton type="submit" icon={Filter} className="w-full md:w-auto">
+              Filtrar
+            </ActionButton>
+          </form>
+        </section>
+
+        {jobs.length === 0 ? (
+          <EmptyState
+            title="Nenhuma vaga encontrada"
+            description="Ajuste seus filtros ou volte mais tarde. Novas vagas são publicadas diariamente por famílias na plataforma."
+            action={
+              <CtaButton href="/marketplace/jobs" variant="outline" icon={Filter}>
+                Limpar filtros
+              </CtaButton>
+            }
+            icon="vaga"
+          />
+        ) : (
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {jobs.map((job, index) => {
+              const image =
+                index === 0
+                  ? resolveDesignImage("jobsHero", gallery, index + 5, job.title)
+                  : pickWordPressImage(gallery, index + 5, job.title);
+
+              return (
+                <article key={job.id} className="theme-list-card p-4">
+                  <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-cream)]">
+                    {image ? (
+                      <Image
+                        src={image.src}
+                        alt={image.alt}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                        className="object-cover"
+                      />
+                    ) : null}
                   </div>
 
-                  <h2 className="mt-4 text-2xl font-display text-[var(--theme-navy)]">{job.title}</h2>
-                  <p className="mt-3 text-sm leading-relaxed text-[var(--theme-body)]">
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <StatusBadge tone="blue">
+                      {job.serviceType === "BABYSITTER" ? "Babá" : "Cuidadora"}
+                    </StatusBadge>
+                    <StatusBadge tone="yellow">
+                      {job.city}/{job.state}
+                    </StatusBadge>
+                    <StatusBadge tone="neutral">{job._count.applications} candidaturas</StatusBadge>
+                  </div>
+
+                  <h2 className="mt-3 text-2xl leading-tight">{job.title}</h2>
+                  <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-[var(--theme-body)]">
                     {job.description}
                   </p>
 
                   <div className="mt-4 theme-divider" />
-                  <p className="mt-3 text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">
-                    Família: {job.family.name ?? "Anônimo"}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </SectionShell>
+
+                  <div className="mt-3 flex items-center justify-between gap-2 text-xs text-[var(--theme-muted)]">
+                    <span>Família: {job.family.name ?? "Anônimo"}</span>
+                    <span>
+                      Faixa: {job.hourlyRateMin ? `R$ ${job.hourlyRateMin}` : "-"}
+                      {job.hourlyRateMax ? ` - R$ ${job.hourlyRateMax}` : ""}
+                    </span>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+        )}
       </div>
     </main>
   );

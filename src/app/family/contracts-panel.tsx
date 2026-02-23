@@ -1,6 +1,9 @@
 "use client";
 
+import { ActionButton } from "@/components/theme/action-button";
+import { StatusBadge } from "@/components/theme/status-badge";
 import { ContractStatus } from "@prisma/client";
+import { CheckCircle2, CircleOff } from "lucide-react";
 import { useState } from "react";
 
 type ContractItem = {
@@ -25,14 +28,14 @@ type Props = {
 
 function statusTone(status: ContractStatus) {
   if (status === ContractStatus.IN_PROGRESS) {
-    return "theme-chip-blue";
+    return "info" as const;
   }
 
   if (status === ContractStatus.COMPLETED) {
-    return "theme-chip-yellow";
+    return "success" as const;
   }
 
-  return "theme-chip-pink";
+  return "danger" as const;
 }
 
 export function FamilyContractsPanel({ initialContracts }: Props) {
@@ -126,20 +129,14 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
   }
 
   return (
-    <section className="theme-card rounded-[36px] px-6 py-8 sm:px-8">
+    <section className="theme-card rounded-[34px] px-6 py-8 sm:px-8">
       <p className="theme-chip theme-chip-blue w-fit">Contratos</p>
-      <h2 className="mt-4 text-3xl font-display text-[var(--theme-navy)]">
-        Gestão de contratos
-      </h2>
+      <h2 className="mt-4 text-3xl">Gestão de contratos</h2>
       <p className="mt-2 text-sm text-[var(--theme-body)]">
         Gerencie contratos em andamento, concluídos e cancelados.
       </p>
 
-      {error ? (
-        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
-      ) : null}
+      {error ? <p className="theme-alert theme-alert-danger mt-4">{error}</p> : null}
 
       <ul className="mt-5 space-y-3">
         {contracts.length === 0 ? (
@@ -150,8 +147,8 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
           contracts.map((contract) => (
             <li key={contract.id} className="theme-list-card p-5">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <h3 className="text-xl font-display text-[var(--theme-navy)]">{contract.job.title}</h3>
-                <span className={`theme-chip ${statusTone(contract.status)}`}>{contract.status}</span>
+                <h3 className="text-xl leading-tight">{contract.job.title}</h3>
+                <StatusBadge tone={statusTone(contract.status)}>{contract.status}</StatusBadge>
               </div>
 
               <p className="mt-2 text-sm text-[var(--theme-body)]">
@@ -159,29 +156,32 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
               </p>
 
               {contract.status === ContractStatus.CANCELED && contract.cancelReason ? (
-                <p className="mt-2 rounded-xl bg-[var(--theme-pink)]/25 px-3 py-2 text-xs text-[#983f5a]">
-                  Motivo: {contract.cancelReason}
-                </p>
+                <p className="theme-alert theme-alert-warning mt-2">Motivo: {contract.cancelReason}</p>
               ) : null}
 
               {contract.status === ContractStatus.IN_PROGRESS ? (
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <button
+                  <ActionButton
                     type="button"
+                    size="sm"
+                    icon={CheckCircle2}
                     disabled={busyId === contract.id}
                     onClick={() => completeContract(contract.id)}
-                    className="btn-primary disabled:opacity-60"
+                    className="disabled:opacity-60"
                   >
                     Concluir
-                  </button>
-                  <button
+                  </ActionButton>
+                  <ActionButton
                     type="button"
+                    size="sm"
+                    icon={CircleOff}
+                    variant="secondary"
                     disabled={busyId === contract.id}
                     onClick={() => cancelContract(contract.id)}
-                    className="btn-secondary disabled:opacity-60"
+                    className="disabled:opacity-60"
                   >
                     Cancelar
-                  </button>
+                  </ActionButton>
                 </div>
               ) : null}
             </li>

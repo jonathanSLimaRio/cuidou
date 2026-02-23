@@ -1,6 +1,14 @@
 import { auth } from "@/auth";
+import { AppShell } from "@/components/theme/app-shell";
+import { AppIcon } from "@/components/theme/app-icon";
+import { CtaButton } from "@/components/theme/cta-button";
+import { DataCard } from "@/components/theme/data-card";
+import { DataTableShell } from "@/components/theme/data-table-shell";
+import { PageHeader } from "@/components/theme/page-header";
+import { StatusBadge } from "@/components/theme/status-badge";
 import { getAdminMetrics, MetricsWindow } from "@/lib/admin-metrics";
 import { prisma } from "@/lib/prisma";
+import { CalendarRange, LineChart, Puzzle } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -28,7 +36,7 @@ export default async function AdminPage({
   const resolvedSearchParams = await searchParams;
   const windowParam = resolvedSearchParams.window;
   const windowDays: MetricsWindow =
-    windowParam === "7" || windowParam === "90" ? Number(windowParam) as MetricsWindow : 30;
+    windowParam === "7" || windowParam === "90" ? (Number(windowParam) as MetricsWindow) : 30;
 
   const [pendingDocs, openReports, totalUsers, openJobs, metrics] = await Promise.all([
     prisma.professionalDocument.count({ where: { status: "UNDER_REVIEW" } }),
@@ -39,98 +47,113 @@ export default async function AdminPage({
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-10">
-      <h1 className="text-2xl font-semibold text-zinc-900">Painel Admin</h1>
-      <p className="mt-2 text-zinc-600">Moderação, operação e métricas da plataforma.</p>
+    <AppShell
+      breadcrumbs={[
+        { label: "Home", href: "/" },
+        { label: "Admin" },
+      ]}
+    >
+      <PageHeader
+        eyebrow="Admin"
+        title="Painel administrativo"
+        description="Monitore moderação, operação e métricas principais do marketplace em uma visão consolidada."
+        actions={
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--theme-border)] bg-white px-3 py-2 text-sm">
+            <span className="inline-flex items-center gap-1.5 text-[var(--theme-muted)]">
+              <AppIcon icon={CalendarRange} size="sm" />
+              Janela:
+            </span>
+            {[7, 30, 90].map((value) => {
+              const isActive = value === metrics.windowDays;
 
-      <div className="mt-5 flex items-center gap-2 text-sm">
-        <span className="text-zinc-600">Janela de análise:</span>
-        {[7, 30, 90].map((value) => {
-          const isActive = value === metrics.windowDays;
-          return (
-            <Link
-              key={value}
-              href={`/admin?window=${value}`}
-              className={`rounded-md px-3 py-1.5 ${
-                isActive
-                  ? "bg-zinc-900 text-white"
-                  : "border border-black/10 bg-white text-zinc-700 hover:bg-zinc-50"
-              }`}
-            >
-              {value} dias
-            </Link>
-          );
-        })}
-      </div>
+              return (
+                <Link
+                  key={value}
+                  href={`/admin?window=${value}`}
+                  className={`rounded-full px-3 py-1.5 ${
+                    isActive
+                      ? "bg-[var(--theme-indigo)] text-white"
+                      : "border border-[var(--theme-border)] bg-white text-[var(--theme-body)]"
+                  }`}
+                >
+                  {value} dias
+                </Link>
+              );
+            })}
+          </div>
+        }
+      />
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card title="Docs em revisão" value={pendingDocs.toString()} />
-        <Card title="Denúncias abertas" value={openReports.toString()} />
-        <Card title="Usuários" value={totalUsers.toString()} />
-        <Card title="Vagas abertas" value={openJobs.toString()} />
-      </div>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <DataCard label="Docs em revisão" value={pendingDocs} tone="tint" />
+        <DataCard label="Denúncias abertas" value={openReports} tone="surface" />
+        <DataCard label="Usuários" value={totalUsers} tone="surface" />
+        <DataCard label="Vagas abertas" value={openJobs} tone="deep" />
+      </section>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card
-          title="Tempo médio até contratar"
-          value={
-            metrics.averageTimeToHireHours === null
-              ? "-"
-              : `${metrics.averageTimeToHireHours}h`
-          }
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <DataCard
+          label="Tempo médio até contratar"
+          value={metrics.averageTimeToHireHours === null ? "-" : `${metrics.averageTimeToHireHours}h`}
+          tone="surface"
         />
-        <Card title="Taxa de resposta em 24h" value={`${metrics.responseRate24h}%`} />
-        <Card
-          title="Contratos em andamento"
-          value={metrics.contractsByStatus.IN_PROGRESS.toString()}
-        />
-      </div>
+        <DataCard label="Taxa de resposta em 24h" value={`${metrics.responseRate24h}%`} tone="surface" />
+        <DataCard label="Contratos em andamento" value={metrics.contractsByStatus.IN_PROGRESS} tone="tint" />
+      </section>
 
-      <section className="mt-8 rounded-xl border border-black/10 bg-white p-5">
-        <h2 className="text-lg font-medium text-zinc-900">Denúncias por tipo</h2>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[500px] border-collapse text-sm">
+      <DataTableShell
+        title="Denúncias por tipo"
+        description="Distribuição por alvo para priorizar regras de moderação e revisão operacional."
+      >
+        <div className="theme-table-wrap">
+          <table className="theme-table min-w-[420px]">
             <thead>
               <tr>
-                <th className="border border-black/10 bg-zinc-50 p-2 text-left">Tipo</th>
-                <th className="border border-black/10 bg-zinc-50 p-2 text-left">Quantidade</th>
+                <th>Tipo</th>
+                <th>Quantidade</th>
               </tr>
             </thead>
             <tbody>
               {Object.entries(metrics.reportsByTargetType).map(([type, count]) => (
                 <tr key={type}>
-                  <td className="border border-black/10 p-2">{type}</td>
-                  <td className="border border-black/10 p-2">{count}</td>
+                  <td>
+                    <StatusBadge tone="info">{type}</StatusBadge>
+                  </td>
+                  <td>{count}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </section>
+      </DataTableShell>
 
-      <section className="mt-6 rounded-xl border border-black/10 bg-white p-5">
-        <h2 className="text-lg font-medium text-zinc-900">Tendência diária de candidaturas</h2>
-        <ul className="mt-3 space-y-1 text-sm text-zinc-700">
-          {metrics.applicationsTrendDaily.length === 0 ? (
-            <li>Sem candidaturas no período selecionado.</li>
-          ) : (
-            metrics.applicationsTrendDaily.map((entry) => (
-              <li key={entry.date}>
-                {entry.date}: {entry.count}
+      <DataTableShell
+        title="Tendência diária de candidaturas"
+        description="Série temporal para acompanhar volume de entrada e sazonalidade de demanda."
+        actions={
+          <CtaButton href="/api/admin/metrics?window=30" variant="outline" size="sm" icon={Puzzle}>
+            API de métricas
+          </CtaButton>
+        }
+      >
+        {metrics.applicationsTrendDaily.length === 0 ? (
+          <div className="theme-card-soft rounded-2xl px-4 py-3 text-sm text-[var(--theme-muted)]">
+            Sem candidaturas no período selecionado.
+          </div>
+        ) : (
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {metrics.applicationsTrendDaily.map((entry) => (
+              <li key={entry.date} className="theme-list-card flex items-center justify-between px-3 py-3">
+                <span className="inline-flex items-center gap-1.5 text-sm text-[var(--theme-body)]">
+                  <AppIcon icon={LineChart} size="sm" />
+                  {entry.date}
+                </span>
+                <StatusBadge tone="blue">{entry.count}</StatusBadge>
               </li>
-            ))
-          )}
-        </ul>
-      </section>
-    </main>
-  );
-}
-
-function Card({ title, value }: { title: string; value: string }) {
-  return (
-    <section className="rounded-xl border border-black/10 bg-white p-5">
-      <p className="text-sm text-zinc-500">{title}</p>
-      <p className="mt-2 text-3xl font-semibold text-zinc-900">{value}</p>
-    </section>
+            ))}
+          </ul>
+        )}
+      </DataTableShell>
+    </AppShell>
   );
 }

@@ -1,5 +1,8 @@
 "use client";
 
+import { ActionButton } from "@/components/theme/action-button";
+import { AppIcon } from "@/components/theme/app-icon";
+import { Paperclip, Reply, SendHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type QuickReply = {
@@ -11,6 +14,8 @@ type Attachment = {
   id: string;
   fileName: string;
   sizeBytes: number;
+  mimeType?: string;
+  downloadUrl?: string;
 };
 
 type Message = {
@@ -169,91 +174,105 @@ export function ChatRoom({
   }
 
   return (
-    <section className="rounded-xl border border-black/10 bg-white p-4">
-      <div className="max-h-[420px] space-y-3 overflow-y-auto rounded-md border border-black/10 p-3">
-        {loading ? <p className="text-sm text-zinc-500">Carregando...</p> : null}
+    <section className="theme-card rounded-[34px] p-4 sm:p-5">
+      <div className="max-h-[56vh] space-y-3 overflow-y-auto rounded-2xl border border-[var(--theme-border)] bg-white/70 p-3 sm:max-h-[62vh]">
+        {loading ? <p className="text-sm text-[var(--theme-muted)]">Carregando...</p> : null}
 
         {!loading && sortedMessages.length === 0 ? (
-          <p className="text-sm text-zinc-500">Sem mensagens ainda.</p>
+          <p className="text-sm text-[var(--theme-muted)]">Sem mensagens ainda.</p>
         ) : null}
 
         {sortedMessages.map((message) => {
           const mine = message.senderId === currentUserId;
           return (
-            <div
+            <article
               key={message.id}
-              className={`rounded-md px-3 py-2 ${
-                mine ? "ml-8 bg-zinc-900 text-white" : "mr-8 bg-zinc-100 text-zinc-900"
+              className={`max-w-[90%] rounded-2xl px-3 py-2.5 shadow-[var(--theme-shadow-sm)] ${
+                mine
+                  ? "ml-auto border border-[var(--theme-indigo)]/35 bg-[var(--theme-indigo)] text-white"
+                  : "mr-auto border border-[var(--theme-border)] bg-white text-[var(--theme-navy)]"
               }`}
             >
-              <p className="text-xs opacity-80">{message.sender.name ?? "Usuário"}</p>
-              <p className="mt-1 text-sm">{message.content}</p>
+              <p className={`text-xs ${mine ? "text-white/80" : "text-[var(--theme-muted)]"}`}>
+                {message.sender.name ?? "Usuário"}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed">{message.content}</p>
+
               {message.attachments.length > 0 ? (
-                <ul className="mt-2 space-y-1">
+                <ul className="mt-2 space-y-1.5">
                   {message.attachments.map((attachment) => (
                     <li key={attachment.id}>
                       <a
-                        href={`/api/messages/attachments/${attachment.id}/download`}
+                        href={attachment.downloadUrl || `/api/messages/attachments/${attachment.id}/download`}
                         target="_blank"
                         rel="noreferrer"
-                        className={`text-xs underline ${mine ? "text-white" : "text-zinc-700"}`}
+                        className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs underline ${
+                          mine ? "bg-white/15 text-white" : "bg-[var(--theme-cream)] text-[var(--theme-indigo)]"
+                        }`}
                       >
+                        <AppIcon icon={Paperclip} size="sm" />
                         {attachment.fileName}
                       </a>
                     </li>
                   ))}
                 </ul>
               ) : null}
-            </div>
+            </article>
           );
         })}
       </div>
 
       <div className="mt-3">
-        <p className="text-xs text-zinc-600">Respostas rápidas</p>
+        <p className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Respostas rápidas</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {quickReplies.map((reply) => (
-            <button
+            <ActionButton
               key={reply.key}
               type="button"
+              size="sm"
+              icon={Reply}
+              variant="secondary"
               disabled={sending}
               onClick={() => sendQuickReply(reply)}
-              className="rounded-md border border-black/10 bg-zinc-50 px-2 py-1 text-xs hover:bg-zinc-100 disabled:opacity-60"
+              className="disabled:opacity-60"
             >
               {reply.text}
-            </button>
+            </ActionButton>
           ))}
         </div>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="sticky bottom-0 mt-4 space-y-2 rounded-2xl border border-[var(--theme-border)] bg-white/95 p-3 backdrop-blur">
         <textarea
           value={content}
           onChange={(event) => setContent(event.target.value)}
           placeholder="Digite sua mensagem"
-          className="h-24 w-full rounded-md border border-black/10 p-2 text-sm"
+          className="theme-textarea"
         />
 
-        <input
-          type="file"
-          multiple
-          accept="image/*,application/pdf"
-          onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
-          className="w-full text-sm"
-        />
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
+          <input
+            type="file"
+            multiple
+            accept="image/*,application/pdf"
+            onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
+            className="w-full text-sm"
+          />
 
-        <p className="text-xs text-zinc-500">Máximo 3 anexos por mensagem, até 10MB cada.</p>
+          <ActionButton
+            type="button"
+            icon={SendHorizontal}
+            disabled={sending}
+            onClick={sendTextOrAttachments}
+            className="w-full sm:w-auto disabled:opacity-60"
+          >
+            {sending ? "Enviando..." : "Enviar"}
+          </ActionButton>
+        </div>
 
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        <p className="text-xs text-[var(--theme-muted)]">Máximo 3 anexos por mensagem, até 10MB cada.</p>
 
-        <button
-          type="button"
-          disabled={sending}
-          onClick={sendTextOrAttachments}
-          className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white hover:bg-zinc-800 disabled:opacity-60"
-        >
-          {sending ? "Enviando..." : "Enviar"}
-        </button>
+        {error ? <p className="theme-alert theme-alert-danger">{error}</p> : null}
       </div>
     </section>
   );

@@ -1,8 +1,11 @@
 import { auth } from "@/auth";
+import { AppShell } from "@/components/theme/app-shell";
 import { CtaButton } from "@/components/theme/cta-button";
-import { PageHero } from "@/components/theme/page-hero";
-import { SectionShell } from "@/components/theme/section-shell";
+import { EmptyState } from "@/components/theme/empty-state";
+import { PageHeader } from "@/components/theme/page-header";
+import { StatusBadge } from "@/components/theme/status-badge";
 import { prisma } from "@/lib/prisma";
+import { LayoutDashboard, Search } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AvailabilityManager } from "./availability-manager";
 
@@ -55,94 +58,116 @@ export default async function ProfessionalAreaPage() {
   ]);
 
   return (
-    <main className="theme-page">
-      <div className="theme-container space-y-6">
-        <PageHero
-          eyebrow="Área profissional"
-          title="Mantenha perfil e agenda sempre atualizados"
-          description="Gerencie verificações, candidaturas enviadas e disponibilidade semanal para novas oportunidades."
-          actions={
-            <>
-              <CtaButton href="/dashboard">Voltar ao dashboard</CtaButton>
-              <CtaButton href="/marketplace/jobs" variant="outline">
-                Buscar vagas
-              </CtaButton>
-            </>
-          }
-        />
+    <AppShell
+      breadcrumbs={[
+        { label: "Home", href: "/" },
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Profissional" },
+      ]}
+    >
+      <PageHeader
+        eyebrow="Área profissional"
+        title="Mantenha perfil e agenda sempre atualizados"
+        description="Gerencie verificações, candidaturas enviadas e disponibilidade semanal para novas oportunidades."
+        actions={
+          <>
+            <CtaButton href="/dashboard" variant="outline" icon={LayoutDashboard}>
+              Voltar ao dashboard
+            </CtaButton>
+            <CtaButton href="/marketplace/jobs" icon={Search}>
+              Buscar vagas
+            </CtaButton>
+          </>
+        }
+      />
 
-        <SectionShell tone="light" eyebrow="Perfil" title="Resumo profissional">
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="theme-list-card">
-              <p className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Verificação</p>
-              <p className="mt-2 text-lg font-display text-[var(--theme-navy)]">
-                {profile?.verificationStatus ?? "NOT_SUBMITTED"}
-              </p>
-            </div>
-            <div className="theme-list-card">
-              <p className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Localização</p>
-              <p className="mt-2 text-lg font-display text-[var(--theme-navy)]">
-                {profile?.city ?? "-"} / {profile?.state ?? "-"}
-              </p>
-            </div>
-            <div className="theme-list-card">
-              <p className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Especialidades</p>
-              <p className="mt-2 text-lg font-display text-[var(--theme-navy)]">
-                {profile?.serviceTypes.join(", ") || "Não definidas"}
-              </p>
-            </div>
+      <section className="grid gap-3 md:grid-cols-3">
+        <article className="theme-card-soft rounded-3xl px-5 py-5">
+          <p className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Verificação</p>
+          <div className="mt-2">
+            <StatusBadge
+              tone={
+                profile?.verificationStatus === "VERIFIED"
+                  ? "success"
+                  : profile?.verificationStatus === "REJECTED"
+                    ? "danger"
+                    : "warning"
+              }
+            >
+              {profile?.verificationStatus ?? "NOT_SUBMITTED"}
+            </StatusBadge>
           </div>
-        </SectionShell>
+        </article>
 
-        <AvailabilityManager
-          initialWeeklySlots={
-            profile?.availabilitySlots.map((slot) => ({
-              weekday: slot.weekday,
-              shift: slot.shift,
-              isAvailable: slot.isAvailable,
-            })) ?? []
-          }
-          initialExceptions={
-            profile?.availabilityExceptions.map((item) => ({
-              date: item.date.toISOString().slice(0, 10),
-              shift: item.shift,
-              isAvailable: item.isAvailable,
-              note: item.note,
-            })) ?? []
-          }
-          legacyAvailabilityText={profile?.availability}
-        />
+        <article className="theme-card-soft rounded-3xl px-5 py-5">
+          <p className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Localização</p>
+          <p className="mt-2 text-2xl">
+            {profile?.city ?? "-"} / {profile?.state ?? "-"}
+          </p>
+        </article>
 
-        <SectionShell
-          tone="tint"
-          eyebrow="Candidaturas"
-          title="Candidaturas enviadas"
-          description="Acompanhe status e contexto das vagas onde você já demonstrou interesse."
-        >
-          {applications.length === 0 ? (
-            <div className="theme-card-soft rounded-3xl p-5 text-sm text-[var(--theme-muted)]">
-              Nenhuma candidatura enviada ainda.
-            </div>
-          ) : (
-            <ul className="grid gap-4 md:grid-cols-2">
-              {applications.map((application) => (
-                <li key={application.id} className="theme-list-card p-5">
-                  <div className="flex flex-wrap gap-2">
-                    <span className="theme-chip theme-chip-blue">
-                      {application.job.city}/{application.job.state}
-                    </span>
-                    <span className="theme-chip theme-chip-yellow">{application.status}</span>
-                  </div>
+        <article className="theme-card-soft rounded-3xl px-5 py-5">
+          <p className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Especialidades</p>
+          <p className="mt-2 text-2xl">{profile?.serviceTypes.join(", ") || "Não definidas"}</p>
+        </article>
+      </section>
 
-                  <h2 className="mt-4 text-2xl font-display text-[var(--theme-navy)]">
-                    {application.job.title}
-                  </h2>
-                </li>
-              ))}
-            </ul>
-          )}
-        </SectionShell>
-      </div>
-    </main>
+      <AvailabilityManager
+        initialWeeklySlots={
+          profile?.availabilitySlots.map((slot) => ({
+            weekday: slot.weekday,
+            shift: slot.shift,
+            isAvailable: slot.isAvailable,
+          })) ?? []
+        }
+        initialExceptions={
+          profile?.availabilityExceptions.map((item) => ({
+            date: item.date.toISOString().slice(0, 10),
+            shift: item.shift,
+            isAvailable: item.isAvailable,
+            note: item.note,
+          })) ?? []
+        }
+        legacyAvailabilityText={profile?.availability}
+      />
+
+      <section className="theme-card rounded-[34px] px-5 py-6 sm:px-7 sm:py-7">
+        <p className="theme-chip theme-chip-blue w-fit">Candidaturas</p>
+        <h2 className="mt-3 text-3xl">Candidaturas enviadas</h2>
+        <p className="mt-2 text-sm text-[var(--theme-body)]">
+          Acompanhe status e contexto das vagas onde você demonstrou interesse.
+        </p>
+
+        {applications.length === 0 ? (
+          <div className="mt-5">
+            <EmptyState
+              title="Nenhuma candidatura enviada"
+              description="Explore vagas abertas no marketplace e envie sua primeira candidatura com mensagem inicial."
+              action={
+                <CtaButton href="/marketplace/jobs" icon={Search}>
+                  Buscar vagas agora
+                </CtaButton>
+              }
+              icon="candidatura"
+            />
+          </div>
+        ) : (
+          <ul className="mt-5 grid gap-4 md:grid-cols-2">
+            {applications.map((application) => (
+              <li key={application.id} className="theme-list-card p-5">
+                <div className="flex flex-wrap gap-2">
+                  <StatusBadge tone="blue">
+                    {application.job.city}/{application.job.state}
+                  </StatusBadge>
+                  <StatusBadge tone="warning">{application.status}</StatusBadge>
+                </div>
+
+                <h3 className="mt-3 text-2xl leading-tight">{application.job.title}</h3>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </AppShell>
   );
 }

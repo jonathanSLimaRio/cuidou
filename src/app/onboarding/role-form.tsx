@@ -1,5 +1,8 @@
 "use client";
 
+import { ActionButton } from "@/components/theme/action-button";
+import { AppIcon } from "@/components/theme/app-icon";
+import { ArrowRight, Baby, ShieldCheck, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -56,30 +59,38 @@ export function OnboardingRoleForm() {
           type="button"
           onClick={() => setRole("FAMILY")}
           className={`theme-list-card text-left ${
-            role === "FAMILY"
-              ? "border-[var(--theme-indigo)] bg-[var(--theme-pink)]/35"
-              : ""
+            role === "FAMILY" ? "border-[var(--theme-indigo)] bg-[var(--theme-pink)]/35" : ""
           }`}
         >
-          <p className="font-display text-lg text-[var(--theme-navy)]">Família</p>
-          <p className="mt-1 text-sm text-[var(--theme-muted)]">Publicar vagas e contratar</p>
+          <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--theme-pink)]/60 text-[var(--theme-indigo-strong)]">
+            <AppIcon icon={Baby} size="lg" />
+          </span>
+          <p className="theme-chip theme-chip-pink w-fit">Família</p>
+          <p className="mt-3 text-xl font-display text-[var(--theme-navy)]">Publicar vagas e contratar</p>
+          <p className="mt-2 text-sm text-[var(--theme-muted)]">
+            Ideal para famílias que precisam encontrar babás e cuidadoras com segurança.
+          </p>
         </button>
 
         <button
           type="button"
           onClick={() => setRole("PROFESSIONAL")}
           className={`theme-list-card text-left ${
-            role === "PROFESSIONAL"
-              ? "border-[var(--theme-indigo)] bg-[var(--theme-sky)]/30"
-              : ""
+            role === "PROFESSIONAL" ? "border-[var(--theme-indigo)] bg-[var(--theme-sky)]/30" : ""
           }`}
         >
-          <p className="font-display text-lg text-[var(--theme-navy)]">Profissional</p>
-          <p className="mt-1 text-sm text-[var(--theme-muted)]">Candidatar-se às vagas</p>
+          <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--theme-sky)]/55 text-[var(--theme-indigo-strong)]">
+            <AppIcon icon={UserRound} size="lg" />
+          </span>
+          <p className="theme-chip theme-chip-blue w-fit">Profissional</p>
+          <p className="mt-3 text-xl font-display text-[var(--theme-navy)]">Candidatar-se às vagas</p>
+          <p className="mt-2 text-sm text-[var(--theme-muted)]">
+            Para babás e cuidadoras que querem oportunidades alinhadas à sua disponibilidade.
+          </p>
         </button>
       </div>
 
-      <label className="flex items-start gap-2 rounded-xl border border-[var(--theme-border)] bg-white px-3 py-2 text-sm text-[var(--theme-body)]">
+      <label className="flex items-start gap-2 rounded-xl border border-[var(--theme-border)] bg-white px-3 py-2.5 text-sm text-[var(--theme-body)]">
         <input
           type="checkbox"
           checked={acceptTerms}
@@ -89,7 +100,7 @@ export function OnboardingRoleForm() {
         Aceito os Termos de Uso.
       </label>
 
-      <label className="flex items-start gap-2 rounded-xl border border-[var(--theme-border)] bg-white px-3 py-2 text-sm text-[var(--theme-body)]">
+      <label className="flex items-start gap-2 rounded-xl border border-[var(--theme-border)] bg-white px-3 py-2.5 text-sm text-[var(--theme-body)]">
         <input
           type="checkbox"
           checked={acceptPrivacy}
@@ -99,20 +110,17 @@ export function OnboardingRoleForm() {
         Aceito a Política de Privacidade (LGPD).
       </label>
 
-      {error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
-      ) : null}
+      {error ? <p className="theme-alert theme-alert-danger">{error}</p> : null}
 
-      <button
+      <ActionButton
         type="button"
+        icon={loading ? ShieldCheck : ArrowRight}
         onClick={submit}
         disabled={loading}
-        className="btn-primary w-full disabled:opacity-60"
+        className="w-full disabled:opacity-60"
       >
         {loading ? "Salvando..." : "Finalizar onboarding"}
-      </button>
+      </ActionButton>
     </div>
   );
 }

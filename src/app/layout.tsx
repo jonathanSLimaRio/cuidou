@@ -26,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${nunito.variable} ${fredoka.variable} antialiased`}>
+      <body className={`${nunito.variable} ${fredoka.variable} min-h-screen antialiased`}>
         <SiteHeader />
         {children}
       </body>
