@@ -2,7 +2,7 @@ import { requireUser } from "@/lib/auth-guard";
 import { fail, ok } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { notifyUser } from "@/lib/notifications";
-import { put } from "@vercel/blob";
+import { uploadMediaToWordPress } from "@/lib/wordpress-media";
 import {
   DocumentType,
   NotificationType,
@@ -45,19 +45,21 @@ export async function POST(request: Request) {
   let fileUrl = "";
 
   if (fileField instanceof File) {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      return fail(500, "BLOB_READ_WRITE_TOKEN is not configured");
+    try {
+      const arrayBuffer = await fileField.arrayBuffer();
+      const upload = await uploadMediaToWordPress({
+        buffer: new Uint8Array(arrayBuffer),
+        fileName: fileField.name,
+        mimeType: fileField.type || "application/octet-stream",
+        folderTag: `documents-${authResult.user.id}`,
+        title: `document-${parsedType.data.toLowerCase()}`,
+      });
+
+      fileUrl = upload.sourceUrl;
+    } catch (error) {
+      console.error("Document upload to WordPress failed", error);
+      return fail(502, "Failed to upload document to WordPress");
     }
-
-    const upload = await put(
-      `documents/${authResult.user.id}/${Date.now()}-${fileField.name}`,
-      fileField,
-      {
-        access: "private",
-      },
-    );
-
-    fileUrl = upload.url;
   } else if (typeof fileField === "string" && fileField.length > 0) {
     fileUrl = fileField;
   } else {

@@ -6,7 +6,10 @@ import { notifyUser } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
 import { messageSchema } from "@/lib/schemas";
-import { del, put } from "@vercel/blob";
+import {
+  deleteWordPressMedia,
+  uploadMediaToWordPress,
+} from "@/lib/wordpress-media";
 import { MessageKind, NotificationType, UserRole } from "@prisma/client";
 
 type Params = {
@@ -28,6 +31,35 @@ function isAllowedAttachmentMime(mimeType: string) {
 
 function sanitizeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+function toPublicAttachment(
+  attachment: {
+    id: string;
+    fileName: string;
+    sizeBytes: number;
+    mimeType: string;
+    downloadUrl: string;
+    createdAt: Date;
+  },
+) {
+  return {
+    id: attachment.id,
+    fileName: attachment.fileName,
+    sizeBytes: attachment.sizeBytes,
+    mimeType: attachment.mimeType,
+    downloadUrl: attachment.downloadUrl,
+    createdAt: attachment.createdAt,
+  };
+}
+
+function toPublicMessage<T extends { attachments: Parameters<typeof toPublicAttachment>[0][] }>(
+  message: T,
+) {
+  return {
+    ...message,
+    attachments: message.attachments.map(toPublicAttachment),
+  };
 }
 
 export async function GET(request: Request, { params }: Params) {
@@ -111,7 +143,7 @@ export async function GET(request: Request, { params }: Params) {
   });
 
   return ok({
-    items: [...sliced].reverse(),
+    items: [...sliced].reverse().map(toPublicMessage),
     nextCursor: hasMore ? sliced[sliced.length - 1]?.id : null,
   });
 }
@@ -224,11 +256,9 @@ export async function POST(request: Request, { params }: Params) {
     return fail(422, "A message must contain text, quick reply, or attachments");
   }
 
-  if (attachmentFiles.length > 0 && !process.env.BLOB_READ_WRITE_TOKEN) {
-    return fail(500, "BLOB_READ_WRITE_TOKEN is not configured");
-  }
-
   const uploadedAttachments: Array<{
+    id: string;
+    mediaId: number;
     pathname: string;
     url: string;
     downloadUrl: string;
@@ -240,35 +270,38 @@ export async function POST(request: Request, { params }: Params) {
   try {
     for (const [index, file] of attachmentFiles.entries()) {
       const safeName = sanitizeFileName(file.name);
-      const upload = await put(
-        `chat/${conversationId}/${Date.now()}-${index}-${safeName}`,
-        file,
-        {
-          access: "private",
-          contentType: file.type,
-        },
-      );
+      const upload = await uploadMediaToWordPress({
+        buffer: new Uint8Array(await file.arrayBuffer()),
+        fileName: safeName,
+        mimeType: file.type || "application/octet-stream",
+        folderTag: `chat-${conversationId}`,
+        title: `chat-${conversationId}-${Date.now()}-${index}`,
+      });
 
       uploadedAttachments.push({
-        pathname: upload.pathname,
-        url: upload.url,
-        downloadUrl: upload.downloadUrl,
-        mimeType: file.type,
-        sizeBytes: file.size,
+        id: crypto.randomUUID(),
+        mediaId: upload.mediaId,
+        pathname: `wp-media:${upload.mediaId}`,
+        url: upload.sourceUrl,
+        downloadUrl: "",
+        mimeType: upload.mimeType || file.type,
+        sizeBytes: upload.sizeBytes || file.size,
         fileName: safeName,
       });
     }
   } catch (error) {
     if (uploadedAttachments.length > 0) {
       try {
-        await del(uploadedAttachments.map((item) => item.pathname));
+        await Promise.all(
+          uploadedAttachments.map((item) => deleteWordPressMedia(item.mediaId)),
+        );
       } catch (cleanupError) {
         console.error("Failed to cleanup uploaded attachments", cleanupError);
       }
     }
 
-    console.error("Attachment upload failed", error);
-    return fail(500, "Failed to upload attachments");
+    console.error("Attachment upload to WordPress failed", error);
+    return fail(502, "Failed to upload attachments");
   }
 
   const kind = quickReply
@@ -293,15 +326,20 @@ export async function POST(request: Request, { params }: Params) {
 
       if (uploadedAttachments.length > 0) {
         await tx.messageAttachment.createMany({
-          data: uploadedAttachments.map((attachment) => ({
-            messageId: createdMessage.id,
-            pathname: attachment.pathname,
-            url: attachment.url,
-            downloadUrl: attachment.downloadUrl,
-            mimeType: attachment.mimeType,
-            sizeBytes: attachment.sizeBytes,
-            fileName: attachment.fileName,
-          })),
+          data: uploadedAttachments.map((attachment) => {
+            const downloadUrl = `/api/messages/attachments/${attachment.id}/download`;
+
+            return {
+              id: attachment.id,
+              messageId: createdMessage.id,
+              pathname: attachment.pathname,
+              url: attachment.url,
+              downloadUrl,
+              mimeType: attachment.mimeType,
+              sizeBytes: attachment.sizeBytes,
+              fileName: attachment.fileName,
+            };
+          }),
         });
       }
 
@@ -322,7 +360,9 @@ export async function POST(request: Request, { params }: Params) {
   } catch (error) {
     if (uploadedAttachments.length > 0) {
       try {
-        await del(uploadedAttachments.map((item) => item.pathname));
+        await Promise.all(
+          uploadedAttachments.map((item) => deleteWordPressMedia(item.mediaId)),
+        );
       } catch (cleanupError) {
         console.error("Failed to cleanup uploaded attachments after DB error", cleanupError);
       }
@@ -368,5 +408,5 @@ export async function POST(request: Request, { params }: Params) {
     });
   }
 
-  return ok({ message }, 201);
+  return ok({ message: toPublicMessage(message) }, 201);
 }

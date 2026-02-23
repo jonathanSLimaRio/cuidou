@@ -1,7 +1,10 @@
 import { requireUser } from "@/lib/auth-guard";
 import { fail } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
-import { get } from "@vercel/blob";
+import {
+  extractWordPressMediaId,
+  fetchWordPressMediaBinary,
+} from "@/lib/wordpress-media";
 import { UserRole } from "@prisma/client";
 
 type Params = {
@@ -49,18 +52,34 @@ export async function GET(_: Request, { params }: Params) {
     return fail(403, "You cannot access this attachment");
   }
 
-  const blob = await get(attachment.pathname, { access: "private" });
-
-  if (!blob || blob.statusCode === 304 || !blob.stream) {
-    return fail(404, "File not found in storage");
+  const mediaId = extractWordPressMediaId(attachment.pathname);
+  if (!mediaId) {
+    return fail(410, "Attachment points to a legacy storage format");
   }
 
-  return new Response(blob.stream, {
-    status: 200,
-    headers: {
-      "Content-Type": blob.blob.contentType ?? attachment.mimeType,
-      "Content-Disposition": `attachment; filename=\"${sanitizeFileName(attachment.fileName)}\"`,
-      "Cache-Control": "private, no-store",
-    },
-  });
+  try {
+    const file = await fetchWordPressMediaBinary(attachment.url);
+
+    return new Response(file.stream, {
+      status: 200,
+      headers: {
+        "Content-Type": file.contentType ?? attachment.mimeType,
+        "Content-Disposition": `attachment; filename=\"${sanitizeFileName(attachment.fileName)}\"`,
+        "Cache-Control": "private, no-store",
+        ...(file.contentLength
+          ? {
+              "Content-Length": file.contentLength,
+            }
+          : {}),
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch attachment binary for protected download", {
+      error,
+      attachmentId: attachment.id,
+      mediaId,
+      pathname: attachment.pathname,
+    });
+    return fail(502, "Failed to fetch file");
+  }
 }

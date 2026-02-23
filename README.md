@@ -7,7 +7,7 @@ Marketplace (sem pagamentos) para conectar famílias, babás e cuidadoras de ido
 - Next.js 16 (App Router + TypeScript)
 - Prisma ORM 7 + PostgreSQL
 - Auth.js v5 (Google login)
-- Vercel Blob (upload de documentos)
+- WordPress REST API (upload de documentos e anexos)
 - Resend (emails transacionais)
 
 ## Funcionalidades implementadas
@@ -87,3 +87,12 @@ npm run dev
 ## Variáveis de ambiente
 
 Veja `.env.exemple` para lista completa.
+
+## Migração legado (Blob -> WordPress)
+
+Se houver registros antigos no Blob, rode:
+
+```bash
+npm run migrate:blob-to-wordpress -- --dry-run
+npm run migrate:blob-to-wordpress
+```
