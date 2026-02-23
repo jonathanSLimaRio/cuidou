@@ -32,6 +32,8 @@ model User {
   contractsAsFamily           Contract[]             @relation("FamilyContracts")
   contractsAsProfessional     Contract[]             @relation("ProfessionalContracts")
   contractsCanceled           Contract[]             @relation("ContractCanceledBy")
+  invitationsAsFamily         JobInvitation[]        @relation("JobInvitationsByFamily")
+  invitationsAsProfessional   JobInvitation[]        @relation("JobInvitationsForProfessional")
   sentMessages                Message[]              @relation("MessageSender")
   notifications               Notification[]
   reviewsGiven                Review[]               @relation("ReviewsGiven")
@@ -187,12 +189,51 @@ model JobPost {
   family        User             @relation("FamilyJobs", fields: [familyId], references: [id], onDelete: Cascade)
   applications  JobApplication[]
   contracts     Contract[]
+  scheduleSlots JobScheduleSlot[]
+  invitations   JobInvitation[]
   conversations Conversation[]
   reports       Report[]         @relation("ReportsTargetJob")
   reviews       Review[]
 
   @@index([status, serviceType, state, city])
   @@index([familyId, status])
+}
+
+model JobScheduleSlot {
+  id        String   @id @default(cuid())
+  jobId     String
+  weekday   Weekday
+  startTime String
+  endTime   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job JobPost @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@unique([jobId, weekday, startTime, endTime])
+}
+
+model JobInvitation {
+  id              String              @id @default(cuid())
+  jobId           String
+  familyId        String
+  professionalId  String
+  status          JobInvitationStatus @default(PENDING)
+  message         String?
+  responseMessage String?
+  expiresAt       DateTime
+  respondedAt     DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  job          JobPost @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  family       User    @relation("JobInvitationsByFamily", fields: [familyId], references: [id], onDelete: Cascade)
+  professional User    @relation("JobInvitationsForProfessional", fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, status])
+  @@index([familyId, createdAt])
+  @@index([professionalId, createdAt])
 }
 
 model JobApplication {
@@ -463,6 +504,14 @@ enum ContractStatus {
   CANCELED
 }
 
+enum JobInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELED
+}
+
 enum MessageKind {
   TEXT
   QUICK_REPLY
@@ -487,6 +536,8 @@ enum ReportTargetType {
 enum NotificationType {
   APPLICATION_RECEIVED
   APPLICATION_STATUS_UPDATED
+  INVITATION_RECEIVED
+  INVITATION_STATUS_UPDATED
   CHAT_MESSAGE
   CONTRACT_STATUS_UPDATED
   DOCUMENT_STATUS_UPDATED

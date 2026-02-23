@@ -1,10 +1,11 @@
 import { auth } from "@/auth";
 import { requireUser } from "@/lib/auth-guard";
 import { fail, ok } from "@/lib/http";
+import { buildScheduleSummary } from "@/lib/job-schedule";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
 import { updateJobSchema } from "@/lib/schemas";
-import { UserRole } from "@prisma/client";
+import { JobStatus, UserRole } from "@prisma/client";
 
 type Params = {
   params: Promise<{
@@ -33,6 +34,9 @@ export async function GET(_: Request, { params }: Params) {
           applications: true,
         },
       },
+      scheduleSlots: {
+        orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+      },
     },
   });
 
@@ -49,7 +53,12 @@ export async function GET(_: Request, { params }: Params) {
     return fail(404, "Job not found");
   }
 
-  return ok({ job });
+  return ok({
+    job: {
+      ...job,
+      scheduleSummary: buildScheduleSummary(job.scheduleSlots),
+    },
+  });
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -81,10 +90,59 @@ export async function PUT(request: Request, { params }: Params) {
     return fail(403, "You can only update your own jobs");
   }
 
-  const job = await prisma.jobPost.update({
-    where: { id },
-    data: bodyResult.data,
+  const nextStatus = bodyResult.data.status;
+  const hasScheduleUpdate = Array.isArray(bodyResult.data.scheduleSlots);
+
+  const currentSlotCount = await prisma.jobScheduleSlot.count({
+    where: { jobId: id },
   });
 
-  return ok({ job });
+  const nextSlotCount = hasScheduleUpdate ? bodyResult.data.scheduleSlots!.length : currentSlotCount;
+
+  if (nextStatus === JobStatus.OPEN && nextSlotCount === 0) {
+    return fail(422, "To publish or reopen a job, provide at least one schedule slot.");
+  }
+
+  const { scheduleSlots, ...jobData } = bodyResult.data;
+
+  const job = await prisma.$transaction(async (tx) => {
+    const updated = await tx.jobPost.update({
+      where: { id },
+      data: jobData,
+    });
+
+    if (hasScheduleUpdate) {
+      await tx.jobScheduleSlot.deleteMany({
+        where: { jobId: id },
+      });
+
+      if (scheduleSlots && scheduleSlots.length > 0) {
+        await tx.jobScheduleSlot.createMany({
+          data: scheduleSlots.map((slot) => ({
+            jobId: id,
+            weekday: slot.weekday,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+          })),
+        });
+      }
+    }
+
+    const updatedSlots = await tx.jobScheduleSlot.findMany({
+      where: { jobId: id },
+      orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+    });
+
+    return {
+      ...updated,
+      scheduleSlots: updatedSlots,
+    };
+  });
+
+  return ok({
+    job: {
+      ...job,
+      scheduleSummary: buildScheduleSummary(job.scheduleSlots),
+    },
+  });
 }

@@ -4,6 +4,7 @@ import { CtaButton } from "@/components/theme/cta-button";
 import { DataTableShell } from "@/components/theme/data-table-shell";
 import { PageHeader } from "@/components/theme/page-header";
 import { StatusBadge } from "@/components/theme/status-badge";
+import { WEEKDAY_LABEL } from "@/lib/job-schedule";
 import { prisma } from "@/lib/prisma";
 import { BriefcaseBusiness, LayoutDashboard, LogIn, Search } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -36,6 +37,9 @@ export default async function MarketplaceJobDetailPage({ params }: Params) {
         select: {
           applications: true,
         },
+      },
+      scheduleSlots: {
+        orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
       },
     },
   });
@@ -121,11 +125,45 @@ export default async function MarketplaceJobDetailPage({ params }: Params) {
           </div>
         </div>
 
+        {job.scheduleSlots.length > 0 ? (
+          <div className="mt-5">
+            <DataTableShell
+              title="Agenda da vaga"
+              description="Dias e horários recorrentes definidos pela família."
+            >
+              <div className="theme-table-wrap">
+                <table className="theme-table">
+                  <thead>
+                    <tr>
+                      <th>Dia</th>
+                      <th>Início</th>
+                      <th>Fim</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {job.scheduleSlots.map((slot) => (
+                      <tr key={`${slot.weekday}-${slot.startTime}-${slot.endTime}`}>
+                        <td>{WEEKDAY_LABEL[slot.weekday]}</td>
+                        <td>{slot.startTime}</td>
+                        <td>{slot.endTime}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </DataTableShell>
+          </div>
+        ) : null}
+
         {job.scheduleDetails ? (
           <div className="mt-5">
             <DataTableShell
-              title="Detalhes de agenda"
-              description="Informações adicionais fornecidas pela família para organização dos turnos."
+              title={job.scheduleSlots.length > 0 ? "Observações adicionais de agenda" : "Detalhes de agenda"}
+              description={
+                job.scheduleSlots.length > 0
+                  ? "Informações complementares fornecidas pela família."
+                  : "Informações adicionais fornecidas pela família para organização dos turnos."
+              }
             >
               <p className="text-sm text-[var(--theme-body)]">{job.scheduleDetails}</p>
             </DataTableShell>

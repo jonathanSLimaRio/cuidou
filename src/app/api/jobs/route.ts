@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { requireUser } from "@/lib/auth-guard";
 import { fail, ok } from "@/lib/http";
+import { buildScheduleSummary } from "@/lib/job-schedule";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
 import { createJobSchema } from "@/lib/schemas";
@@ -28,23 +29,51 @@ export async function POST(request: Request) {
     return fail(400, "Family profile must be created before posting jobs");
   }
 
-  const job = await prisma.jobPost.create({
-    data: {
-      familyId: authResult.user.id,
-      serviceType: data.serviceType,
-      title: data.title,
-      description: data.description,
-      state: data.state,
-      city: data.city,
-      neighborhood: data.neighborhood,
-      hourlyRateMin: data.hourlyRateMin,
-      hourlyRateMax: data.hourlyRateMax,
-      scheduleDetails: data.scheduleDetails,
-      status: JobStatus.OPEN,
-    },
+  const job = await prisma.$transaction(async (tx) => {
+    const created = await tx.jobPost.create({
+      data: {
+        familyId: authResult.user.id,
+        serviceType: data.serviceType,
+        title: data.title,
+        description: data.description,
+        state: data.state,
+        city: data.city,
+        neighborhood: data.neighborhood,
+        hourlyRateMin: data.hourlyRateMin,
+        hourlyRateMax: data.hourlyRateMax,
+        scheduleDetails: data.scheduleDetails,
+        status: JobStatus.OPEN,
+      },
+    });
+
+    await tx.jobScheduleSlot.createMany({
+      data: data.scheduleSlots.map((slot) => ({
+        jobId: created.id,
+        weekday: slot.weekday,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+      })),
+    });
+
+    return tx.jobPost.findUniqueOrThrow({
+      where: { id: created.id },
+      include: {
+        scheduleSlots: {
+          orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+        },
+      },
+    });
   });
 
-  return ok({ job }, 201);
+  return ok(
+    {
+      job: {
+        ...job,
+        scheduleSummary: buildScheduleSummary(job.scheduleSlots),
+      },
+    },
+    201,
+  );
 }
 
 export async function GET(request: Request) {
@@ -94,13 +123,24 @@ export async function GET(request: Request) {
             applications: true,
           },
         },
+        scheduleSlots: {
+          select: {
+            weekday: true,
+            startTime: true,
+            endTime: true,
+          },
+          orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+        },
       },
     }),
     prisma.jobPost.count({ where }),
   ]);
 
   return ok({
-    items,
+    items: items.map((item) => ({
+      ...item,
+      scheduleSummary: buildScheduleSummary(item.scheduleSlots),
+    })),
     page,
     pageSize,
     total,

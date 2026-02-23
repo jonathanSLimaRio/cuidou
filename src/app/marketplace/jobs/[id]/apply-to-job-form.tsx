@@ -16,12 +16,14 @@ export function ApplyToJobForm({ jobId, alreadyApplied }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError(null);
     setSuccess(null);
+    setWarning(null);
 
     try {
       const response = await fetch(`/api/jobs/${jobId}/applications`, {
@@ -42,6 +44,9 @@ export function ApplyToJobForm({ jobId, alreadyApplied }: Props) {
       }
 
       setSuccess("Candidatura enviada com sucesso.");
+      if (payload.scheduleMatchWarning?.message) {
+        setWarning(payload.scheduleMatchWarning.message);
+      }
     } catch {
       setError("Erro inesperado ao enviar candidatura.");
     } finally {
@@ -71,6 +76,7 @@ export function ApplyToJobForm({ jobId, alreadyApplied }: Props) {
       />
 
       {error ? <p className="theme-alert theme-alert-danger">{error}</p> : null}
+      {warning ? <p className="theme-alert theme-alert-warning">{warning}</p> : null}
       {success ? <p className="theme-alert theme-alert-success">{success}</p> : null}
 
       <ActionButton type="submit" icon={SendHorizontal} disabled={loading}>

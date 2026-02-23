@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/theme/status-badge";
 import { prisma } from "@/lib/prisma";
 import { LayoutDashboard, LogIn, Search } from "lucide-react";
 import { notFound } from "next/navigation";
+import { InviteToJobForm } from "./invite-to-job-form";
 
 type Params = {
   params: Promise<{
@@ -73,6 +74,29 @@ export default async function MarketplaceProfessionalDetailPage({ params }: Para
       rating: true,
     },
   });
+
+  const familyOpenJobs =
+    session?.user?.role === "FAMILY"
+      ? await prisma.jobPost.findMany({
+          where: {
+            familyId: session.user.id,
+            status: "OPEN",
+          },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            title: true,
+            city: true,
+            state: true,
+            _count: {
+              select: {
+                applications: true,
+              },
+            },
+          },
+          take: 20,
+        })
+      : [];
 
   const availabilityByDay = professional.availabilitySlots.reduce<Record<string, string[]>>(
     (acc, slot) => {
@@ -198,9 +222,24 @@ export default async function MarketplaceProfessionalDetailPage({ params }: Para
           ) : null}
 
           {session?.user?.role === "FAMILY" ? (
-            <CtaButton href="/marketplace/jobs" variant="outline" icon={Search}>
-              Ver vagas para contratar
-            </CtaButton>
+            <div className="space-y-3">
+              <p className="text-sm text-[var(--theme-body)]">
+                Convide este profissional para uma vaga sua. O convite abre uma candidatura formal.
+              </p>
+              <InviteToJobForm
+                professionalId={professional.userId}
+                jobs={familyOpenJobs.map((job) => ({
+                  id: job.id,
+                  title: job.title,
+                  city: job.city,
+                  state: job.state,
+                  applicationsCount: job._count.applications,
+                }))}
+              />
+              <CtaButton href="/family" variant="outline" icon={Search}>
+                Gerenciar vagas da família
+              </CtaButton>
+            </div>
           ) : null}
 
           {session?.user?.role === "PROFESSIONAL" && session.user.id === professional.user.id ? (

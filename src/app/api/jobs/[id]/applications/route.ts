@@ -1,11 +1,12 @@
 import { requireUser } from "@/lib/auth-guard";
 import { sendEmail } from "@/lib/email";
 import { fail, ok } from "@/lib/http";
-import { notifyUser } from "@/lib/notifications";
+import { getScheduleMatchWarning } from "@/lib/job-schedule";
+import { notifyMany, notifyUser } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
 import { applicationSchema } from "@/lib/schemas";
-import { JobStatus, NotificationType, UserRole } from "@prisma/client";
+import { JobInvitationStatus, JobStatus, NotificationType, UserRole } from "@prisma/client";
 
 type Params = {
   params: Promise<{
@@ -36,6 +37,14 @@ export async function POST(request: Request, { params }: Params) {
           email: true,
         },
       },
+      scheduleSlots: {
+        select: {
+          weekday: true,
+          startTime: true,
+          endTime: true,
+        },
+        orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+      },
     },
   });
 
@@ -61,12 +70,77 @@ export async function POST(request: Request, { params }: Params) {
     return fail(409, "You have already applied to this job");
   }
 
-  const application = await prisma.jobApplication.create({
-    data: {
+  await prisma.jobInvitation.updateMany({
+    where: {
       jobId,
       professionalId: authResult.user.id,
-      coverMessage: bodyResult.data.coverMessage,
+      status: JobInvitationStatus.PENDING,
+      expiresAt: {
+        lt: new Date(),
+      },
     },
+    data: {
+      status: JobInvitationStatus.EXPIRED,
+      respondedAt: new Date(),
+    },
+  });
+
+  const professionalProfile = await prisma.professionalProfile.findUnique({
+    where: { userId: authResult.user.id },
+    select: {
+      availabilitySlots: {
+        select: {
+          weekday: true,
+          shift: true,
+          isAvailable: true,
+        },
+      },
+    },
+  });
+
+  const scheduleMatchWarning = getScheduleMatchWarning(
+    job.scheduleSlots,
+    professionalProfile?.availabilitySlots ?? [],
+  );
+
+  const now = new Date();
+
+  const { application, autoAcceptedInvitation } = await prisma.$transaction(async (tx) => {
+    const createdApplication = await tx.jobApplication.create({
+      data: {
+        jobId,
+        professionalId: authResult.user.id,
+        coverMessage: bodyResult.data.coverMessage,
+      },
+    });
+
+    const pendingInvitation = await tx.jobInvitation.findFirst({
+      where: {
+        jobId,
+        professionalId: authResult.user.id,
+        status: JobInvitationStatus.PENDING,
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+      },
+    });
+
+    if (pendingInvitation) {
+      await tx.jobInvitation.update({
+        where: { id: pendingInvitation.id },
+        data: {
+          status: JobInvitationStatus.ACCEPTED,
+          respondedAt: now,
+          responseMessage: `Candidatura manual enviada em ${now.toISOString()}`,
+        },
+      });
+    }
+
+    return {
+      application: createdApplication,
+      autoAcceptedInvitation: pendingInvitation?.id ?? null,
+    };
   });
 
   await notifyUser({
@@ -88,5 +162,41 @@ export async function POST(request: Request, { params }: Params) {
     });
   }
 
-  return ok({ application }, 201);
+  if (autoAcceptedInvitation) {
+    await notifyMany([
+      {
+        userId: job.familyId,
+        type: NotificationType.INVITATION_STATUS_UPDATED,
+        title: "Convite convertido em candidatura",
+        body: "A profissional se candidatou diretamente à vaga e o convite pendente foi marcado como aceito.",
+        data: {
+          invitationId: autoAcceptedInvitation,
+          status: JobInvitationStatus.ACCEPTED,
+          applicationId: application.id,
+          jobId,
+        },
+      },
+      {
+        userId: authResult.user.id,
+        type: NotificationType.INVITATION_STATUS_UPDATED,
+        title: "Convite marcado como aceito",
+        body: "Sua candidatura manual atualizou automaticamente o convite pendente.",
+        data: {
+          invitationId: autoAcceptedInvitation,
+          status: JobInvitationStatus.ACCEPTED,
+          applicationId: application.id,
+          jobId,
+        },
+      },
+    ]);
+  }
+
+  return ok(
+    {
+      application,
+      scheduleMatchWarning,
+      invitationAutoAccepted: autoAcceptedInvitation,
+    },
+    201,
+  );
 }

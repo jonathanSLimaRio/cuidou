@@ -2,6 +2,13 @@ import { z } from "zod";
 
 const roleSchema = z.enum(["FAMILY", "PROFESSIONAL"]);
 const serviceTypeSchema = z.enum(["BABYSITTER", "ELDER_CAREGIVER"]);
+const timeSchema = z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Use HH:mm");
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
 const strongPasswordSchema = z
   .string()
   .min(8, "Password must have at least 8 characters")
@@ -105,6 +112,31 @@ export const professionalAvailabilitySchema = z
     }
   });
 
+export const jobScheduleSlotSchema = z
+  .object({
+    weekday: weekdaySchema,
+    startTime: timeSchema,
+    endTime: timeSchema,
+  })
+  .refine((value) => timeToMinutes(value.endTime) > timeToMinutes(value.startTime), {
+    message: "endTime must be after startTime",
+    path: ["endTime"],
+  });
+
+export const jobScheduleSchema = z.array(jobScheduleSlotSchema).min(1).superRefine((slots, ctx) => {
+  const keys = new Set<string>();
+  for (const slot of slots) {
+    const key = `${slot.weekday}:${slot.startTime}:${slot.endTime}`;
+    if (keys.has(key)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Duplicated schedule slot",
+      });
+    }
+    keys.add(key);
+  }
+});
+
 export const createJobSchema = z.object({
   serviceType: serviceTypeSchema,
   title: z.string().min(5).max(160),
@@ -115,6 +147,7 @@ export const createJobSchema = z.object({
   hourlyRateMin: z.number().int().positive().optional(),
   hourlyRateMax: z.number().int().positive().optional(),
   scheduleDetails: z.string().max(1000).optional(),
+  scheduleSlots: jobScheduleSchema,
 });
 
 export const updateJobSchema = createJobSchema.partial().extend({
@@ -124,6 +157,20 @@ export const updateJobSchema = createJobSchema.partial().extend({
 
 export const applicationSchema = z.object({
   coverMessage: z.string().min(10).max(1500),
+});
+
+export const createInvitationSchema = z.object({
+  professionalId: z.string().cuid(),
+  message: z.string().max(1200).optional(),
+  expiresInDays: z.number().int().min(1).max(30).default(7),
+});
+
+export const acceptInvitationSchema = z.object({
+  coverMessage: z.string().min(10).max(1500),
+});
+
+export const declineInvitationSchema = z.object({
+  reason: z.string().max(500).optional(),
 });
 
 export const applicationDecisionSchema = z.object({

@@ -4,10 +4,12 @@ import { CtaButton } from "@/components/theme/cta-button";
 import { EmptyState } from "@/components/theme/empty-state";
 import { PageHeader } from "@/components/theme/page-header";
 import { StatusBadge } from "@/components/theme/status-badge";
+import { expirePendingInvitationsWithNotifications } from "@/lib/invitations";
 import { prisma } from "@/lib/prisma";
 import { LayoutDashboard, Search } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AvailabilityManager } from "./availability-manager";
+import { ProfessionalInvitationsPanel } from "./invitations-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +24,9 @@ export default async function ProfessionalAreaPage() {
     redirect("/dashboard");
   }
 
-  const [profile, applications] = await Promise.all([
+  await expirePendingInvitationsWithNotifications({ professionalId: session.user.id });
+
+  const [profile, applications, invitations] = await Promise.all([
     prisma.professionalProfile.findUnique({
       where: { userId: session.user.id },
       include: {
@@ -54,6 +58,29 @@ export default async function ProfessionalAreaPage() {
         },
       },
       take: 20,
+    }),
+    prisma.jobInvitation.findMany({
+      where: { professionalId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        job: {
+          select: {
+            id: true,
+            title: true,
+            city: true,
+            state: true,
+            serviceType: true,
+            status: true,
+          },
+        },
+        family: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      take: 30,
     }),
   ]);
 
@@ -129,6 +156,14 @@ export default async function ProfessionalAreaPage() {
           })) ?? []
         }
         legacyAvailabilityText={profile?.availability}
+      />
+
+      <ProfessionalInvitationsPanel
+        initialInvitations={invitations.map((invitation) => ({
+          ...invitation,
+          createdAt: invitation.createdAt.toISOString(),
+          expiresAt: invitation.expiresAt.toISOString(),
+        }))}
       />
 
       <section className="theme-card rounded-[34px] px-5 py-6 sm:px-7 sm:py-7">
