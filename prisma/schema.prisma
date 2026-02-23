@@ -240,6 +240,7 @@ model Contract {
   professional User           @relation("ProfessionalContracts", fields: [professionalId], references: [id], onDelete: Cascade)
   canceledBy   User?          @relation("ContractCanceledBy", fields: [canceledById], references: [id], onDelete: SetNull)
 
+  // Single IN_PROGRESS contract per job is enforced via SQL partial unique index in migration.
   @@index([jobId, status])
   @@index([familyId, status])
   @@index([professionalId, status])

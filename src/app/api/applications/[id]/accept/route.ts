@@ -8,6 +8,7 @@ import {
   ContractStatus,
   JobStatus,
   NotificationType,
+  Prisma,
   UserRole,
 } from "@prisma/client";
 
@@ -92,53 +93,65 @@ export async function POST(_: Request, { params }: Params) {
     return fail(409, "This application already has an associated contract");
   }
 
-  const result = await prisma.$transaction(async (tx) => {
-    const updatedApplication = await tx.jobApplication.update({
-      where: { id: applicationId },
-      data: {
-        status: ApplicationStatus.ACCEPTED,
-        acceptedAt: now,
-        contactUnlockedAt: now,
-      },
+  const runAcceptanceTransaction = () =>
+    prisma.$transaction(async (tx) => {
+      const updatedApplication = await tx.jobApplication.update({
+        where: { id: applicationId },
+        data: {
+          status: ApplicationStatus.ACCEPTED,
+          acceptedAt: now,
+          contactUnlockedAt: now,
+        },
+      });
+
+      const conversation = await tx.conversation.upsert({
+        where: {
+          applicationId,
+        },
+        update: {},
+        create: {
+          jobId: application.jobId,
+          applicationId,
+          familyId: application.job.familyId,
+          professionalId: application.professionalId,
+        },
+      });
+
+      const contract = await tx.contract.create({
+        data: {
+          jobId: application.jobId,
+          applicationId,
+          familyId: application.job.familyId,
+          professionalId: application.professionalId,
+          status: ContractStatus.IN_PROGRESS,
+          startedAt: now,
+        },
+      });
+
+      await tx.jobPost.update({
+        where: { id: application.jobId },
+        data: {
+          status: JobStatus.PAUSED,
+        },
+      });
+
+      return {
+        updatedApplication,
+        conversation,
+        contract,
+      };
     });
 
-    const conversation = await tx.conversation.upsert({
-      where: {
-        applicationId,
-      },
-      update: {},
-      create: {
-        jobId: application.jobId,
-        applicationId,
-        familyId: application.job.familyId,
-        professionalId: application.professionalId,
-      },
-    });
+  let result: Awaited<ReturnType<typeof runAcceptanceTransaction>>;
 
-    const contract = await tx.contract.create({
-      data: {
-        jobId: application.jobId,
-        applicationId,
-        familyId: application.job.familyId,
-        professionalId: application.professionalId,
-        status: ContractStatus.IN_PROGRESS,
-        startedAt: now,
-      },
-    });
-
-    await tx.jobPost.update({
-      where: { id: application.jobId },
-      data: {
-        status: JobStatus.PAUSED,
-      },
-    });
-
-    return {
-      updatedApplication,
-      conversation,
-      contract,
-    };
-  });
+  try {
+    result = await runAcceptanceTransaction();
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return fail(409, "This job already has an in-progress contract");
+    }
+    throw error;
+  }
 
   await notifyMany([
     {

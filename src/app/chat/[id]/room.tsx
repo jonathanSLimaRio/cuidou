@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type QuickReply = {
   key: string;
@@ -41,7 +41,7 @@ export function ChatRoom({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadMessages() {
+  const loadMessages = useCallback(async () => {
     try {
       const response = await fetch(`/api/conversations/${conversationId}/messages?take=50`);
       const result = await response.json();
@@ -57,9 +57,9 @@ export function ChatRoom({
     } finally {
       setLoading(false);
     }
-  }
+  }, [conversationId]);
 
-  async function loadQuickReplies() {
+  const loadQuickReplies = useCallback(async () => {
     try {
       const response = await fetch("/api/chat/quick-replies");
       const result = await response.json();
@@ -69,7 +69,7 @@ export function ChatRoom({
     } catch {
       // No-op. Quick replies are optional in UI.
     }
-  }
+  }, []);
 
   useEffect(() => {
     void loadMessages();
@@ -80,7 +80,7 @@ export function ChatRoom({
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [conversationId]);
+  }, [conversationId, loadMessages, loadQuickReplies]);
 
   const sortedMessages = useMemo(
     () => [...messages].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
