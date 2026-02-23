@@ -92,7 +92,7 @@ export function CredentialsLoginForm({
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
         <label className="space-y-1.5">
-          <span className="text-xs font-semibold uppercase tracking-[0.07em] text-[var(--theme-muted)]">Email</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.07em] text-[var(--brand-purple-primary)] opacity-70">Email</span>
           <input
             type="email"
             className="theme-field"
@@ -105,7 +105,7 @@ export function CredentialsLoginForm({
         </label>
 
         <label className="space-y-1.5">
-          <span className="text-xs font-semibold uppercase tracking-[0.07em] text-[var(--theme-muted)]">Senha</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.07em] text-[var(--brand-purple-primary)] opacity-70">Senha</span>
           <input
             type="password"
             className="theme-field"
@@ -130,7 +130,6 @@ export function CredentialsLoginForm({
             icon={LogIn}
             className="w-full disabled:opacity-70"
             disabled={loading}
-            style={{ marginTop: "1rem" }}
           >
             {loading ? "Entrando..." : "Entrar com email e senha"}
           </ActionButton>

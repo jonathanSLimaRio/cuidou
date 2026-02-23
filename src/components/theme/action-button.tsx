@@ -21,7 +21,7 @@ const variantClasses: Record<ActionButtonVariant, string> = {
   primary:
     "btn-primary !text-white hover:!text-white active:!text-white focus-visible:!text-white visited:!text-white",
   secondary:
-    "btn-secondary text-[var(--theme-indigo)] hover:text-white active:text-white visited:text-[var(--theme-indigo)]",
+    "btn-secondary text-[var(--brand-purple-primary)] hover:text-white active:text-white visited:text-[var(--brand-purple-primary)]",
   soft: "btn-soft",
 };
 
@@ -60,7 +60,7 @@ export function ActionButton({
     );
 
   const classes = joinClasses(
-    "inline-flex items-center justify-center gap-2 rounded-full font-display font-medium transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--theme-indigo)]",
+    "inline-flex items-center justify-center gap-2 rounded-full font-display font-medium transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-purple-secondary)]",
     variantClasses[variant],
     sizeClasses[size],
     className,

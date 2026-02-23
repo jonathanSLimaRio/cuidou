@@ -23,9 +23,9 @@ const variantClasses: Record<ButtonVariant, string> = {
   primary:
     "bg-[var(--theme-indigo)] !text-white shadow-[0_14px_30px_-18px_var(--theme-indigo)] hover:bg-[var(--theme-indigo-strong)] hover:!text-white active:!text-white focus-visible:!text-white visited:!text-white disabled:!text-white",
   outline:
-    "border border-[var(--theme-indigo)] text-[var(--theme-indigo)] hover:bg-[var(--theme-indigo)] hover:text-white active:text-white",
+    "border border-[var(--brand-purple-primary)] text-[var(--brand-purple-primary)] hover:bg-[var(--brand-purple-secondary)] hover:text-white active:text-white",
   soft:
-    "bg-white text-[var(--theme-indigo)] shadow-[0_10px_24px_-18px_var(--theme-indigo)] hover:bg-[var(--theme-sky)] hover:text-[var(--theme-navy)]",
+    "bg-[rgba(143,62,236,0.08)] text-[var(--brand-purple-primary)] shadow-[0_10px_24px_-18px_var(--brand-purple-secondary)] hover:bg-[rgba(73,98,199,0.16)] hover:text-[var(--brand-purple-primary)]",
   light:
     "border border-white/50 bg-white/20 text-white backdrop-blur hover:bg-white/35",
 };
@@ -78,7 +78,7 @@ export function CtaButton({
     );
 
   const classes = joinClasses(
-    "inline-flex items-center justify-center gap-2 rounded-full font-display font-medium transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--theme-indigo)]",
+    "inline-flex items-center justify-center gap-2 rounded-full font-display font-medium transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-purple-secondary)]",
     variantClasses[variant],
     sizeClasses[size],
     className,

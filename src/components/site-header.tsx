@@ -1,4 +1,5 @@
 import { auth, signOut } from "@/auth";
+import { CuidouMark } from "@/components/brand/cuidou-mark";
 import { AppIcon } from "@/components/theme/app-icon";
 import { CtaButton } from "@/components/theme/cta-button";
 import { DrawerNav } from "@/components/theme/drawer-nav";
@@ -55,25 +56,27 @@ export async function SiteHeader() {
         <div className="theme-container flex min-h-[4.4rem] items-center justify-between gap-3 py-3">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xl font-display text-[var(--theme-navy)]"
+            className="inline-flex min-h-10 items-center rounded-xl px-1 py-1 text-[var(--brand-purple-primary)]"
           >
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--theme-pink)] text-sm text-[var(--theme-indigo-strong)]">
-              C
+            <span className="sm:hidden">
+              <CuidouMark size="mobile" priority />
             </span>
-            Cuidou
+            <span className="hidden sm:inline-flex">
+              <CuidouMark size="desktop" priority />
+            </span>
           </Link>
 
           <nav className="hidden items-center gap-1 text-sm md:flex">
             <Link
               href="/marketplace/jobs"
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 font-display text-[var(--theme-body)] hover:bg-[var(--theme-cream)] hover:text-[var(--theme-navy)]"
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 font-display text-[var(--brand-purple-primary)] hover:bg-[var(--theme-cream)] hover:text-[var(--brand-purple-secondary)]"
             >
               <AppIcon icon={BriefcaseBusiness} size="sm" />
               Vagas
             </Link>
             <Link
               href="/marketplace/professionals"
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 font-display text-[var(--theme-body)] hover:bg-[var(--theme-cream)] hover:text-[var(--theme-navy)]"
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 font-display text-[var(--brand-purple-primary)] hover:bg-[var(--theme-cream)] hover:text-[var(--brand-purple-secondary)]"
             >
               <AppIcon icon={Users} size="sm" />
               Profissionais
@@ -83,14 +86,14 @@ export async function SiteHeader() {
               <>
                 <Link
                   href={homePath}
-                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 font-display text-[var(--theme-body)] hover:bg-[var(--theme-cream)] hover:text-[var(--theme-navy)]"
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 font-display text-[var(--brand-purple-primary)] hover:bg-[var(--theme-cream)] hover:text-[var(--brand-purple-secondary)]"
                 >
                   <AppIcon icon={LayoutDashboard} size="sm" />
                   Dashboard
                 </Link>
                 <Link
                   href="/chat"
-                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 font-display text-[var(--theme-body)] hover:bg-[var(--theme-cream)] hover:text-[var(--theme-navy)]"
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 font-display text-[var(--brand-purple-primary)] hover:bg-[var(--theme-cream)] hover:text-[var(--brand-purple-secondary)]"
                 >
                   <AppIcon icon={MessageCircleMore} size="sm" />
                   Chat
@@ -116,14 +119,14 @@ export async function SiteHeader() {
           <DrawerNav title="Navegação">
             <Link
               href="/marketplace/jobs"
-              className="inline-flex w-full items-center gap-2 rounded-xl px-3 py-2 font-display text-[var(--theme-body)] hover:bg-[var(--theme-cream)] hover:text-[var(--theme-navy)]"
+              className="inline-flex w-full items-center gap-2 rounded-xl px-3 py-2 font-display text-[var(--brand-purple-primary)] hover:bg-[var(--theme-cream)] hover:text-[var(--brand-purple-secondary)]"
             >
               <AppIcon icon={BriefcaseBusiness} size="sm" />
               Vagas
             </Link>
             <Link
               href="/marketplace/professionals"
-              className="inline-flex w-full items-center gap-2 rounded-xl px-3 py-2 font-display text-[var(--theme-body)] hover:bg-[var(--theme-cream)] hover:text-[var(--theme-navy)]"
+              className="inline-flex w-full items-center gap-2 rounded-xl px-3 py-2 font-display text-[var(--brand-purple-primary)] hover:bg-[var(--theme-cream)] hover:text-[var(--brand-purple-secondary)]"
             >
               <AppIcon icon={Users} size="sm" />
               Profissionais
@@ -133,14 +136,14 @@ export async function SiteHeader() {
               <>
                 <Link
                   href={homePath}
-                  className="inline-flex w-full items-center gap-2 rounded-xl px-3 py-2 font-display text-[var(--theme-body)] hover:bg-[var(--theme-cream)] hover:text-[var(--theme-navy)]"
+                  className="inline-flex w-full items-center gap-2 rounded-xl px-3 py-2 font-display text-[var(--brand-purple-primary)] hover:bg-[var(--theme-cream)] hover:text-[var(--brand-purple-secondary)]"
                 >
                   <AppIcon icon={LayoutDashboard} size="sm" />
                   Dashboard
                 </Link>
                 <Link
                   href="/chat"
-                  className="inline-flex w-full items-center gap-2 rounded-xl px-3 py-2 font-display text-[var(--theme-body)] hover:bg-[var(--theme-cream)] hover:text-[var(--theme-navy)]"
+                  className="inline-flex w-full items-center gap-2 rounded-xl px-3 py-2 font-display text-[var(--brand-purple-primary)] hover:bg-[var(--theme-cream)] hover:text-[var(--brand-purple-secondary)]"
                 >
                   <AppIcon icon={MessageCircleMore} size="sm" />
                   Chat

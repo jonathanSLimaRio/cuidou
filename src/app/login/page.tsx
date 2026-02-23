@@ -114,7 +114,7 @@ export default async function LoginPage({
               </CtaButton>
             </form>
 
-            <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.08em] text-[var(--theme-muted)]">
+            <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.08em] text-[var(--brand-purple-secondary)]">
               <span className="theme-divider flex-1" />
               <span>ou</span>
               <span className="theme-divider flex-1" />
@@ -137,7 +137,7 @@ export default async function LoginPage({
               </CtaButton>
               <Link
                 href={`/signup?next=${encodeURIComponent(nextPath)}`}
-                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--theme-indigo)] underline decoration-[1.5px] underline-offset-3"
+                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--brand-purple-primary)] underline decoration-[1.5px] underline-offset-3 hover:text-[var(--brand-purple-secondary)]"
               >
                 <AppIcon icon={UserPlus} size="sm" />
                 Preferir abrir a tela completa de cadastro local

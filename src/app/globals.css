@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  --brand-purple-primary: #310c78;
+  --brand-purple-secondary: #8f3eec;
+  --brand-blue-accent: var(--theme-indigo);
   --theme-navy: #212d71;
   --theme-indigo: #4962c7;
   --theme-indigo-strong: #0d1a66;
@@ -84,7 +87,7 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 summary:focus-visible {
-  outline: 2px solid var(--theme-indigo);
+  outline: 2px solid var(--brand-purple-secondary);
   outline-offset: 2px;
 }
 
@@ -169,9 +172,9 @@ main {
 }
 
 .theme-chip-blue {
-  color: var(--theme-indigo-strong);
-  background: rgba(143, 213, 239, 0.42);
-  border-color: rgba(78, 180, 211, 0.42);
+  color: var(--brand-purple-primary);
+  background: rgba(143, 62, 236, 0.12);
+  border-color: rgba(143, 62, 236, 0.3);
 }
 
 .theme-chip-pink {
@@ -188,7 +191,7 @@ main {
 
 .theme-chip-indigo {
   color: white;
-  background: var(--theme-indigo);
+  background: var(--brand-purple-primary);
   border-color: transparent;
 }
 
@@ -211,9 +214,9 @@ main {
 }
 
 .theme-chip-info {
-  color: var(--theme-info);
-  background: rgba(39, 93, 191, 0.1);
-  border-color: rgba(39, 93, 191, 0.3);
+  color: var(--brand-blue-accent);
+  background: rgba(73, 98, 199, 0.12);
+  border-color: rgba(73, 98, 199, 0.3);
 }
 
 .theme-chip-neutral {
@@ -273,25 +276,26 @@ a.btn-primary:visited {
 }
 
 .btn-secondary {
-  color: var(--theme-indigo);
+  color: var(--brand-purple-primary);
   background: white;
-  border: 1px solid var(--theme-indigo);
+  border: 1px solid rgba(49, 12, 120, 0.38);
 }
 
 .btn-secondary:hover {
   color: white;
-  background: var(--theme-indigo);
+  background: var(--brand-purple-secondary);
+  border-color: transparent;
 }
 
 .btn-soft {
-  color: var(--theme-indigo-strong);
-  background: rgba(255, 255, 255, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  color: var(--brand-purple-primary);
+  background: rgba(143, 62, 236, 0.08);
+  border: 1px solid rgba(143, 62, 236, 0.24);
   backdrop-filter: blur(6px);
 }
 
 .btn-soft:hover {
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(73, 98, 199, 0.18);
 }
 
 .theme-field,
@@ -329,9 +333,9 @@ a.btn-primary:visited {
   height: 1px;
   background: linear-gradient(
     90deg,
-    rgba(142, 156, 225, 0),
-    rgba(142, 156, 225, 0.58),
-    rgba(142, 156, 225, 0)
+    rgba(143, 62, 236, 0),
+    rgba(143, 62, 236, 0.42),
+    rgba(143, 62, 236, 0)
   );
 }
 
@@ -357,9 +361,9 @@ a.btn-primary:visited {
 }
 
 .theme-table th {
-  background: rgba(255, 248, 229, 0.56);
+  background: rgba(143, 62, 236, 0.08);
   font-family: var(--font-fredoka), "Trebuchet MS", sans-serif;
-  color: var(--theme-navy);
+  color: var(--brand-purple-primary);
   font-size: 0.88rem;
   letter-spacing: 0.02em;
 }
