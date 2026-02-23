@@ -13,6 +13,7 @@ model User {
   emailVerified     DateTime?
   image             String?
   phone             String?
+  passwordHash      String?
   role              UserRole?
   status            UserStatus @default(ACTIVE)
   acceptedTermsAt   DateTime?
@@ -406,6 +407,7 @@ enum UserRole {
 }
 
 enum UserStatus {
+  PENDING
   ACTIVE
   SUSPENDED
   BANNED

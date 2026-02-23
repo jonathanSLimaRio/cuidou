@@ -1,16 +1,31 @@
 import { auth, signIn } from "@/auth";
+import { CredentialsLoginForm } from "@/components/auth/credentials-login-form";
 import { AppIcon } from "@/components/theme/app-icon";
 import { BlobDecor } from "@/components/theme/blob-decor";
 import { CtaButton } from "@/components/theme/cta-button";
 import { resolveDesignImage } from "@/lib/design-media";
 import { getWordPressMediaGallery } from "@/lib/wordpress-content";
-import { BadgeCheck, LockKeyhole, LogIn } from "lucide-react";
+import { BadgeCheck, LockKeyhole, LogIn, UserPlus } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage() {
+type SearchParams = Promise<{
+  next?: string;
+  error?: string;
+  code?: string;
+}>;
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const nextPath = resolvedSearchParams.next || "/dashboard";
+
   const session = await auth();
 
   if (session?.user) {
@@ -50,18 +65,18 @@ export default async function LoginPage() {
                   Entre na Cuidou e acompanhe todo o fluxo de contratação.
                 </h2>
                 <p className="mt-3 text-sm leading-relaxed text-white/85">
-                  Use sua conta Google para acessar vagas, candidaturas, contratos e mensagens.
+                  Use Google ou email/senha para acessar vagas, candidaturas, contratos e mensagens.
                 </p>
               </div>
 
               <ul className="space-y-2 text-sm text-white/85">
                 <li className="inline-flex items-center gap-2">
                   <AppIcon icon={LockKeyhole} size="sm" />
-                  Sem senha local na V1
+                  Login social e local disponíveis
                 </li>
                 <li className="inline-flex items-center gap-2">
                   <AppIcon icon={BadgeCheck} size="sm" />
-                  Perfil por papel único
+                  Cadastro local exige aprovação admin
                 </li>
                 <li className="inline-flex items-center gap-2">
                   <AppIcon icon={BadgeCheck} size="sm" />
@@ -75,7 +90,7 @@ export default async function LoginPage() {
             <p className="theme-chip theme-chip-blue">Login</p>
             <h1 className="mt-4 text-3xl sm:text-4xl">Entrar na Cuidou</h1>
             <p className="mt-3 text-sm leading-relaxed text-[var(--theme-muted)]">
-              Login social com Google para famílias, profissionais e administradores.
+              Entre com Google ou email/senha para acessar sua jornada na plataforma.
             </p>
 
             <div className="mt-6 space-y-3 text-sm text-[var(--theme-body)]">
@@ -90,7 +105,7 @@ export default async function LoginPage() {
             <form
               action={async () => {
                 "use server";
-                await signIn("google", { redirectTo: "/dashboard" });
+                await signIn("google", { redirectTo: nextPath });
               }}
               className="mt-7"
             >
@@ -98,6 +113,22 @@ export default async function LoginPage() {
                 Continuar com Google
               </CtaButton>
             </form>
+
+            <CredentialsLoginForm
+              nextPath={nextPath}
+              initialCode={resolvedSearchParams.code}
+              initialError={resolvedSearchParams.error}
+            />
+
+            <div className="mt-4">
+              <Link
+                href={`/signup?next=${encodeURIComponent(nextPath)}`}
+                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--theme-indigo)] underline"
+              >
+                <AppIcon icon={UserPlus} size="sm" />
+                Criar cadastro local (aprovação manual)
+              </Link>
+            </div>
           </section>
         </div>
       </div>

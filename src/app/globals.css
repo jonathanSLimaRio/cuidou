@@ -242,15 +242,21 @@ main {
 }
 
 .btn-primary {
-  color: white;
+  color: #fff !important;
   background: var(--theme-indigo);
   border: 1px solid transparent;
 }
 
 .btn-primary:hover,
 .btn-primary:active,
-.btn-primary:visited {
-  color: white;
+.btn-primary:focus-visible,
+.btn-primary:visited,
+a.btn-primary,
+a.btn-primary:hover,
+a.btn-primary:active,
+a.btn-primary:focus-visible,
+a.btn-primary:visited {
+  color: #fff !important;
 }
 
 .btn-primary:hover,
@@ -260,7 +266,11 @@ main {
 
 .btn-primary:disabled,
 .btn-primary[aria-disabled="true"] {
-  color: white;
+  color: #fff !important;
+}
+
+.btn-primary svg {
+  color: inherit;
 }
 
 .btn-secondary {

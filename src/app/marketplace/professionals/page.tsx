@@ -7,8 +7,9 @@ import { resolveDesignImage } from "@/lib/design-media";
 import { prisma } from "@/lib/prisma";
 import { getWordPressMediaGallery, pickWordPressImage } from "@/lib/wordpress-content";
 import { VerificationStatus } from "@prisma/client";
-import { BriefcaseBusiness, Filter, LogIn } from "lucide-react";
+import { BriefcaseBusiness, Eye, Filter, LogIn } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 type SearchParams = Promise<{
   serviceType?: string;
@@ -157,7 +158,11 @@ export default async function MarketplaceProfessionalsPage({
                   : pickWordPressImage(gallery, index + 12, professional.user.name ?? "Profissional");
 
               return (
-                <article key={professional.id} className="theme-list-card p-4">
+                <Link
+                  key={professional.id}
+                  href={`/marketplace/professionals/${professional.id}`}
+                  className="theme-list-card block p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--theme-indigo)]"
+                >
                   <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-cream)]">
                     {image ? (
                       <Image
@@ -208,7 +213,11 @@ export default async function MarketplaceProfessionalsPage({
                   <p className="mt-3 text-xs text-[var(--theme-muted)]">
                     Disponibilidade registrada em {professional.availabilitySlots.length} turnos.
                   </p>
-                </article>
+                  <p className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[var(--theme-indigo)]">
+                    <Eye size={16} />
+                    Ver detalhes
+                  </p>
+                </Link>
               );
             })}
           </section>

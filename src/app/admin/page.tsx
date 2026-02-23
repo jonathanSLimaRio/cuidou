@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { CalendarRange, LineChart, Puzzle } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PendingUsersPanel } from "./pending-users-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -38,12 +39,31 @@ export default async function AdminPage({
   const windowDays: MetricsWindow =
     windowParam === "7" || windowParam === "90" ? (Number(windowParam) as MetricsWindow) : 30;
 
-  const [pendingDocs, openReports, totalUsers, openJobs, metrics] = await Promise.all([
+  const [pendingDocs, openReports, totalUsers, openJobs, metrics, pendingUsers] = await Promise.all([
     prisma.professionalDocument.count({ where: { status: "UNDER_REVIEW" } }),
     prisma.report.count({ where: { status: { in: ["OPEN", "IN_REVIEW"] } } }),
     prisma.user.count(),
     prisma.jobPost.count({ where: { status: "OPEN" } }),
     getAdminMetrics(windowDays),
+    prisma.user.findMany({
+      where: {
+        status: "PENDING",
+        passwordHash: {
+          not: null,
+        },
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true,
+        status: true,
+      },
+      take: 200,
+    }),
   ]);
 
   return (
@@ -154,6 +174,14 @@ export default async function AdminPage({
           </ul>
         )}
       </DataTableShell>
+
+      <PendingUsersPanel
+        initialUsers={pendingUsers.map((user) => ({
+          ...user,
+          status: "PENDING" as const,
+          createdAt: user.createdAt.toISOString(),
+        }))}
+      />
     </AppShell>
   );
 }

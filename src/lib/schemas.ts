@@ -2,6 +2,11 @@ import { z } from "zod";
 
 const roleSchema = z.enum(["FAMILY", "PROFESSIONAL"]);
 const serviceTypeSchema = z.enum(["BABYSITTER", "ELDER_CAREGIVER"]);
+const strongPasswordSchema = z
+  .string()
+  .min(8, "Password must have at least 8 characters")
+  .regex(/[A-Za-z]/, "Password must contain at least one letter")
+  .regex(/[0-9]/, "Password must contain at least one number");
 export const weekdaySchema = z.enum([
   "MONDAY",
   "TUESDAY",
@@ -18,6 +23,18 @@ export const onboardingRoleSchema = z.object({
   acceptTerms: z.literal(true),
   acceptPrivacy: z.literal(true),
 });
+
+export const localSignupSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120),
+    email: z.email().trim().toLowerCase(),
+    password: strongPasswordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 export const familyProfileSchema = z.object({
   contactName: z.string().min(2).max(120),
@@ -167,7 +184,7 @@ export const reportSchema = z
   );
 
 export const adminUserStatusSchema = z.object({
-  status: z.enum(["ACTIVE", "SUSPENDED", "BANNED"]),
+  status: z.enum(["PENDING", "ACTIVE", "SUSPENDED", "BANNED"]),
 });
 
 export const adminJobStatusSchema = z.object({

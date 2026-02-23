@@ -18,7 +18,8 @@ type ActionButtonProps = {
 } & ButtonHTMLAttributes<HTMLButtonElement>;
 
 const variantClasses: Record<ActionButtonVariant, string> = {
-  primary: "btn-primary text-white hover:text-white active:text-white visited:text-white",
+  primary:
+    "btn-primary !text-white hover:!text-white active:!text-white focus-visible:!text-white visited:!text-white",
   secondary:
     "btn-secondary text-[var(--theme-indigo)] hover:text-white active:text-white visited:text-[var(--theme-indigo)]",
   soft: "btn-soft",

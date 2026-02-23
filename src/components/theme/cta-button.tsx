@@ -21,7 +21,7 @@ type CtaButtonProps = {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-[var(--theme-indigo)] text-white shadow-[0_14px_30px_-18px_var(--theme-indigo)] hover:bg-[var(--theme-indigo-strong)] hover:text-white active:text-white visited:text-white",
+    "bg-[var(--theme-indigo)] !text-white shadow-[0_14px_30px_-18px_var(--theme-indigo)] hover:bg-[var(--theme-indigo-strong)] hover:!text-white active:!text-white focus-visible:!text-white visited:!text-white disabled:!text-white",
   outline:
     "border border-[var(--theme-indigo)] text-[var(--theme-indigo)] hover:bg-[var(--theme-indigo)] hover:text-white active:text-white",
   soft:

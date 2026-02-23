@@ -6,8 +6,9 @@ import { StatusBadge } from "@/components/theme/status-badge";
 import { resolveDesignImage } from "@/lib/design-media";
 import { prisma } from "@/lib/prisma";
 import { getWordPressMediaGallery, pickWordPressImage } from "@/lib/wordpress-content";
-import { Filter, LogIn, Users } from "lucide-react";
+import { Eye, Filter, LogIn, Users } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -136,7 +137,11 @@ export default async function MarketplaceJobsPage({
                   : pickWordPressImage(gallery, index + 5, job.title);
 
               return (
-                <article key={job.id} className="theme-list-card p-4">
+                <Link
+                  key={job.id}
+                  href={`/marketplace/jobs/${job.id}`}
+                  className="theme-list-card block p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--theme-indigo)]"
+                >
                   <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-cream)]">
                     {image ? (
                       <Image
@@ -173,7 +178,12 @@ export default async function MarketplaceJobsPage({
                       {job.hourlyRateMax ? ` - R$ ${job.hourlyRateMax}` : ""}
                     </span>
                   </div>
-                </article>
+
+                  <p className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[var(--theme-indigo)]">
+                    <Eye size={16} />
+                    Ver detalhes
+                  </p>
+                </Link>
               );
             })}
           </section>
