@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
 import { JobStatus, ServiceType } from "@prisma/client";
 import { Loader2, PlusCircle, Save } from "lucide-react";
@@ -63,10 +64,10 @@ function getInitialValue(initialValue?: JobFormModel): JobFormModel {
 
 export function JobForm({ mode, initialValue, onSaved }: Props) {
   const router = useRouter();
+  const { error: showError, success, warning } = useToast();
   const [form, setForm] = useState<JobFormModel>(() => getInitialValue(initialValue));
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const hasScheduleErrors = useMemo(() => {
     if (form.scheduleSlots.length === 0) {
@@ -97,13 +98,14 @@ export function JobForm({ mode, initialValue, onSaved }: Props) {
     event.preventDefault();
 
     if (hasScheduleErrors) {
-      setError("Revise os horários da agenda para continuar.");
+      const message = "Revise os horários da agenda para continuar.";
+      setValidationError(message);
+      warning("Agenda inválida", message);
       return;
     }
 
     setLoading(true);
-    setError(null);
-    setSuccess(null);
+    setValidationError(null);
 
     try {
       const payload = {
@@ -131,11 +133,11 @@ export function JobForm({ mode, initialValue, onSaved }: Props) {
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "Não foi possível salvar a vaga.");
+        showError("Não foi possível salvar a vaga.", result.error);
         return;
       }
 
-      setSuccess(mode === "create" ? "Vaga criada com sucesso." : "Vaga atualizada com sucesso.");
+      success(mode === "create" ? "Vaga criada com sucesso." : "Vaga atualizada com sucesso.");
       onSaved?.(result.job);
       router.refresh();
 
@@ -143,7 +145,7 @@ export function JobForm({ mode, initialValue, onSaved }: Props) {
         setForm(getInitialValue());
       }
     } catch {
-      setError("Erro inesperado ao salvar vaga.");
+      showError("Erro inesperado ao salvar vaga.");
     } finally {
       setLoading(false);
     }
@@ -305,8 +307,7 @@ export function JobForm({ mode, initialValue, onSaved }: Props) {
         </label>
       ) : null}
 
-      {error ? <p className="theme-alert theme-alert-danger">{error}</p> : null}
-      {success ? <p className="theme-alert theme-alert-success">{success}</p> : null}
+      {validationError ? <p className="theme-alert theme-alert-danger">{validationError}</p> : null}
 
       <ActionButton
         type="submit"

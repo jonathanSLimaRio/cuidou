@@ -207,6 +207,8 @@ export default async function MarketplaceJobDetailPage({ params }: Params) {
             job.status === "OPEN" ? (
               <ApplyToJobForm
                 jobId={job.id}
+                jobTitle={job.title}
+                familyName={job.family.name ?? "Família"}
                 alreadyApplied={alreadyApplied}
                 precheckWarning={precheckWarning}
               />

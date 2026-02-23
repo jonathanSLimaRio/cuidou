@@ -1,6 +1,7 @@
 "use client";
 
 import { ActionButton } from "@/components/theme/action-button";
+import { useToast } from "@/components/notifications/use-toast";
 import { AppIcon } from "@/components/theme/app-icon";
 import { ArrowRight, Baby, ShieldCheck, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -8,20 +9,23 @@ import { useState } from "react";
 
 export function OnboardingRoleForm() {
   const router = useRouter();
+  const { error: showError, warning } = useToast();
   const [role, setRole] = useState<"FAMILY" | "PROFESSIONAL">("FAMILY");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   async function submit() {
     if (!acceptTerms || !acceptPrivacy) {
-      setError("Você precisa aceitar os termos e a política para continuar.");
+      const message = "Você precisa aceitar os termos e a política para continuar.";
+      setValidationError(message);
+      warning("Validação pendente", message);
       return;
     }
 
     setLoading(true);
-    setError(null);
+    setValidationError(null);
 
     try {
       const response = await fetch("/api/onboarding/role", {
@@ -39,14 +43,14 @@ export function OnboardingRoleForm() {
       const payload = await response.json();
 
       if (!response.ok) {
-        setError(payload.error ?? "Não foi possível finalizar o onboarding.");
+        showError("Não foi possível finalizar o onboarding.", payload.error);
         return;
       }
 
       router.push(payload.nextPath ?? "/dashboard");
       router.refresh();
     } catch {
-      setError("Erro inesperado ao enviar onboarding.");
+      showError("Erro inesperado ao enviar onboarding.");
     } finally {
       setLoading(false);
     }
@@ -110,7 +114,7 @@ export function OnboardingRoleForm() {
         Aceito a Política de Privacidade (LGPD).
       </label>
 
-      {error ? <p className="theme-alert theme-alert-danger">{error}</p> : null}
+      {validationError ? <p className="theme-alert theme-alert-danger">{validationError}</p> : null}
 
       <ActionButton
         type="button"

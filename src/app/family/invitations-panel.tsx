@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
 import { OpportunityStateCard } from "@/components/theme/opportunity-state-card";
 import { StatusBadge } from "@/components/theme/status-badge";
@@ -41,9 +42,9 @@ function pendingLabel(createdAtIso: string) {
 }
 
 export function InvitationsPanel({ initialGroups }: Props) {
+  const { error: showError, success } = useToast();
   const [groups, setGroups] = useState(initialGroups);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const total = useMemo(
     () => groups.reduce((acc, group) => acc + group.items.length, 0),
@@ -52,7 +53,6 @@ export function InvitationsPanel({ initialGroups }: Props) {
 
   async function cancelInvitation(invitationId: string) {
     setBusyId(invitationId);
-    setError(null);
 
     try {
       const response = await fetch(`/api/invitations/${invitationId}/cancel`, {
@@ -62,7 +62,7 @@ export function InvitationsPanel({ initialGroups }: Props) {
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "Não foi possível cancelar o convite.");
+        showError("Não foi possível cancelar o convite.", result.error);
         return;
       }
 
@@ -80,8 +80,9 @@ export function InvitationsPanel({ initialGroups }: Props) {
           ),
         })),
       );
+      success("Convite cancelado.");
     } catch {
-      setError("Erro inesperado ao cancelar convite.");
+      showError("Erro inesperado ao cancelar convite.");
     } finally {
       setBusyId(null);
     }
@@ -94,8 +95,6 @@ export function InvitationsPanel({ initialGroups }: Props) {
       <p className="mt-2 text-sm text-[var(--theme-body)]">
         Total de convites registrados: {total}. Acompanhe aceite, recusa e expirados por vaga.
       </p>
-
-      {error ? <p className="theme-alert theme-alert-danger mt-4">{error}</p> : null}
 
       {groups.length === 0 ? (
         <p className="theme-card-soft mt-5 rounded-2xl px-4 py-3 text-sm text-[var(--theme-muted)]">

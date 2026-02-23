@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
 import { AppIcon } from "@/components/theme/app-icon";
 import { Paperclip, Reply, SendHorizontal } from "lucide-react";
@@ -38,13 +39,14 @@ export function ChatRoom({
   conversationId: string;
   currentUserId: string;
 }) {
+  const { error: showError } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [content, setContent] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadMessages = useCallback(async () => {
     try {
@@ -52,13 +54,14 @@ export function ChatRoom({
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "Falha ao carregar mensagens.");
+        setLoadError(result.error ?? "Falha ao carregar mensagens.");
         return;
       }
 
+      setLoadError(null);
       setMessages(result.items ?? []);
     } catch {
-      setError("Erro inesperado ao carregar mensagens.");
+      setLoadError("Erro inesperado ao carregar mensagens.");
     } finally {
       setLoading(false);
     }
@@ -98,7 +101,6 @@ export function ChatRoom({
     }
 
     setSending(true);
-    setError(null);
 
     try {
       let response: Response;
@@ -129,7 +131,7 @@ export function ChatRoom({
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "Falha ao enviar mensagem.");
+        showError("Falha ao enviar mensagem.", result.error);
         return;
       }
 
@@ -137,7 +139,7 @@ export function ChatRoom({
       setFiles([]);
       await loadMessages();
     } catch {
-      setError("Erro inesperado ao enviar mensagem.");
+      showError("Erro inesperado ao enviar mensagem.");
     } finally {
       setSending(false);
     }
@@ -145,7 +147,6 @@ export function ChatRoom({
 
   async function sendQuickReply(reply: QuickReply) {
     setSending(true);
-    setError(null);
 
     try {
       const response = await fetch(`/api/conversations/${conversationId}/messages`, {
@@ -161,13 +162,13 @@ export function ChatRoom({
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "Falha ao enviar resposta rápida.");
+        showError("Falha ao enviar resposta rápida.", result.error);
         return;
       }
 
       await loadMessages();
     } catch {
-      setError("Erro inesperado ao enviar resposta rápida.");
+      showError("Erro inesperado ao enviar resposta rápida.");
     } finally {
       setSending(false);
     }
@@ -181,6 +182,7 @@ export function ChatRoom({
         {!loading && sortedMessages.length === 0 ? (
           <p className="text-sm text-[var(--theme-muted)]">Sem mensagens ainda.</p>
         ) : null}
+        {loadError ? <p className="theme-alert theme-alert-danger">{loadError}</p> : null}
 
         {sortedMessages.map((message) => {
           const mine = message.senderId === currentUserId;
@@ -272,7 +274,6 @@ export function ChatRoom({
 
         <p className="text-xs text-[var(--theme-muted)]">Máximo 3 anexos por mensagem, até 10MB cada.</p>
 
-        {error ? <p className="theme-alert theme-alert-danger">{error}</p> : null}
       </div>
     </section>
   );

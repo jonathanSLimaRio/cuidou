@@ -1,29 +1,35 @@
 "use client";
 
+import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
 import { SendHorizontal } from "lucide-react";
 import { FormEvent, useState } from "react";
 
 type Props = {
   jobId: string;
+  jobTitle: string;
+  familyName: string;
   alreadyApplied: boolean;
   precheckWarning?: string | null;
 };
 
-export function ApplyToJobForm({ jobId, alreadyApplied, precheckWarning }: Props) {
+export function ApplyToJobForm({
+  jobId,
+  jobTitle,
+  familyName,
+  alreadyApplied,
+  precheckWarning,
+}: Props) {
+  const { error: showError, success } = useToast();
   const [coverMessage, setCoverMessage] = useState(
     "Tenho interesse na vaga e posso compartilhar mais detalhes da minha experiência.",
   );
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setError(null);
-    setSuccess(null);
     setWarning(null);
 
     try {
@@ -40,16 +46,19 @@ export function ApplyToJobForm({ jobId, alreadyApplied, precheckWarning }: Props
       const payload = await response.json();
 
       if (!response.ok) {
-        setError(payload.error ?? "Não foi possível enviar candidatura.");
+        showError("Não foi possível enviar candidatura.", payload.error);
         return;
       }
 
-      setSuccess("Candidatura enviada com sucesso.");
+      success(
+        "Candidatura enviada com sucesso.",
+        `Enviada para a vaga "${jobTitle}" da família ${familyName}.`,
+      );
       if (payload.scheduleMatchWarning?.message) {
         setWarning(payload.scheduleMatchWarning.message);
       }
     } catch {
-      setError("Erro inesperado ao enviar candidatura.");
+      showError("Erro inesperado ao enviar candidatura.");
     } finally {
       setLoading(false);
     }
@@ -77,9 +86,7 @@ export function ApplyToJobForm({ jobId, alreadyApplied, precheckWarning }: Props
         required
       />
 
-      {error ? <p className="theme-alert theme-alert-danger">{error}</p> : null}
       {warning ? <p className="theme-alert theme-alert-warning">{warning}</p> : null}
-      {success ? <p className="theme-alert theme-alert-success">{success}</p> : null}
 
       <ActionButton type="submit" icon={SendHorizontal} disabled={loading}>
         {loading ? "Enviando..." : "Enviar candidatura"}

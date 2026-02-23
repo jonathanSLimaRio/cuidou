@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { ContractStatus } from "@prisma/client";
@@ -39,13 +40,12 @@ function statusTone(status: ContractStatus) {
 }
 
 export function FamilyContractsPanel({ initialContracts }: Props) {
+  const { error: showError, success, warning } = useToast();
   const [contracts, setContracts] = useState(initialContracts);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   async function completeContract(contractId: string) {
     setBusyId(contractId);
-    setError(null);
 
     try {
       const response = await fetch(`/api/contracts/${contractId}/complete`, {
@@ -59,7 +59,7 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "Falha ao concluir contrato.");
+        showError("Falha ao concluir contrato.", result.error);
         return;
       }
 
@@ -74,8 +74,9 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
             : item,
         ),
       );
+      success("Contrato concluído.");
     } catch {
-      setError("Erro inesperado ao concluir contrato.");
+      showError("Erro inesperado ao concluir contrato.");
     } finally {
       setBusyId(null);
     }
@@ -84,12 +85,11 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
   async function cancelContract(contractId: string) {
     const reason = window.prompt("Motivo do cancelamento:");
     if (!reason || reason.trim().length < 5) {
-      setError("Informe um motivo com pelo menos 5 caracteres.");
+      warning("Motivo inválido", "Informe um motivo com pelo menos 5 caracteres.");
       return;
     }
 
     setBusyId(contractId);
-    setError(null);
 
     try {
       const response = await fetch(`/api/contracts/${contractId}/cancel`, {
@@ -105,7 +105,7 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "Falha ao cancelar contrato.");
+        showError("Falha ao cancelar contrato.", result.error);
         return;
       }
 
@@ -121,8 +121,9 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
             : item,
         ),
       );
+      success("Contrato cancelado.");
     } catch {
-      setError("Erro inesperado ao cancelar contrato.");
+      showError("Erro inesperado ao cancelar contrato.");
     } finally {
       setBusyId(null);
     }
@@ -135,8 +136,6 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
       <p className="mt-2 text-sm text-[var(--theme-body)]">
         Gerencie contratos em andamento, concluídos e cancelados.
       </p>
-
-      {error ? <p className="theme-alert theme-alert-danger mt-4">{error}</p> : null}
 
       <ul className="mt-5 space-y-3">
         {contracts.length === 0 ? (

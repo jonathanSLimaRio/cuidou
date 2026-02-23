@@ -92,6 +92,7 @@ As contas abaixo são criadas/atualizadas por `npm run prisma:seed` para testes 
 - Família: `familia.local@cuidou.dev`
 - Cuidadora: `cuidadora.local@cuidou.dev`
 - Senha (todas): `Cuidou123!`
+- O seed local também cria 2 vagas abertas da família local para teste cruzado do fluxo de candidatura.
 
 Aviso: remova ou rotacione essas credenciais antes de qualquer uso fora de desenvolvimento.
 

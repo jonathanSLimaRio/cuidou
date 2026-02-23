@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
 import { CheckCircle2, PauseCircle } from "lucide-react";
 import { useState } from "react";
@@ -17,13 +18,12 @@ type Props = {
 };
 
 export function PendingUsersPanel({ initialUsers }: Props) {
+  const { error: showError, success } = useToast();
   const [users, setUsers] = useState(initialUsers);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   async function updateStatus(userId: string, status: "ACTIVE" | "SUSPENDED") {
     setBusyId(userId);
-    setError(null);
 
     try {
       const response = await fetch(`/api/admin/users/${userId}/status`, {
@@ -36,13 +36,14 @@ export function PendingUsersPanel({ initialUsers }: Props) {
 
       const payload = await response.json();
       if (!response.ok) {
-        setError(payload.error ?? "Falha ao atualizar status.");
+        showError("Falha ao atualizar status.", payload.error);
         return;
       }
 
       setUsers((current) => current.filter((user) => user.id !== userId));
+      success(status === "ACTIVE" ? "Usuário aprovado." : "Usuário suspenso.");
     } catch {
-      setError("Erro inesperado ao atualizar status.");
+      showError("Erro inesperado ao atualizar status.");
     } finally {
       setBusyId(null);
     }
@@ -55,8 +56,6 @@ export function PendingUsersPanel({ initialUsers }: Props) {
       <p className="mt-2 text-sm text-[var(--theme-body)]">
         Novos cadastros por email/senha entram como pendentes até revisão administrativa.
       </p>
-
-      {error ? <p className="theme-alert theme-alert-danger mt-4">{error}</p> : null}
 
       {users.length === 0 ? (
         <p className="theme-card-soft mt-4 rounded-2xl px-4 py-3 text-sm text-[var(--theme-muted)]">

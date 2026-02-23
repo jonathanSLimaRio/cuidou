@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
 import { Shift, Weekday } from "@prisma/client";
 import { Plus, Save, Trash2 } from "lucide-react";
@@ -76,13 +77,12 @@ export function AvailabilityManager({
   initialExceptions,
   legacyAvailabilityText,
 }: Props) {
+  const { error: showError, success } = useToast();
   const [matrix, setMatrix] = useState<Record<Weekday, Record<Shift, boolean>>>(() =>
     buildInitialMatrix(initialWeeklySlots),
   );
   const [exceptions, setExceptions] = useState<ExceptionInput[]>(initialExceptions);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const weeklySlots = useMemo(
     () =>
@@ -130,8 +130,6 @@ export function AvailabilityManager({
 
   async function save() {
     setSaving(true);
-    setError(null);
-    setMessage(null);
 
     try {
       const payload = {
@@ -150,13 +148,13 @@ export function AvailabilityManager({
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "Falha ao salvar agenda.");
+        showError("Falha ao salvar agenda.", result.error);
         return;
       }
 
-      setMessage("Agenda salva com sucesso.");
+      success("Agenda salva com sucesso.");
     } catch {
-      setError("Erro inesperado ao salvar agenda.");
+      showError("Erro inesperado ao salvar agenda.");
     } finally {
       setSaving(false);
     }
@@ -274,9 +272,6 @@ export function AvailabilityManager({
           ))}
         </div>
       </div>
-
-      {error ? <p className="theme-alert theme-alert-danger mt-4">{error}</p> : null}
-      {message ? <p className="theme-alert theme-alert-success mt-4">{message}</p> : null}
 
       <div className="sticky bottom-3 mt-5 flex justify-end">
         <ActionButton

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fredoka, Nunito } from "next/font/google";
+import { ToastProvider } from "@/components/notifications/toast-provider";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
@@ -47,8 +48,10 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${nunito.variable} ${fredoka.variable} min-h-screen antialiased`}>
-        <SiteHeader />
-        {children}
+        <ToastProvider>
+          <SiteHeader />
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

@@ -813,6 +813,109 @@ async function seedLocalDevUsers() {
   });
 
   console.log("Seeded local dev users (admin, family, caregiver).");
+
+  return {
+    familyUserId: familyUser.id,
+    caregiverUserId: caregiverUser.id,
+  };
+}
+
+async function seedLocalDevJobs(familyUserId: string) {
+  const localJobs: Array<{
+    title: string;
+    serviceType: ServiceType;
+    description: string;
+    hourlyRateMin: number;
+    hourlyRateMax: number;
+    scheduleSlots: Array<{
+      weekday: Weekday;
+      startTime: string;
+      endTime: string;
+    }>;
+  }> = [
+    {
+      title: "Local Dev - Cuidadora para rotina semanal",
+      serviceType: ServiceType.ELDER_CAREGIVER,
+      description:
+        "Vaga local para testes de fluxo. Precisamos de cuidadora para rotina de acompanhamento de idoso durante dias úteis.",
+      hourlyRateMin: 35,
+      hourlyRateMax: 55,
+      scheduleSlots: [
+        { weekday: Weekday.MONDAY, startTime: "08:00", endTime: "12:00" },
+        { weekday: Weekday.WEDNESDAY, startTime: "08:00", endTime: "12:00" },
+        { weekday: Weekday.FRIDAY, startTime: "08:00", endTime: "12:00" },
+      ],
+    },
+    {
+      title: "Local Dev - Babá para meio período",
+      serviceType: ServiceType.BABYSITTER,
+      description:
+        "Vaga local para testes de fluxo. Apoio com criança em rotina escolar no período da tarde.",
+      hourlyRateMin: 30,
+      hourlyRateMax: 45,
+      scheduleSlots: [
+        { weekday: Weekday.TUESDAY, startTime: "13:30", endTime: "18:00" },
+        { weekday: Weekday.THURSDAY, startTime: "13:30", endTime: "18:00" },
+      ],
+    },
+  ];
+
+  for (const localJob of localJobs) {
+    const existing = await prisma.jobPost.findFirst({
+      where: {
+        familyId: familyUserId,
+        title: localJob.title,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existing) {
+      await prisma.jobPost.update({
+        where: { id: existing.id },
+        data: {
+          serviceType: localJob.serviceType,
+          description: localJob.description,
+          state: "SP",
+          city: "São Paulo",
+          neighborhood: "Pinheiros",
+          hourlyRateMin: localJob.hourlyRateMin,
+          hourlyRateMax: localJob.hourlyRateMax,
+          scheduleDetails: "Cenário de teste local entre contas seedadas.",
+          status: "OPEN",
+          isVisible: true,
+          scheduleSlots: {
+            deleteMany: {},
+            create: localJob.scheduleSlots,
+          },
+        },
+      });
+      continue;
+    }
+
+    await prisma.jobPost.create({
+      data: {
+        familyId: familyUserId,
+        serviceType: localJob.serviceType,
+        title: localJob.title,
+        description: localJob.description,
+        state: "SP",
+        city: "São Paulo",
+        neighborhood: "Pinheiros",
+        hourlyRateMin: localJob.hourlyRateMin,
+        hourlyRateMax: localJob.hourlyRateMax,
+        scheduleDetails: "Cenário de teste local entre contas seedadas.",
+        scheduleSlots: {
+          create: localJob.scheduleSlots,
+        },
+        status: "OPEN",
+        isVisible: true,
+      },
+    });
+  }
+
+  console.log("Seeded local dev jobs for family account.");
 }
 
 async function seedDemoFamilies() {
@@ -1063,7 +1166,8 @@ async function deleteStaleDemoUsers() {
 
 async function main() {
   await seedSuperAdmin();
-  await seedLocalDevUsers();
+  const localUsers = await seedLocalDevUsers();
+  await seedLocalDevJobs(localUsers.familyUserId);
   await deleteStaleDemoUsers();
   const familyIdsBySlug = await seedDemoFamilies();
   await seedDemoProfessionals();

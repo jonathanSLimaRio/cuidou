@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
 import { OpportunityStateCard } from "@/components/theme/opportunity-state-card";
 import { StatusBadge } from "@/components/theme/status-badge";
@@ -48,10 +49,9 @@ const defaultCoverMessage =
   "Tenho interesse na vaga e confirmo disponibilidade para avançar no processo.";
 
 export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
+  const { error: showError, success, warning } = useToast();
   const [invitations, setInvitations] = useState(initialInvitations);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [coverMessages, setCoverMessages] = useState<Record<string, string>>(() =>
     Object.fromEntries(initialInvitations.map((item) => [item.id, defaultCoverMessage])),
   );
@@ -66,13 +66,11 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
   async function accept(invitationId: string) {
     const coverMessage = coverMessages[invitationId]?.trim();
     if (!coverMessage || coverMessage.length < 10) {
-      setError("Escreva uma mensagem de candidatura com pelo menos 10 caracteres.");
+      warning("Mensagem obrigatória", "Escreva uma mensagem de candidatura com pelo menos 10 caracteres.");
       return;
     }
 
     setBusyId(invitationId);
-    setError(null);
-    setSuccess(null);
 
     try {
       const response = await fetch(`/api/invitations/${invitationId}/accept`, {
@@ -87,7 +85,7 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
 
       const result = await response.json();
       if (!response.ok) {
-        setError(result.error ?? "Não foi possível aceitar convite.");
+        showError("Não foi possível aceitar convite.", result.error);
         return;
       }
 
@@ -95,9 +93,9 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
         status: result.invitation.status,
         responseMessage: result.invitation.responseMessage,
       });
-      setSuccess("Candidatura enviada com sucesso; aguardando decisão da família.");
+      success("Candidatura enviada com sucesso.", "Aguardando decisão da família.");
     } catch {
-      setError("Erro inesperado ao aceitar convite.");
+      showError("Erro inesperado ao aceitar convite.");
     } finally {
       setBusyId(null);
     }
@@ -106,8 +104,6 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
   async function decline(invitationId: string) {
     const reason = declineReasonById[invitationId]?.trim();
     setBusyId(invitationId);
-    setError(null);
-    setSuccess(null);
 
     try {
       const response = await fetch(`/api/invitations/${invitationId}/decline`, {
@@ -122,16 +118,17 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
 
       const result = await response.json();
       if (!response.ok) {
-        setError(result.error ?? "Não foi possível recusar convite.");
+        showError("Não foi possível recusar convite.", result.error);
         return;
       }
 
       updateInvitation(invitationId, {
-        status: result.invitation.status,
-        responseMessage: result.invitation.responseMessage,
+          status: result.invitation.status,
+          responseMessage: result.invitation.responseMessage,
       });
+      success("Convite recusado.");
     } catch {
-      setError("Erro inesperado ao recusar convite.");
+      showError("Erro inesperado ao recusar convite.");
     } finally {
       setBusyId(null);
     }
@@ -160,9 +157,6 @@ export function ProfessionalInvitationsPanel({ initialInvitations }: Props) {
       <p className="mt-2 text-sm text-[var(--theme-body)]">
         Ao aceitar, uma candidatura será criada automaticamente com sua mensagem.
       </p>
-
-      {error ? <p className="theme-alert theme-alert-danger mt-4">{error}</p> : null}
-      {success ? <p className="theme-alert theme-alert-success mt-4">{success}</p> : null}
 
       {invitations.length === 0 ? (
         <p className="theme-card-soft mt-5 rounded-2xl px-4 py-3 text-sm text-[var(--theme-muted)]">

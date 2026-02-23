@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
 import { OpportunityStateCard } from "@/components/theme/opportunity-state-card";
 import { StatusBadge } from "@/components/theme/status-badge";
@@ -78,11 +79,11 @@ function canDecide(status: ApplicationStatus) {
 }
 
 export function ApplicationsPipeline({ initialGroups }: Props) {
+  const { error: showError, success } = useToast();
   const [groups, setGroups] = useState(initialGroups);
   const [busyActionById, setBusyActionById] = useState<Record<string, "accept" | "reject" | "favorite" | null>>(
     {},
   );
-  const [error, setError] = useState<string | null>(null);
 
   const totalApplications = useMemo(
     () => groups.reduce((acc, group) => acc + group.applications.length, 0),
@@ -122,7 +123,6 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
 
   async function acceptApplication(applicationId: string) {
     setBusy(applicationId, "accept");
-    setError(null);
 
     try {
       const response = await fetch(`/api/applications/${applicationId}/accept`, {
@@ -131,15 +131,16 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "Não foi possível aceitar a candidatura.");
+        showError("Não foi possível aceitar a candidatura.", result.error);
         return;
       }
 
       setApplicationPatch(applicationId, {
         status: result.application.status,
       });
+      success("Candidatura aceita.");
     } catch {
-      setError("Erro inesperado ao aceitar candidatura.");
+      showError("Erro inesperado ao aceitar candidatura.");
     } finally {
       setBusy(applicationId, null);
     }
@@ -147,7 +148,6 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
 
   async function rejectApplication(applicationId: string, favorite: boolean) {
     setBusy(applicationId, "reject");
-    setError(null);
 
     try {
       const response = await fetch(`/api/applications/${applicationId}/reject`, {
@@ -160,7 +160,7 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "Não foi possível recusar a candidatura.");
+        showError("Não foi possível recusar a candidatura.", result.error);
         return;
       }
 
@@ -168,8 +168,9 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
         status: result.application.status,
         isFavoriteByFamily: result.application.isFavoriteByFamily,
       });
+      success("Candidatura recusada.");
     } catch {
-      setError("Erro inesperado ao recusar candidatura.");
+      showError("Erro inesperado ao recusar candidatura.");
     } finally {
       setBusy(applicationId, null);
     }
@@ -177,7 +178,6 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
 
   async function toggleFavorite(applicationId: string, favorite: boolean) {
     setBusy(applicationId, "favorite");
-    setError(null);
 
     try {
       const response = await fetch(`/api/applications/${applicationId}/favorite`, {
@@ -190,7 +190,7 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "Não foi possível atualizar favorito.");
+        showError("Não foi possível atualizar favorito.", result.error);
         return;
       }
 
@@ -198,21 +198,19 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
         isFavoriteByFamily: result.application.isFavoriteByFamily,
       });
     } catch {
-      setError("Erro inesperado ao atualizar favorito.");
+      showError("Erro inesperado ao atualizar favorito.");
     } finally {
       setBusy(applicationId, null);
     }
   }
 
   return (
-    <section className="theme-card rounded-[34px] px-6 py-8 sm:px-8">
+    <section id="pipeline-candidaturas" className="theme-card rounded-[34px] px-6 py-8 sm:px-8">
       <p className="theme-chip theme-chip-indigo w-fit">Pipeline de candidaturas</p>
       <h2 className="mt-3 text-3xl">Decisão da família</h2>
       <p className="mt-2 text-sm text-[var(--theme-body)]">
         {totalApplications} candidatura(s) no total • {totalPending} pendente(s) de decisão.
       </p>
-
-      {error ? <p className="theme-alert theme-alert-danger mt-4">{error}</p> : null}
 
       {groups.length === 0 ? (
         <p className="theme-card-soft mt-5 rounded-2xl px-4 py-3 text-sm text-[var(--theme-muted)]">

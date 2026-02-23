@@ -1,9 +1,10 @@
 "use client";
 
+import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
-import { AlertCircle, LogIn } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { signIn } from "next-auth/react";
 
 type Props = {
@@ -46,20 +47,29 @@ export function CredentialsLoginForm({
   initialError,
 }: Props) {
   const router = useRouter();
+  const { error: showError } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const hasShownQueryErrorRef = useRef(false);
 
   const queryError = useMemo(
     () => mapLoginError(initialCode ?? null, initialError ?? null),
     [initialCode, initialError],
   );
 
+  useEffect(() => {
+    if (!queryError || hasShownQueryErrorRef.current) {
+      return;
+    }
+
+    showError("Não foi possível entrar.", queryError);
+    hasShownQueryErrorRef.current = true;
+  }, [queryError, showError]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setErrorMessage(null);
 
     try {
       const result = await signIn("credentials", {
@@ -75,9 +85,9 @@ export function CredentialsLoginForm({
         return;
       }
 
-      setErrorMessage(mapLoginError(result?.code, result?.error));
+      showError("Falha no login.", mapLoginError(result?.code, result?.error) ?? undefined);
     } catch {
-      setErrorMessage("Erro inesperado ao entrar. Tente novamente.");
+      showError("Erro inesperado ao entrar.", "Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -118,13 +128,6 @@ export function CredentialsLoginForm({
         </label>
 
         <div className="space-y-3 pt-1">
-          {errorMessage || queryError ? (
-            <p className="theme-alert theme-alert-danger inline-flex w-full items-center gap-2">
-              <AlertCircle size={16} />
-              {errorMessage ?? queryError}
-            </p>
-          ) : null}
-
           <ActionButton
             type="submit"
             icon={LogIn}

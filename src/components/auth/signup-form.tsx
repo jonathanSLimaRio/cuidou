@@ -1,7 +1,8 @@
 "use client";
 
+import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
-import { CheckCircle2, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 
@@ -10,13 +11,12 @@ type Props = {
 };
 
 export function SignupForm({ nextPath = "/dashboard" }: Props) {
+  const { error: showError, success } = useToast();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const loginHref = useMemo(
     () => `/login${nextPath ? `?next=${encodeURIComponent(nextPath)}` : ""}`,
@@ -26,8 +26,6 @@ export function SignupForm({ nextPath = "/dashboard" }: Props) {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
 
     try {
       const response = await fetch("/api/auth/signup", {
@@ -45,20 +43,21 @@ export function SignupForm({ nextPath = "/dashboard" }: Props) {
 
       const payload = await response.json();
       if (!response.ok) {
-        setErrorMessage(payload.error ?? "Não foi possível criar sua conta.");
+        showError("Não foi possível criar sua conta.", payload.error);
         return;
       }
 
-      setSuccessMessage(
+      success(
+        "Cadastro enviado com sucesso.",
         payload.message ??
-          "Cadastro enviado. Sua conta está pendente de aprovação administrativa.",
+          "Sua conta está pendente de aprovação administrativa.",
       );
       setName("");
       setEmail("");
       setPassword("");
       setConfirmPassword("");
     } catch {
-      setErrorMessage("Erro inesperado ao criar conta.");
+      showError("Erro inesperado ao criar conta.");
     } finally {
       setLoading(false);
     }
@@ -117,15 +116,6 @@ export function SignupForm({ nextPath = "/dashboard" }: Props) {
           required
         />
       </label>
-
-      {errorMessage ? <p className="theme-alert theme-alert-danger">{errorMessage}</p> : null}
-
-      {successMessage ? (
-        <p className="theme-alert theme-alert-success inline-flex w-full items-center gap-2">
-          <CheckCircle2 size={16} />
-          {successMessage}
-        </p>
-      ) : null}
 
       <ActionButton type="submit" icon={UserPlus} className="w-full disabled:opacity-70" disabled={loading}>
         {loading ? "Enviando..." : "Criar conta"}

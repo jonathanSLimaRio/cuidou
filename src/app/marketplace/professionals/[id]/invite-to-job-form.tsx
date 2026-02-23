@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
 import { CtaButton } from "@/components/theme/cta-button";
 import { StatusBadge } from "@/components/theme/status-badge";
@@ -26,11 +27,10 @@ type Props = {
 };
 
 export function InviteToJobForm({ professionalId, jobs }: Props) {
+  const { error: showError, success, warning: showWarning } = useToast();
   const [selectedJobId, setSelectedJobId] = useState(jobs[0]?.id ?? "");
   const [message, setMessage] = useState("Gostaria de convidar você para se candidatar à vaga.");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const selectedJob = jobs.find((job) => job.id === selectedJobId) ?? jobs[0];
 
@@ -52,13 +52,11 @@ export function InviteToJobForm({ professionalId, jobs }: Props) {
 
   async function submit() {
     if (!selectedJobId) {
-      setError("Selecione uma vaga para enviar o convite.");
+      showWarning("Selecione uma vaga para enviar o convite.");
       return;
     }
 
     setLoading(true);
-    setError(null);
-    setSuccess(null);
     setWarning(null);
 
     try {
@@ -77,16 +75,16 @@ export function InviteToJobForm({ professionalId, jobs }: Props) {
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "Não foi possível enviar convite.");
+        showError("Não foi possível enviar convite.", result.error);
         return;
       }
 
-      setSuccess("Convite enviado com sucesso. O profissional verá isso na área dele.");
+      success("Convite enviado com sucesso.", "O profissional verá isso na área dele.");
       if (result.scheduleMatchWarning?.message) {
         setWarning(result.scheduleMatchWarning.message);
       }
     } catch {
-      setError("Erro inesperado ao enviar convite.");
+      showError("Erro inesperado ao enviar convite.");
     } finally {
       setLoading(false);
     }
@@ -148,9 +146,7 @@ export function InviteToJobForm({ professionalId, jobs }: Props) {
         />
       </label>
 
-      {error ? <p className="theme-alert theme-alert-danger">{error}</p> : null}
       {warning ? <p className="theme-alert theme-alert-warning">{warning}</p> : null}
-      {success ? <p className="theme-alert theme-alert-success">{success}</p> : null}
       <p className="text-xs text-[var(--theme-muted)]">Este convite expira em 7 dias.</p>
 
       <ActionButton type="button" icon={Send} onClick={submit} disabled={loading}>

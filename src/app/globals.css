@@ -396,6 +396,116 @@ a.btn-primary:visited {
   color: #865b11;
 }
 
+.theme-toast-viewport {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 5.3rem);
+  right: max(0.85rem, env(safe-area-inset-right, 0px));
+  z-index: 90;
+  width: min(92vw, 360px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  pointer-events: none;
+}
+
+.theme-toast {
+  pointer-events: auto;
+  border: 1px solid var(--theme-border);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: var(--theme-shadow-md);
+  padding: 0.65rem 0.75rem 0.7rem;
+  animation: toast-in 0.22s ease both;
+}
+
+.theme-toast-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.theme-toast-icon {
+  margin-top: 0.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-toast-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.theme-toast-description {
+  margin: 0.35rem 0 0;
+  padding-left: 1.4rem;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--theme-body);
+}
+
+.theme-toast-close {
+  min-height: 1.7rem;
+  min-width: 1.7rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--theme-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.theme-toast-close:hover {
+  background: rgba(117, 128, 168, 0.14);
+  color: var(--theme-navy);
+}
+
+.theme-toast-success {
+  border-color: rgba(47, 151, 87, 0.32);
+}
+
+.theme-toast-success .theme-toast-icon {
+  color: var(--theme-success);
+}
+
+.theme-toast-error {
+  border-color: rgba(190, 62, 86, 0.36);
+}
+
+.theme-toast-error .theme-toast-icon {
+  color: var(--theme-danger);
+}
+
+.theme-toast-warning {
+  border-color: rgba(168, 115, 22, 0.36);
+}
+
+.theme-toast-warning .theme-toast-icon {
+  color: var(--theme-warning);
+}
+
+.theme-toast-info {
+  border-color: rgba(73, 98, 199, 0.32);
+}
+
+.theme-toast-info .theme-toast-icon {
+  color: var(--theme-info);
+}
+
+.theme-toast-neutral {
+  border-color: rgba(117, 128, 168, 0.3);
+}
+
+.theme-toast-neutral .theme-toast-icon {
+  color: var(--theme-muted);
+}
+
 .theme-auth-shell {
   display: grid;
   gap: 1.5rem;
@@ -477,6 +587,18 @@ a.btn-primary:visited {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px) translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) translateY(0);
   }
 }
 
