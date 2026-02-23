@@ -1,7 +1,404 @@
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
 generator client {
   provider = "prisma-client-js"
+}
+
+model User {
+  id                String     @id @default(cuid())
+  name              String?
+  email             String?    @unique
+  emailVerified     DateTime?
+  image             String?
+  phone             String?
+  role              UserRole?
+  status            UserStatus @default(ACTIVE)
+  acceptedTermsAt   DateTime?
+  acceptedPrivacyAt DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  accounts                    Account[]
+  sessions                    Session[]
+  familyProfile               FamilyProfile?
+  professionalProfile         ProfessionalProfile?
+  jobs                        JobPost[]              @relation("FamilyJobs")
+  applications                JobApplication[]       @relation("ProfessionalApplications")
+  conversationsAsFamily       Conversation[]         @relation("FamilyConversations")
+  conversationsAsProfessional Conversation[]         @relation("ProfessionalConversations")
+  sentMessages                Message[]              @relation("MessageSender")
+  notifications               Notification[]
+  reviewsGiven                Review[]               @relation("ReviewsGiven")
+  reviewsReceived             Review[]               @relation("ReviewsReceived")
+  reportsSubmitted            Report[]               @relation("ReportsSubmitted")
+  reportsReviewed             Report[]               @relation("ReportsReviewed")
+  reportsAgainstUser          Report[]               @relation("ReportsTargetUser")
+  documentReviews             ProfessionalDocument[] @relation("DocumentReviewedBy")
+  adminInvitesCreated         AdminInvite[]          @relation("AdminInvitesCreatedBy")
+  auditLogs                   AuditLog[]             @relation("AuditLogsByAdmin")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model FamilyProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  contactName  String?
+  bio          String?
+  state        String?
+  city         String?
+  neighborhood String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ProfessionalProfile {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  bio                String?
+  experienceYears    Int?
+  serviceTypes       ServiceType[]
+  availability       String?
+  state              String?
+  city               String?
+  neighborhood       String?
+  hourlyRateMin      Int?
+  hourlyRateMax      Int?
+  verificationStatus VerificationStatus @default(NOT_SUBMITTED)
+  verificationNotes  String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents ProfessionalDocument[]
+  reports   Report[]               @relation("ReportsTargetProfessionalProfile")
+}
+
+model ProfessionalDocument {
+  id                    String             @id @default(cuid())
+  professionalProfileId String
+  documentType          DocumentType
+  fileUrl               String
+  status                VerificationStatus @default(UNDER_REVIEW)
+  rejectionReason       String?
+  reviewedById          String?
+  reviewedAt            DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  professionalProfile ProfessionalProfile @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+  reviewedBy          User?               @relation("DocumentReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([professionalProfileId, status])
+}
+
+model JobPost {
+  id              String      @id @default(cuid())
+  familyId        String
+  serviceType     ServiceType
+  title           String
+  description     String      @db.Text
+  state           String
+  city            String
+  neighborhood    String?
+  hourlyRateMin   Int?
+  hourlyRateMax   Int?
+  scheduleDetails String?
+  status          JobStatus   @default(OPEN)
+  isVisible       Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  family        User             @relation("FamilyJobs", fields: [familyId], references: [id], onDelete: Cascade)
+  applications  JobApplication[]
+  conversations Conversation[]
+  reports       Report[]         @relation("ReportsTargetJob")
+  reviews       Review[]
+
+  @@index([status, serviceType, state, city])
+  @@index([familyId, status])
+}
+
+model JobApplication {
+  id                 String            @id @default(cuid())
+  jobId              String
+  professionalId     String
+  coverMessage       String?
+  status             ApplicationStatus @default(SUBMITTED)
+  isFavoriteByFamily Boolean           @default(false)
+  contactUnlockedAt  DateTime?
+  acceptedAt         DateTime?
+  rejectedAt         DateTime?
+  withdrawnAt        DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  job          JobPost       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  professional User          @relation("ProfessionalApplications", fields: [professionalId], references: [id], onDelete: Cascade)
+  conversation Conversation?
+  reviews      Review[]
+
+  @@unique([jobId, professionalId])
+  @@index([jobId, status])
+  @@index([professionalId, status])
+}
+
+model Conversation {
+  id                      String   @id @default(cuid())
+  jobId                   String
+  applicationId           String   @unique
+  familyId                String
+  professionalId          String
+  isBlockedByFamily       Boolean  @default(false)
+  isBlockedByProfessional Boolean  @default(false)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  job          JobPost        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  application  JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  family       User           @relation("FamilyConversations", fields: [familyId], references: [id], onDelete: Cascade)
+  professional User           @relation("ProfessionalConversations", fields: [professionalId], references: [id], onDelete: Cascade)
+  messages     Message[]
+  reports      Report[]       @relation("ReportsTargetConversation")
+
+  @@unique([jobId, professionalId])
+  @@index([familyId])
+  @@index([professionalId])
+}
+
+model Message {
+  id             String    @id @default(cuid())
+  conversationId String
+  senderId       String
+  content        String    @db.Text
+  createdAt      DateTime  @default(now())
+  readAt         DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  reports      Report[]     @relation("ReportsTargetMessage")
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  jobId         String
+  applicationId String
+  reviewerId    String
+  revieweeId    String
+  rating        Int
+  comment       String?
+  createdAt     DateTime @default(now())
+
+  job         JobPost        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  application JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  reviewer    User           @relation("ReviewsGiven", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewee    User           @relation("ReviewsReceived", fields: [revieweeId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, reviewerId])
+  @@index([revieweeId, createdAt])
+}
+
+model Report {
+  id                          String           @id @default(cuid())
+  reporterId                  String
+  targetType                  ReportTargetType
+  reason                      String
+  details                     String?
+  status                      ReportStatus     @default(OPEN)
+  targetUserId                String?
+  targetJobId                 String?
+  targetMessageId             String?
+  targetProfessionalProfileId String?
+  targetConversationId        String?
+  reviewedById                String?
+  resolutionNotes             String?
+  createdAt                   DateTime         @default(now())
+  updatedAt                   DateTime         @updatedAt
+  resolvedAt                  DateTime?
+
+  reporter                  User                 @relation("ReportsSubmitted", fields: [reporterId], references: [id], onDelete: Cascade)
+  reviewedBy                User?                @relation("ReportsReviewed", fields: [reviewedById], references: [id], onDelete: SetNull)
+  targetUser                User?                @relation("ReportsTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  targetJob                 JobPost?             @relation("ReportsTargetJob", fields: [targetJobId], references: [id], onDelete: SetNull)
+  targetMessage             Message?             @relation("ReportsTargetMessage", fields: [targetMessageId], references: [id], onDelete: SetNull)
+  targetProfessionalProfile ProfessionalProfile? @relation("ReportsTargetProfessionalProfile", fields: [targetProfessionalProfileId], references: [id], onDelete: SetNull)
+  targetConversation        Conversation?        @relation("ReportsTargetConversation", fields: [targetConversationId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([reporterId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String?
+  data      Json?
+  createdAt DateTime         @default(now())
+  readAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+model AdminInvite {
+  id          String    @id @default(cuid())
+  email       String
+  token       String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  invitedById String
+  createdAt   DateTime  @default(now())
+
+  invitedBy User @relation("AdminInvitesCreatedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id         String          @id @default(cuid())
+  adminId    String
+  action     AuditAction
+  targetType AuditTargetType
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime        @default(now())
+
+  admin User @relation("AuditLogsByAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId, createdAt])
+  @@index([targetType, targetId])
+}
+
+enum UserRole {
+  FAMILY
+  PROFESSIONAL
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum ServiceType {
+  BABYSITTER
+  ELDER_CAREGIVER
+}
+
+enum VerificationStatus {
+  NOT_SUBMITTED
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+enum JobStatus {
+  OPEN
+  PAUSED
+  CLOSED
+  ARCHIVED
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ReportStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum ReportTargetType {
+  USER
+  JOB
+  MESSAGE
+  PROFESSIONAL_PROFILE
+  CONVERSATION
+}
+
+enum NotificationType {
+  APPLICATION_RECEIVED
+  APPLICATION_STATUS_UPDATED
+  CHAT_MESSAGE
+  DOCUMENT_STATUS_UPDATED
+  REPORT_STATUS_UPDATED
+  SYSTEM
+}
+
+enum DocumentType {
+  IDENTITY
+  BACKGROUND_CHECK
+  CERTIFICATION
+  OTHER
+}
+
+enum AuditAction {
+  DOCUMENT_APPROVED
+  DOCUMENT_REJECTED
+  REPORT_RESOLVED
+  REPORT_DISMISSED
+  JOB_STATUS_UPDATED
+  USER_STATUS_UPDATED
+  ADMIN_INVITE_CREATED
+}
+
+enum AuditTargetType {
+  USER
+  DOCUMENT
+  JOB
+  REPORT
+  ADMIN_INVITE
 }

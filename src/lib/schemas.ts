@@ -1,0 +1,120 @@
+import { z } from "zod";
+
+const roleSchema = z.enum(["FAMILY", "PROFESSIONAL"]);
+const serviceTypeSchema = z.enum(["BABYSITTER", "ELDER_CAREGIVER"]);
+
+export const onboardingRoleSchema = z.object({
+  role: roleSchema,
+  acceptTerms: z.literal(true),
+  acceptPrivacy: z.literal(true),
+});
+
+export const familyProfileSchema = z.object({
+  contactName: z.string().min(2).max(120),
+  phone: z.string().min(8).max(30).optional(),
+  bio: z.string().max(1200).optional(),
+  state: z.string().min(2).max(120),
+  city: z.string().min(2).max(120),
+  neighborhood: z.string().max(120).optional(),
+});
+
+export const professionalProfileSchema = z.object({
+  bio: z.string().max(2000).optional(),
+  experienceYears: z.number().int().min(0).max(70).optional(),
+  serviceTypes: z.array(serviceTypeSchema).min(1),
+  availability: z.string().max(1000).optional(),
+  state: z.string().min(2).max(120),
+  city: z.string().min(2).max(120),
+  neighborhood: z.string().max(120).optional(),
+  hourlyRateMin: z.number().int().positive().optional(),
+  hourlyRateMax: z.number().int().positive().optional(),
+  phone: z.string().min(8).max(30).optional(),
+});
+
+export const createJobSchema = z.object({
+  serviceType: serviceTypeSchema,
+  title: z.string().min(5).max(160),
+  description: z.string().min(20).max(4000),
+  state: z.string().min(2).max(120),
+  city: z.string().min(2).max(120),
+  neighborhood: z.string().max(120).optional(),
+  hourlyRateMin: z.number().int().positive().optional(),
+  hourlyRateMax: z.number().int().positive().optional(),
+  scheduleDetails: z.string().max(1000).optional(),
+});
+
+export const updateJobSchema = createJobSchema.partial().extend({
+  status: z.enum(["OPEN", "PAUSED", "CLOSED", "ARCHIVED"]).optional(),
+  isVisible: z.boolean().optional(),
+});
+
+export const applicationSchema = z.object({
+  coverMessage: z.string().min(10).max(1500),
+});
+
+export const applicationDecisionSchema = z.object({
+  favorite: z.boolean().optional(),
+});
+
+export const messageSchema = z.object({
+  content: z.string().min(1).max(4000),
+});
+
+export const reviewSchema = z.object({
+  applicationId: z.string().cuid(),
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().max(1000).optional(),
+});
+
+export const reportSchema = z
+  .object({
+    targetType: z.enum(["USER", "JOB", "MESSAGE", "PROFESSIONAL_PROFILE", "CONVERSATION"]),
+    reason: z.string().min(5).max(240),
+    details: z.string().max(1500).optional(),
+    targetUserId: z.string().cuid().optional(),
+    targetJobId: z.string().cuid().optional(),
+    targetMessageId: z.string().cuid().optional(),
+    targetProfessionalProfileId: z.string().cuid().optional(),
+    targetConversationId: z.string().cuid().optional(),
+  })
+  .refine(
+    (value) => {
+      const map = {
+        USER: value.targetUserId,
+        JOB: value.targetJobId,
+        MESSAGE: value.targetMessageId,
+        PROFESSIONAL_PROFILE: value.targetProfessionalProfileId,
+        CONVERSATION: value.targetConversationId,
+      };
+
+      return Boolean(map[value.targetType]);
+    },
+    {
+      message: "Target id is required for selected targetType",
+      path: ["targetType"],
+    },
+  );
+
+export const adminUserStatusSchema = z.object({
+  status: z.enum(["ACTIVE", "SUSPENDED", "BANNED"]),
+});
+
+export const adminJobStatusSchema = z.object({
+  status: z.enum(["OPEN", "PAUSED", "CLOSED", "ARCHIVED"]),
+  isVisible: z.boolean().optional(),
+});
+
+export const adminDocumentReviewSchema = z.object({
+  action: z.enum(["APPROVE", "REJECT"]),
+  reason: z.string().max(500).optional(),
+});
+
+export const adminReportResolveSchema = z.object({
+  status: z.enum(["RESOLVED", "DISMISSED"]),
+  resolutionNotes: z.string().max(1200).optional(),
+});
+
+export const adminInviteSchema = z.object({
+  email: z.email(),
+  expiresInDays: z.number().int().min(1).max(30).default(7),
+});
