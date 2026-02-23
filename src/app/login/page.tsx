@@ -39,11 +39,11 @@ export default async function LoginPage({
     <main className="theme-page">
       <div className="theme-container">
         <div className="theme-auth-shell">
-          <aside className="theme-auth-side p-8">
+          <aside className="theme-auth-side p-7 sm:p-8 lg:p-10">
             <BlobDecor tone="pink" className="-right-8 top-5 h-28 w-28 opacity-75" />
             <BlobDecor tone="yellow" className="-left-6 bottom-6 h-24 w-24 opacity-75" />
 
-            <div className="relative flex w-full flex-col gap-6">
+            <div className="relative flex w-full flex-col gap-5">
               <p className="theme-chip theme-chip-pink w-fit">Acesso seguro</p>
 
               <div className="overflow-hidden rounded-3xl border border-white/20 bg-white/12 p-2">
@@ -61,15 +61,15 @@ export default async function LoginPage({
               </div>
 
               <div>
-                <h2 className="text-3xl leading-tight text-white">
+                <h2 className="text-3xl leading-tight !text-white">
                   Escolha seu método de acesso e entre na Cuidou.
                 </h2>
-                <p className="mt-3 text-sm leading-relaxed text-white/85">
+                <p className="mt-3 text-sm leading-relaxed !text-white/90">
                   Você pode entrar com Google ou email/senha, e criar cadastro local quando precisar.
                 </p>
               </div>
 
-              <ul className="space-y-2 text-sm text-white/85">
+              <ul className="space-y-2 text-sm !text-white/95">
                 <li className="inline-flex items-center gap-2">
                   <AppIcon icon={LockKeyhole} size="sm" />
                   Login social e local disponíveis
@@ -86,14 +86,14 @@ export default async function LoginPage({
             </div>
           </aside>
 
-          <section className="theme-card p-6 sm:p-8">
+          <section className="theme-card p-6 sm:p-8 lg:p-10">
             <p className="theme-chip theme-chip-blue">Login</p>
             <h1 className="mt-4 text-3xl sm:text-4xl">Escolha como entrar</h1>
-            <p className="mt-3 text-sm leading-relaxed text-[var(--theme-muted)]">
+            <p className="mt-3 max-w-[58ch] text-sm leading-relaxed text-[var(--theme-muted)]">
               Use seu método preferido para login. Se ainda não tiver conta local, faça seu cadastro.
             </p>
 
-            <div className="mt-6 space-y-3 text-sm text-[var(--theme-body)]">
+            <div className="mt-5 space-y-3 text-sm text-[var(--theme-body)]">
               <div className="theme-card-soft rounded-2xl px-4 py-3">
                 Sua sessão será protegida e sincronizada entre desktop e mobile.
               </div>
@@ -107,12 +107,18 @@ export default async function LoginPage({
                 "use server";
                 await signIn("google", { redirectTo: nextPath });
               }}
-              className="mt-7"
+              className="mt-6"
             >
               <CtaButton type="submit" className="w-full" size="lg" icon={LogIn}>
                 Continuar com Google
               </CtaButton>
             </form>
+
+            <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.08em] text-[var(--theme-muted)]">
+              <span className="theme-divider flex-1" />
+              <span>ou</span>
+              <span className="theme-divider flex-1" />
+            </div>
 
             <CredentialsLoginForm
               nextPath={nextPath}
@@ -120,7 +126,7 @@ export default async function LoginPage({
               initialError={resolvedSearchParams.error}
             />
 
-            <div className="mt-4 space-y-2">
+            <div className="mt-5 space-y-2.5">
               <CtaButton
                 href={`/signup?next=${encodeURIComponent(nextPath)}`}
                 variant="outline"
@@ -131,7 +137,7 @@ export default async function LoginPage({
               </CtaButton>
               <Link
                 href={`/signup?next=${encodeURIComponent(nextPath)}`}
-                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--theme-indigo)] underline"
+                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--theme-indigo)] underline decoration-[1.5px] underline-offset-3"
               >
                 <AppIcon icon={UserPlus} size="sm" />
                 Preferir abrir a tela completa de cadastro local

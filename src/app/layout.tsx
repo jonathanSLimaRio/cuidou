@@ -17,6 +17,26 @@ export const metadata: Metadata = {
   title: "Cuidou - Marketplace de cuidado",
   description:
     "Marketplace para conectar famílias a babás e cuidadoras de idosos, sem intermediação de pagamento.",
+  icons: {
+    icon: [
+      {
+        url: "/iconcuidou.svg",
+        type: "image/svg+xml",
+      },
+    ],
+    shortcut: [
+      {
+        url: "/iconcuidou.svg",
+        type: "image/svg+xml",
+      },
+    ],
+    apple: [
+      {
+        url: "/iconcuidou.svg",
+        type: "image/svg+xml",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({

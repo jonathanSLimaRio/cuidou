@@ -37,13 +37,13 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-40">
       <div className="border-b border-white/10 bg-[var(--theme-indigo-strong)] text-white">
-        <div className="theme-container flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-2 py-2 text-xs">
-          <p className="font-display tracking-[0.04em] text-white/92">
+        <div className="theme-container flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-2 py-2 text-[13px]">
+          <p className="font-display font-medium tracking-[0.025em] text-white">
             Cuidou: contratação segura de babás e cuidadoras, sem intermediação de pagamento.
           </p>
           <a
             href="tel:+550800123456"
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/20 px-3 py-1 text-white/95 hover:bg-white/10"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/25 px-3 py-1 text-white hover:bg-white/10"
           >
             <AppIcon icon={Phone} size="sm" />
             Suporte: 0800 123-456

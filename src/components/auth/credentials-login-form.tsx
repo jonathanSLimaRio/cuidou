@@ -2,7 +2,6 @@
 
 import { ActionButton } from "@/components/theme/action-button";
 import { AlertCircle, LogIn } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { signIn } from "next-auth/react";
@@ -85,15 +84,15 @@ export function CredentialsLoginForm({
   }
 
   return (
-    <div className="mt-5 rounded-2xl border border-[var(--theme-border)] bg-white p-4">
+    <div className="rounded-2xl border border-[var(--theme-border)] bg-white p-5 sm:p-6">
       <h2 className="text-xl">Entrar com email e senha</h2>
-      <p className="mt-1 text-sm text-[var(--theme-muted)]">
+      <p className="mt-2 text-sm leading-relaxed text-[var(--theme-muted)]">
         Use o cadastro local aprovado pela equipe para acessar sua conta.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-4 space-y-3">
-        <label className="space-y-1">
-          <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Email</span>
+      <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        <label className="space-y-1.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.07em] text-[var(--theme-muted)]">Email</span>
           <input
             type="email"
             className="theme-field"
@@ -105,8 +104,8 @@ export function CredentialsLoginForm({
           />
         </label>
 
-        <label className="space-y-1">
-          <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Senha</span>
+        <label className="space-y-1.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.07em] text-[var(--theme-muted)]">Senha</span>
           <input
             type="password"
             className="theme-field"
@@ -118,29 +117,25 @@ export function CredentialsLoginForm({
           />
         </label>
 
-        {errorMessage || queryError ? (
-          <p className="theme-alert theme-alert-danger inline-flex w-full items-center gap-2">
-            <AlertCircle size={16} />
-            {errorMessage ?? queryError}
-          </p>
-        ) : null}
+        <div className="space-y-3 pt-1">
+          {errorMessage || queryError ? (
+            <p className="theme-alert theme-alert-danger inline-flex w-full items-center gap-2">
+              <AlertCircle size={16} />
+              {errorMessage ?? queryError}
+            </p>
+          ) : null}
 
-        <ActionButton
-          type="submit"
-          icon={LogIn}
-          className="w-full disabled:opacity-70"
-          disabled={loading}
-        >
-          {loading ? "Entrando..." : "Entrar com email e senha"}
-        </ActionButton>
+          <ActionButton
+            type="submit"
+            icon={LogIn}
+            className="w-full disabled:opacity-70"
+            disabled={loading}
+            style={{ marginTop: "1rem" }}
+          >
+            {loading ? "Entrando..." : "Entrar com email e senha"}
+          </ActionButton>
+        </div>
       </form>
-
-      <p className="mt-3 text-sm text-[var(--theme-muted)]">
-        Ainda não tem cadastro local?{" "}
-        <Link href={`/signup${nextPath ? `?next=${encodeURIComponent(nextPath)}` : ""}`} className="text-[var(--theme-indigo)] underline">
-          Criar conta
-        </Link>
-      </p>
     </div>
   );
 }
