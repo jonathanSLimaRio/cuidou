@@ -1,6 +1,7 @@
 "use client";
 
 import { useToast } from "@/components/notifications/use-toast";
+import { ReviewForm } from "@/components/reviews/review-form";
 import { ActionButton } from "@/components/theme/action-button";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { ContractStatus } from "@prisma/client";
@@ -9,12 +10,14 @@ import { useState } from "react";
 
 type ContractItem = {
   id: string;
+  applicationId: string;
   status: ContractStatus;
   createdAt: string;
   startedAt: string;
   completedAt: string | null;
   canceledAt: string | null;
   cancelReason: string | null;
+  hasReviewedByCurrentUser: boolean;
   job: {
     title: string;
   };
@@ -156,6 +159,25 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
 
               {contract.status === ContractStatus.CANCELED && contract.cancelReason ? (
                 <p className="theme-alert theme-alert-warning mt-2">Motivo: {contract.cancelReason}</p>
+              ) : null}
+
+              {contract.status === ContractStatus.COMPLETED ? (
+                <div className="mt-4">
+                  <ReviewForm
+                    applicationId={contract.applicationId}
+                    targetLabel={contract.professional.name ?? "profissional"}
+                    initiallyReviewed={contract.hasReviewedByCurrentUser}
+                    onReviewed={() =>
+                      setContracts((current) =>
+                        current.map((item) =>
+                          item.id === contract.id
+                            ? { ...item, hasReviewedByCurrentUser: true }
+                            : item,
+                        ),
+                      )
+                    }
+                  />
+                </div>
               ) : null}
 
               {contract.status === ContractStatus.IN_PROGRESS ? (

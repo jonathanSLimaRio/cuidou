@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { AppShell } from "@/components/theme/app-shell";
 import { CtaButton } from "@/components/theme/cta-button";
 import { PageHeader } from "@/components/theme/page-header";
+import { ReportAction } from "@/components/reports/report-action";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@prisma/client";
@@ -26,7 +27,12 @@ export default async function ChatConversationPage({ params }: Params) {
 
   const conversation = await prisma.conversation.findUnique({
     where: { id },
-    include: {
+    select: {
+      id: true,
+      familyId: true,
+      professionalId: true,
+      isBlockedByFamily: true,
+      isBlockedByProfessional: true,
       job: {
         select: {
           title: true,
@@ -85,7 +91,24 @@ export default async function ChatConversationPage({ params }: Params) {
         }
       />
 
-      <ChatRoom conversationId={conversation.id} currentUserId={session.user.id} />
+      <section className="theme-card-soft rounded-3xl px-5 py-4">
+        <p className="text-sm text-[var(--theme-body)]">
+          Em caso de comportamento inadequado, voce pode denunciar esta conversa para moderacao.
+        </p>
+        <div className="mt-3">
+          <ReportAction targetType="CONVERSATION" targetConversationId={conversation.id} />
+        </div>
+      </section>
+
+      <ChatRoom
+        conversationId={conversation.id}
+        currentUserId={session.user.id}
+        initialBlockedBySelf={
+          session.user.id === conversation.familyId
+            ? conversation.isBlockedByFamily
+            : conversation.isBlockedByProfessional
+        }
+      />
     </AppShell>
   );
 }

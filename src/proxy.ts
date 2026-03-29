@@ -43,7 +43,8 @@ export default auth((req) => {
     }
 
     const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("next", pathname);
+    const nextPath = `${pathname}${req.nextUrl.search}`;
+    loginUrl.searchParams.set("next", nextPath);
     return NextResponse.redirect(loginUrl);
   }
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { ActionButton } from "@/components/theme/action-button";
 import { useToast } from "@/components/notifications/use-toast";
+import { ActionButton } from "@/components/theme/action-button";
 import { AppIcon } from "@/components/theme/app-icon";
 import { ArrowRight, Baby, ShieldCheck, UserRound } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -18,9 +19,9 @@ export function OnboardingRoleForm() {
 
   async function submit() {
     if (!acceptTerms || !acceptPrivacy) {
-      const message = "Você precisa aceitar os termos e a política para continuar.";
+      const message = "Voce precisa aceitar os termos e a politica para continuar.";
       setValidationError(message);
-      warning("Validação pendente", message);
+      warning("Validacao pendente", message);
       return;
     }
 
@@ -43,7 +44,7 @@ export function OnboardingRoleForm() {
       const payload = await response.json();
 
       if (!response.ok) {
-        showError("Não foi possível finalizar o onboarding.", payload.error);
+        showError("Nao foi possivel finalizar o onboarding.", payload.error);
         return;
       }
 
@@ -69,10 +70,10 @@ export function OnboardingRoleForm() {
           <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--theme-pink)]/60 text-[var(--theme-indigo-strong)]">
             <AppIcon icon={Baby} size="lg" />
           </span>
-          <p className="theme-chip theme-chip-pink w-fit">Família</p>
+          <p className="theme-chip theme-chip-pink w-fit">Familia</p>
           <p className="mt-3 text-xl font-display text-[var(--theme-navy)]">Publicar vagas e contratar</p>
           <p className="mt-2 text-sm text-[var(--theme-muted)]">
-            Ideal para famílias que precisam encontrar babás e cuidadoras com segurança.
+            Ideal para familias que precisam encontrar babas e cuidadoras com seguranca.
           </p>
         </button>
 
@@ -87,9 +88,9 @@ export function OnboardingRoleForm() {
             <AppIcon icon={UserRound} size="lg" />
           </span>
           <p className="theme-chip theme-chip-blue w-fit">Profissional</p>
-          <p className="mt-3 text-xl font-display text-[var(--theme-navy)]">Candidatar-se às vagas</p>
+          <p className="mt-3 text-xl font-display text-[var(--theme-navy)]">Candidatar-se as vagas</p>
           <p className="mt-2 text-sm text-[var(--theme-muted)]">
-            Para babás e cuidadoras que querem oportunidades alinhadas à sua disponibilidade.
+            Para babas e cuidadoras que querem oportunidades alinhadas a sua disponibilidade.
           </p>
         </button>
       </div>
@@ -101,7 +102,13 @@ export function OnboardingRoleForm() {
           onChange={(event) => setAcceptTerms(event.target.checked)}
           className="mt-1"
         />
-        Aceito os Termos de Uso.
+        <span>
+          Aceito os{" "}
+          <Link href="/terms" target="_blank" className="underline underline-offset-2">
+            Termos de Uso
+          </Link>
+          .
+        </span>
       </label>
 
       <label className="flex items-start gap-2 rounded-xl border border-[var(--theme-border)] bg-white px-3 py-2.5 text-sm text-[var(--theme-body)]">
@@ -111,7 +118,13 @@ export function OnboardingRoleForm() {
           onChange={(event) => setAcceptPrivacy(event.target.checked)}
           className="mt-1"
         />
-        Aceito a Política de Privacidade (LGPD).
+        <span>
+          Aceito a{" "}
+          <Link href="/privacy" target="_blank" className="underline underline-offset-2">
+            Politica de Privacidade
+          </Link>{" "}
+          (LGPD).
+        </span>
       </label>
 
       {validationError ? <p className="theme-alert theme-alert-danger">{validationError}</p> : null}

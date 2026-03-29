@@ -76,7 +76,11 @@ export async function PUT(request: Request, { params }: Params) {
 
   const existing = await prisma.jobPost.findUnique({
     where: { id },
-    select: { familyId: true },
+    select: {
+      familyId: true,
+      hourlyRateMin: true,
+      hourlyRateMax: true,
+    },
   });
 
   if (!existing) {
@@ -88,6 +92,19 @@ export async function PUT(request: Request, { params }: Params) {
     existing.familyId !== authResult.user.id
   ) {
     return fail(403, "You can only update your own jobs");
+  }
+
+  const nextHourlyRateMin = bodyResult.data.hourlyRateMin ?? existing.hourlyRateMin;
+  const nextHourlyRateMax = bodyResult.data.hourlyRateMax ?? existing.hourlyRateMax;
+
+  if (
+    nextHourlyRateMin !== null &&
+    nextHourlyRateMin !== undefined &&
+    nextHourlyRateMax !== null &&
+    nextHourlyRateMax !== undefined &&
+    nextHourlyRateMin > nextHourlyRateMax
+  ) {
+    return fail(422, "hourlyRateMin must be less than or equal to hourlyRateMax");
   }
 
   const nextStatus = bodyResult.data.status;

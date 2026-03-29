@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { AppShell } from "@/components/theme/app-shell";
 import { CtaButton } from "@/components/theme/cta-button";
 import { PageHeader } from "@/components/theme/page-header";
+import { ReportAction } from "@/components/reports/report-action";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { getScheduleMatchLevel } from "@/lib/job-schedule";
 import { prisma } from "@/lib/prisma";
@@ -258,6 +259,14 @@ export default async function MarketplaceProfessionalDetailPage({ params }: Para
             <CtaButton href="/professional" variant="outline" icon={LayoutDashboard}>
               Gerenciar meu perfil
             </CtaButton>
+          ) : null}
+
+          {session?.user && session.user.id !== professional.user.id ? (
+            <ReportAction
+              targetType="PROFESSIONAL_PROFILE"
+              targetProfessionalProfileId={professional.id}
+              buttonLabel="Denunciar perfil"
+            />
           ) : null}
 
         </div>

@@ -46,11 +46,12 @@ export async function POST(request: Request) {
   });
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const acceptUrl = `${appUrl}/admin/invite/accept?token=${encodeURIComponent(token)}`;
 
   await sendEmail({
     to: email,
-    subject: "Convite para administração - Cuidou",
-    html: `<p>Você recebeu um convite para ser admin da plataforma Cuidou.</p><p>Token do convite: <strong>${token}</strong></p><p>URL: ${appUrl}/admin</p>`,
+    subject: "Convite para administracao - Cuidou",
+    html: `<p>Voce recebeu um convite para ser admin da plataforma Cuidou.</p><p>Acesse o link para aceitar: <a href="${acceptUrl}">${acceptUrl}</a></p><p>Token de validacao: <strong>${token}</strong></p>`,
   });
 
   await writeAuditLog({

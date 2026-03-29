@@ -252,7 +252,7 @@ export function FamilyDashboardKpiSection({
           ariaLabel="Abrir análise de pendências de candidatura"
         />
         <DataCard label="Conversas" value={conversations} tone="surface" href="/chat" />
-        <DataCard label="Notificações não lidas" value={notifications} tone="surface" />
+        <DataCard label="Notificações não lidas" value={notifications} tone="surface" href="/notifications" />
         <DataCard label="Contratos ativos" value={contractsInProgress} tone="deep" href="/family#gestao-contratos" />
         <DataCard label="Contratos concluídos" value={contractsCompleted} tone="surface" href="/family#gestao-contratos" />
       </section>

@@ -666,7 +666,7 @@ export default async function DashboardPage() {
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <DataCard label="Candidaturas" value={applications} tone="tint" href="#candidaturas-recentes" />
         <DataCard label="Conversas" value={conversations} tone="surface" href="/chat" />
-        <DataCard label="Notificações não lidas" value={notifications} tone="surface" />
+        <DataCard label="Notificações não lidas" value={notifications} tone="surface" href="/notifications" />
         <DataCard label="Contratos ativos" value={contractsInProgress} tone="deep" href="#contratos-recentes" />
         <DataCard label="Contratos concluídos" value={contractsCompleted} tone="surface" href="#contratos-recentes" />
       </section>

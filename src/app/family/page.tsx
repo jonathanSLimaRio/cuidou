@@ -13,6 +13,7 @@ import { FamilyContractsPanel } from "./contracts-panel";
 import { ApplicationsPipeline } from "./applications-pipeline";
 import { InvitationsPanel } from "./invitations-panel";
 import { JobForm } from "./job-form";
+import { FamilyProfileForm } from "./profile-form";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,16 @@ export default async function FamilyAreaPage() {
   await expirePendingInvitationsWithNotifications({ familyId: session.user.id });
 
   const [profile, jobs, contracts, applications, acceptedInvitationPairs] = await Promise.all([
-    prisma.familyProfile.findUnique({ where: { userId: session.user.id } }),
+    prisma.familyProfile.findUnique({
+      where: { userId: session.user.id },
+      include: {
+        user: {
+          select: {
+            phone: true,
+          },
+        },
+      },
+    }),
     prisma.jobPost.findMany({
       where: { familyId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -76,6 +86,20 @@ export default async function FamilyAreaPage() {
         professional: {
           select: {
             name: true,
+          },
+        },
+        application: {
+          select: {
+            id: true,
+            reviews: {
+              where: {
+                reviewerId: session.user.id,
+              },
+              select: {
+                id: true,
+              },
+              take: 1,
+            },
           },
         },
       },
@@ -284,6 +308,26 @@ export default async function FamilyAreaPage() {
         </article>
       </section>
 
+      <section id="perfil-familia" className="theme-card rounded-[34px] px-5 py-6 sm:px-7 sm:py-7">
+        <p className="theme-chip theme-chip-yellow w-fit">Perfil da familia</p>
+        <h2 className="mt-3 text-3xl">Edicao de dados de contato</h2>
+        <p className="mt-2 text-sm text-[var(--theme-body)]">
+          Mantenha seus dados atualizados para facilitar triagem e comunicacao com profissionais.
+        </p>
+        <div className="mt-5">
+          <FamilyProfileForm
+            initialValue={{
+              contactName: profile?.contactName ?? "",
+              phone: profile?.user.phone ?? "",
+              bio: profile?.bio ?? "",
+              state: profile?.state ?? "",
+              city: profile?.city ?? "",
+              neighborhood: profile?.neighborhood ?? "",
+            }}
+          />
+        </div>
+      </section>
+
       <section id="minhas-vagas" className="theme-card rounded-[34px] px-5 py-6 sm:px-7 sm:py-7">
         <p className="theme-chip theme-chip-blue w-fit">Nova vaga</p>
         <h2 className="mt-3 text-3xl">Publicar vaga com agenda estruturada</h2>
@@ -398,6 +442,8 @@ export default async function FamilyAreaPage() {
       <FamilyContractsPanel
         initialContracts={contracts.map((contract) => ({
           ...contract,
+          applicationId: contract.application.id,
+          hasReviewedByCurrentUser: contract.application.reviews.length > 0,
           createdAt: contract.createdAt.toISOString(),
           startedAt: contract.startedAt.toISOString(),
           completedAt: contract.completedAt?.toISOString() ?? null,

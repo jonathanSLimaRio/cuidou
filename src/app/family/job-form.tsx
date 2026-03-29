@@ -90,6 +90,14 @@ export function JobForm({ mode, initialValue, onSaved }: Props) {
     return false;
   }, [form.scheduleSlots]);
 
+  const hasInvalidRateRange = useMemo(() => {
+    if (form.hourlyRateMin == null || form.hourlyRateMax == null) {
+      return false;
+    }
+
+    return form.hourlyRateMin > form.hourlyRateMax;
+  }, [form.hourlyRateMax, form.hourlyRateMin]);
+
   function setField<K extends keyof JobFormModel>(field: K, value: JobFormModel[K]) {
     setForm((current) => ({ ...current, [field]: value }));
   }
@@ -98,9 +106,16 @@ export function JobForm({ mode, initialValue, onSaved }: Props) {
     event.preventDefault();
 
     if (hasScheduleErrors) {
-      const message = "Revise os horários da agenda para continuar.";
+      const message = "Revise os horarios da agenda para continuar.";
       setValidationError(message);
-      warning("Agenda inválida", message);
+      warning("Agenda invalida", message);
+      return;
+    }
+
+    if (hasInvalidRateRange) {
+      const message = "A faixa de valor esta invalida: o minimo nao pode ser maior que o maximo.";
+      setValidationError(message);
+      warning("Faixa de valor invalida", message);
       return;
     }
 
@@ -308,6 +323,11 @@ export function JobForm({ mode, initialValue, onSaved }: Props) {
       ) : null}
 
       {validationError ? <p className="theme-alert theme-alert-danger">{validationError}</p> : null}
+      {hasInvalidRateRange ? (
+        <p className="theme-alert theme-alert-warning">
+          O valor minimo/hora deve ser menor ou igual ao valor maximo/hora.
+        </p>
+      ) : null}
 
       <ActionButton
         type="submit"
@@ -320,3 +340,4 @@ export function JobForm({ mode, initialValue, onSaved }: Props) {
     </form>
   );
 }
+

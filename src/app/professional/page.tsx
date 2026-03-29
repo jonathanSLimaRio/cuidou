@@ -10,7 +10,10 @@ import { prisma } from "@/lib/prisma";
 import { LayoutDashboard, Search } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AvailabilityManager } from "./availability-manager";
+import { ProfessionalContractsPanel } from "./contracts-panel";
+import { DocumentsPanel } from "./documents-panel";
 import { ProfessionalInvitationsPanel } from "./invitations-panel";
+import { ProfessionalProfileForm } from "./profile-form";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +30,7 @@ export default async function ProfessionalAreaPage() {
 
   await expirePendingInvitationsWithNotifications({ professionalId: session.user.id });
 
-  const [profile, applications, invitations] = await Promise.all([
+  const [profile, applications, invitations, contracts] = await Promise.all([
     prisma.professionalProfile.findUnique({
       where: { userId: session.user.id },
       include: {
@@ -42,6 +45,11 @@ export default async function ProfessionalAreaPage() {
         },
         availabilityExceptions: {
           orderBy: [{ date: "asc" }, { shift: "asc" }],
+        },
+        user: {
+          select: {
+            phone: true,
+          },
         },
       },
     }),
@@ -88,6 +96,41 @@ export default async function ProfessionalAreaPage() {
             name: true,
           },
         },
+      },
+      take: 30,
+    }),
+    prisma.contract.findMany({
+      where: {
+        professionalId: session.user.id,
+      },
+      include: {
+        job: {
+          select: {
+            title: true,
+          },
+        },
+        family: {
+          select: {
+            name: true,
+          },
+        },
+        application: {
+          select: {
+            id: true,
+            reviews: {
+              where: {
+                reviewerId: session.user.id,
+              },
+              select: {
+                id: true,
+              },
+              take: 1,
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
       },
       take: 30,
     }),
@@ -148,6 +191,45 @@ export default async function ProfessionalAreaPage() {
         </article>
       </section>
 
+      <section id="perfil-profissional" className="theme-card rounded-[34px] px-6 py-8 sm:px-8">
+        <p className="theme-chip theme-chip-yellow w-fit">Perfil profissional</p>
+        <h2 className="mt-3 text-3xl">Edicao de dados e servicos</h2>
+        <p className="mt-2 text-sm text-[var(--theme-body)]">
+          Atualize seu perfil para melhorar compatibilidade com vagas e convites.
+        </p>
+        <div className="mt-5">
+          <ProfessionalProfileForm
+            initialValue={{
+              bio: profile?.bio ?? "",
+              experienceYears: profile?.experienceYears ?? null,
+              serviceTypes: profile?.serviceTypes ?? [],
+              availability: profile?.availability ?? "",
+              state: profile?.state ?? "",
+              city: profile?.city ?? "",
+              neighborhood: profile?.neighborhood ?? "",
+              hourlyRateMin: profile?.hourlyRateMin ?? null,
+              hourlyRateMax: profile?.hourlyRateMax ?? null,
+              phone: profile?.user.phone ?? "",
+            }}
+          />
+        </div>
+      </section>
+
+      <DocumentsPanel
+        initialVerificationStatus={profile?.verificationStatus ?? "NOT_SUBMITTED"}
+        initialDocuments={
+          profile?.documents.map((document) => ({
+            id: document.id,
+            documentType: document.documentType,
+            fileUrl: document.fileUrl,
+            status: document.status,
+            rejectionReason: document.rejectionReason,
+            reviewedAt: document.reviewedAt?.toISOString() ?? null,
+            createdAt: document.createdAt.toISOString(),
+          })) ?? []
+        }
+      />
+
       <AvailabilityManager
         initialWeeklySlots={
           profile?.availabilitySlots.map((slot) => ({
@@ -177,6 +259,25 @@ export default async function ProfessionalAreaPage() {
             invitation.job.scheduleSlots,
             profile?.availabilitySlots ?? [],
           ),
+        }))}
+      />
+
+      <ProfessionalContractsPanel
+        initialContracts={contracts.map((contract) => ({
+          id: contract.id,
+          applicationId: contract.application.id,
+          status: contract.status,
+          startedAt: contract.startedAt.toISOString(),
+          completedAt: contract.completedAt?.toISOString() ?? null,
+          canceledAt: contract.canceledAt?.toISOString() ?? null,
+          cancelReason: contract.cancelReason ?? null,
+          hasReviewedByCurrentUser: contract.application.reviews.length > 0,
+          job: {
+            title: contract.job.title,
+          },
+          family: {
+            name: contract.family.name,
+          },
         }))}
       />
 

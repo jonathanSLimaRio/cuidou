@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { CalendarRange, LineChart, Puzzle } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ModerationConsole } from "./moderation-console";
 import { PendingUsersPanel } from "./pending-users-panel";
 
 export const dynamic = "force-dynamic";
@@ -182,6 +183,8 @@ export default async function AdminPage({
           createdAt: user.createdAt.toISOString(),
         }))}
       />
+
+      <ModerationConsole />
     </AppShell>
   );
 }

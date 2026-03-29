@@ -52,19 +52,30 @@ export const familyProfileSchema = z.object({
   neighborhood: z.string().max(120).optional(),
 });
 
-export const professionalProfileSchema = z.object({
-  bio: z.string().max(2000).optional(),
-  experienceYears: z.number().int().min(0).max(70).optional(),
-  serviceTypes: z.array(serviceTypeSchema).min(1),
-  // Legacy text field kept for backward compatibility during calendar rollout.
-  availability: z.string().max(1000).optional(),
-  state: z.string().min(2).max(120),
-  city: z.string().min(2).max(120),
-  neighborhood: z.string().max(120).optional(),
-  hourlyRateMin: z.number().int().positive().optional(),
-  hourlyRateMax: z.number().int().positive().optional(),
-  phone: z.string().min(8).max(30).optional(),
-});
+export const professionalProfileSchema = z
+  .object({
+    bio: z.string().max(2000).optional(),
+    experienceYears: z.number().int().min(0).max(70).optional(),
+    serviceTypes: z.array(serviceTypeSchema).min(1),
+    // Legacy text field kept for backward compatibility during calendar rollout.
+    availability: z.string().max(1000).optional(),
+    state: z.string().min(2).max(120),
+    city: z.string().min(2).max(120),
+    neighborhood: z.string().max(120).optional(),
+    hourlyRateMin: z.number().int().positive().optional(),
+    hourlyRateMax: z.number().int().positive().optional(),
+    phone: z.string().min(8).max(30).optional(),
+  })
+  .refine(
+    (value) =>
+      value.hourlyRateMin === undefined ||
+      value.hourlyRateMax === undefined ||
+      value.hourlyRateMin <= value.hourlyRateMax,
+    {
+      message: "hourlyRateMin must be less than or equal to hourlyRateMax",
+      path: ["hourlyRateMin"],
+    },
+  );
 
 export const availabilitySlotSchema = z.object({
   weekday: weekdaySchema,
@@ -137,7 +148,7 @@ export const jobScheduleSchema = z.array(jobScheduleSlotSchema).min(1).superRefi
   }
 });
 
-export const createJobSchema = z.object({
+const jobBaseSchema = z.object({
   serviceType: serviceTypeSchema,
   title: z.string().min(5).max(160),
   description: z.string().min(20).max(4000),
@@ -147,13 +158,40 @@ export const createJobSchema = z.object({
   hourlyRateMin: z.number().int().positive().optional(),
   hourlyRateMax: z.number().int().positive().optional(),
   scheduleDetails: z.string().max(1000).optional(),
-  scheduleSlots: jobScheduleSchema,
 });
 
-export const updateJobSchema = createJobSchema.partial().extend({
-  status: z.enum(["OPEN", "PAUSED", "CLOSED", "ARCHIVED"]).optional(),
-  isVisible: z.boolean().optional(),
-});
+export const createJobSchema = jobBaseSchema
+  .extend({
+    scheduleSlots: jobScheduleSchema,
+  })
+  .refine(
+    (value) =>
+      value.hourlyRateMin === undefined ||
+      value.hourlyRateMax === undefined ||
+      value.hourlyRateMin <= value.hourlyRateMax,
+    {
+      message: "hourlyRateMin must be less than or equal to hourlyRateMax",
+      path: ["hourlyRateMin"],
+    },
+  );
+
+export const updateJobSchema = jobBaseSchema
+  .partial()
+  .extend({
+    scheduleSlots: jobScheduleSchema.optional(),
+    status: z.enum(["OPEN", "PAUSED", "CLOSED", "ARCHIVED"]).optional(),
+    isVisible: z.boolean().optional(),
+  })
+  .refine(
+    (value) =>
+      value.hourlyRateMin === undefined ||
+      value.hourlyRateMax === undefined ||
+      value.hourlyRateMin <= value.hourlyRateMax,
+    {
+      message: "hourlyRateMin must be less than or equal to hourlyRateMax",
+      path: ["hourlyRateMin"],
+    },
+  );
 
 export const applicationSchema = z.object({
   coverMessage: z.string().min(10).max(1500),

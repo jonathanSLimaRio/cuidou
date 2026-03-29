@@ -3,6 +3,7 @@ import { AppShell } from "@/components/theme/app-shell";
 import { CtaButton } from "@/components/theme/cta-button";
 import { DataTableShell } from "@/components/theme/data-table-shell";
 import { PageHeader } from "@/components/theme/page-header";
+import { ReportAction } from "@/components/reports/report-action";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { getScheduleMatchLevel, WEEKDAY_LABEL } from "@/lib/job-schedule";
 import { prisma } from "@/lib/prisma";
@@ -229,6 +230,10 @@ export default async function MarketplaceJobDetailPage({ params }: Params) {
             <CtaButton href="/marketplace/professionals" variant="outline" icon={UserRoundSearch}>
               Ver profissionais para convidar
             </CtaButton>
+          ) : null}
+
+          {session?.user && session.user.id !== job.familyId ? (
+            <ReportAction targetType="JOB" targetJobId={job.id} buttonLabel="Denunciar vaga" />
           ) : null}
         </div>
       </section>
