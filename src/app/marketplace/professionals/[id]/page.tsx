@@ -65,17 +65,25 @@ export default async function MarketplaceProfessionalDetailPage({ params }: Para
     notFound();
   }
 
-  const reputation = await prisma.review.aggregate({
-    where: {
-      revieweeId: professional.userId,
-    },
-    _avg: {
-      rating: true,
-    },
-    _count: {
-      rating: true,
-    },
-  });
+  const [reputation, recentReviews] = await Promise.all([
+    prisma.review.aggregate({
+      where: { revieweeId: professional.userId },
+      _avg: { rating: true },
+      _count: { rating: true },
+    }),
+    prisma.review.findMany({
+      where: { revieweeId: professional.userId },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        rating: true,
+        comment: true,
+        createdAt: true,
+        reviewer: { select: { id: true, name: true } },
+      },
+    }),
+  ]);
 
   const familyOpenJobs =
     session?.user?.role === "FAMILY"
@@ -219,6 +227,35 @@ export default async function MarketplaceProfessionalDetailPage({ params }: Para
           </div>
         ) : null}
       </section>
+
+      {recentReviews.length > 0 ? (
+        <section className="theme-card rounded-[34px] px-5 py-6 sm:px-7 sm:py-7">
+          <p className="theme-chip theme-chip-yellow w-fit">Avaliações</p>
+          <h2 className="mt-3 text-3xl">O que dizem sobre este profissional</h2>
+          <p className="mt-1 text-sm text-[var(--theme-muted)]">
+            {reputation._count.rating} avaliação(ões) •{" "}
+            {reputation._avg.rating ? `média ${reputation._avg.rating.toFixed(1)}/5` : "sem média ainda"}
+          </p>
+          <ul className="mt-5 space-y-3">
+            {recentReviews.map((review) => (
+              <li key={review.id} className="theme-list-card p-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-semibold text-[var(--theme-navy)]">
+                    {"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}
+                  </span>
+                  <span className="text-sm text-[var(--theme-muted)]">
+                    por {review.reviewer.name ?? "Usuário"} •{" "}
+                    {new Date(review.createdAt).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+                {review.comment ? (
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--theme-body)]">{review.comment}</p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="theme-card rounded-[34px] px-5 py-6 sm:px-7 sm:py-7">
         <p className="theme-chip theme-chip-pink w-fit">Ação recomendada</p>

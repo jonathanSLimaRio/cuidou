@@ -135,4 +135,60 @@ export const professionalRepository = {
       },
     });
   },
+
+  async listContracts() {
+    return apiRequest<{
+      items: import("@/src/lib/types/family").FamilyContract[];
+    }>("/api/contracts", {
+      method: "GET",
+      auth: true,
+    });
+  },
+
+  async submitReview(applicationId: string, rating: number, comment?: string) {
+    return apiRequest<{ review: { id: string } }>("/api/reviews", {
+      method: "POST",
+      auth: true,
+      json: { applicationId, rating, comment: comment?.trim() || undefined },
+    });
+  },
+
+  async getNotifications(params?: { page?: number; unreadOnly?: boolean }) {
+    return apiRequest<{
+      items: Array<{
+        id: string;
+        type: string;
+        title: string;
+        body: string | null;
+        createdAt: string;
+        readAt: string | null;
+        data: Record<string, string> | null;
+      }>;
+      total: number;
+      totalPages: number;
+      page: number;
+    }>("/api/notifications", {
+      method: "GET",
+      auth: true,
+      query: {
+        page: params?.page ?? 1,
+        pageSize: 20,
+        unreadOnly: params?.unreadOnly ? "true" : "false",
+      },
+    });
+  },
+
+  async markAllNotificationsRead() {
+    return apiRequest<{ success: boolean }>("/api/notifications", {
+      method: "PATCH",
+      auth: true,
+    });
+  },
+
+  async markNotificationRead(notificationId: string) {
+    return apiRequest<{ success: boolean }>(`/api/notifications/${notificationId}/read`, {
+      method: "PATCH",
+      auth: true,
+    });
+  },
 };

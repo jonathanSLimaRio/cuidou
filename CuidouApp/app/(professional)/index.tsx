@@ -37,6 +37,21 @@ const sections = [
     title: "Candidaturas enviadas",
     description: "Acompanhe todas as candidaturas por status.",
   },
+  {
+    href: "/(professional)/contracts",
+    title: "Contratos",
+    description: "Veja contratos ativos, concluidos e avalie familias.",
+  },
+  {
+    href: "/(protected)/chat",
+    title: "Mensagens",
+    description: "Converse com familias sobre vagas e contratos.",
+  },
+  {
+    href: "/(protected)/notifications",
+    title: "Notificacoes",
+    description: "Veja alertas e atividades da plataforma.",
+  },
 ] as const;
 
 export default function ProfessionalHomeScreen() {

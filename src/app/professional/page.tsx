@@ -30,7 +30,7 @@ export default async function ProfessionalAreaPage() {
 
   await expirePendingInvitationsWithNotifications({ professionalId: session.user.id });
 
-  const [profile, applications, invitations, contracts] = await Promise.all([
+  const [profile, applications, invitations, contracts, reviewsReceived, reviewsAggregate] = await Promise.all([
     prisma.professionalProfile.findUnique({
       where: { userId: session.user.id },
       include: {
@@ -133,6 +133,23 @@ export default async function ProfessionalAreaPage() {
         createdAt: "desc",
       },
       take: 30,
+    }),
+    prisma.review.findMany({
+      where: { revieweeId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        rating: true,
+        comment: true,
+        createdAt: true,
+        reviewer: { select: { id: true, name: true } },
+      },
+    }),
+    prisma.review.aggregate({
+      where: { revieweeId: session.user.id },
+      _avg: { rating: true },
+      _count: { rating: true },
     }),
   ]);
 
@@ -318,6 +335,37 @@ export default async function ProfessionalAreaPage() {
           </ul>
         )}
       </section>
+
+      {reviewsReceived.length > 0 ? (
+        <section className="theme-card rounded-[34px] px-5 py-6 sm:px-7 sm:py-7">
+          <p className="theme-chip theme-chip-yellow w-fit">Reputação</p>
+          <h2 className="mt-3 text-3xl">Minhas avaliações</h2>
+          <p className="mt-1 text-sm text-[var(--theme-muted)]">
+            {reviewsAggregate._count.rating} avaliação(ões) recebida(s) •{" "}
+            {reviewsAggregate._avg.rating
+              ? `média ${reviewsAggregate._avg.rating.toFixed(1)}/5`
+              : "sem média ainda"}
+          </p>
+          <ul className="mt-5 space-y-3">
+            {reviewsReceived.map((review) => (
+              <li key={review.id} className="theme-list-card p-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-semibold text-[var(--theme-navy)]">
+                    {"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}
+                  </span>
+                  <span className="text-sm text-[var(--theme-muted)]">
+                    por {review.reviewer.name ?? "Usuário"} •{" "}
+                    {new Date(review.createdAt).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+                {review.comment ? (
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--theme-body)]">{review.comment}</p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </AppShell>
   );
 }

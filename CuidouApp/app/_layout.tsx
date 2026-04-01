@@ -23,6 +23,7 @@ export default function RootLayout() {
                 <Stack.Screen name="(protected)" />
                 <Stack.Screen name="(family)" />
                 <Stack.Screen name="(professional)" />
+                <Stack.Screen name="(admin)" />
               </Stack>
             </AuthProvider>
           </ToastProvider>

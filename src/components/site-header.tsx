@@ -3,8 +3,8 @@ import { CuidouMark } from "@/components/brand/cuidou-mark";
 import { AppIcon } from "@/components/theme/app-icon";
 import { CtaButton } from "@/components/theme/cta-button";
 import { DrawerNav } from "@/components/theme/drawer-nav";
+import { NotificationBell } from "@/components/theme/notification-badge";
 import {
-  Bell,
   BriefcaseBusiness,
   LayoutDashboard,
   LogIn,
@@ -99,13 +99,9 @@ export async function SiteHeader() {
                   <AppIcon icon={MessageCircleMore} size="sm" />
                   Chat
                 </Link>
-                <Link
-                  href="/notifications"
-                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 font-display text-[var(--brand-purple-primary)] hover:bg-[var(--theme-cream)] hover:text-[var(--brand-purple-secondary)]"
-                >
-                  <AppIcon icon={Bell} size="sm" />
-                  Notificacoes
-                </Link>
+                <NotificationBell
+                  linkClassName="inline-flex items-center gap-1.5 rounded-full px-3 py-2 font-display text-[var(--brand-purple-primary)] hover:bg-[var(--theme-cream)] hover:text-[var(--brand-purple-secondary)]"
+                />
                 <form
                   action={async () => {
                     "use server";
@@ -156,13 +152,9 @@ export async function SiteHeader() {
                   <AppIcon icon={MessageCircleMore} size="sm" />
                   Chat
                 </Link>
-                <Link
-                  href="/notifications"
-                  className="inline-flex w-full items-center gap-2 rounded-xl px-3 py-2 font-display text-[var(--brand-purple-primary)] hover:bg-[var(--theme-cream)] hover:text-[var(--brand-purple-secondary)]"
-                >
-                  <AppIcon icon={Bell} size="sm" />
-                  Notificacoes
-                </Link>
+                <NotificationBell
+                  linkClassName="inline-flex w-full items-center gap-2 rounded-xl px-3 py-2 font-display text-[var(--brand-purple-primary)] hover:bg-[var(--theme-cream)] hover:text-[var(--brand-purple-secondary)]"
+                />
                 <form
                   className="pt-1"
                   action={async () => {

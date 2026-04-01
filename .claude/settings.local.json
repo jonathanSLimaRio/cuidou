@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(test -d /c/Users/jonathan/Documents/GitHub/cuidou/src/app/api/admin/invites/[id])",
+      "Bash(find /c/Users/jonathan/Documents/GitHub/cuidou/src/app/api/admin/invites/[id] -type f)",
+      "Bash(test -d /c/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\\\\\(admin\\\\\\))"
     ]
   }
 }

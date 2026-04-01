@@ -17,6 +17,10 @@ export function resolveHomePath(user: SessionUser | null) {
     return "/(professional)";
   }
 
+  if (user.role === "ADMIN") {
+    return "/(admin)";
+  }
+
   return "/(protected)/unsupported-role";
 }
 

@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { CalendarRange, LineChart, Puzzle } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AuditLogViewer } from "./audit-log-viewer";
 import { ModerationConsole } from "./moderation-console";
 import { PendingUsersPanel } from "./pending-users-panel";
 
@@ -185,6 +186,8 @@ export default async function AdminPage({
       />
 
       <ModerationConsole />
+
+      <AuditLogViewer />
     </AppShell>
   );
 }

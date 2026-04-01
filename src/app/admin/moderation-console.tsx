@@ -3,7 +3,7 @@
 import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
 import { StatusBadge } from "@/components/theme/status-badge";
-import { Check, Plus, Save, X } from "lucide-react";
+import { Check, Copy, Plus, Save, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type ModerationDocument = {
@@ -296,6 +296,24 @@ export function ModerationConsole() {
     }
   }
 
+  async function revokeInvite(id: string) {
+    setBusyId(`revoke-${id}`);
+    try {
+      const response = await fetch(`/api/admin/invites/${id}/revoke`, { method: "POST" });
+      const payload = await response.json();
+      if (!response.ok) {
+        showError("Falha ao revogar convite.", payload.error);
+        return;
+      }
+      await loadAll();
+      success("Convite revogado.");
+    } catch {
+      showError("Erro inesperado ao revogar convite.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   if (loading) {
     return (
       <section className="theme-card rounded-[34px] px-5 py-6 sm:px-7 sm:py-7">
@@ -567,7 +585,37 @@ export function ModerationConsole() {
                   </StatusBadge>
                 </div>
                 <p className="mt-2 text-sm text-[var(--theme-body)]">{invite.email}</p>
-                <p className="mt-1 text-xs text-[var(--theme-muted)]">Token: {invite.token}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {!invite.acceptedAt ? (
+                    <>
+                      <ActionButton
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        icon={Copy}
+                        onClick={() => {
+                          const appUrl = window.location.origin;
+                          void navigator.clipboard.writeText(
+                            `${appUrl}/admin/invite/accept?token=${encodeURIComponent(invite.token)}`,
+                          );
+                          success("Link copiado!");
+                        }}
+                      >
+                        Copiar link
+                      </ActionButton>
+                      <ActionButton
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        icon={X}
+                        disabled={busyId === `revoke-${invite.id}`}
+                        onClick={() => revokeInvite(invite.id)}
+                      >
+                        Revogar
+                      </ActionButton>
+                    </>
+                  ) : null}
+                </div>
               </article>
             ))
           )}

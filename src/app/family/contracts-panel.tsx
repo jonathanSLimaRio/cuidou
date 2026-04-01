@@ -3,6 +3,7 @@
 import { useToast } from "@/components/notifications/use-toast";
 import { ReviewForm } from "@/components/reviews/review-form";
 import { ActionButton } from "@/components/theme/action-button";
+import { ConfirmDialog } from "@/components/theme/confirm-dialog";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { ContractStatus } from "@prisma/client";
 import { CheckCircle2, CircleOff, Clock } from "lucide-react";
@@ -54,10 +55,16 @@ function statusTone(status: ContractStatus) {
   return "danger" as const;
 }
 
+type DialogState =
+  | { type: "complete"; contractId: string }
+  | { type: "cancel"; contractId: string }
+  | null;
+
 export function FamilyContractsPanel({ initialContracts }: Props) {
-  const { error: showError, success, warning } = useToast();
+  const { error: showError, success } = useToast();
   const [contracts, setContracts] = useState(initialContracts);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<DialogState>(null);
 
   async function completeContract(contractId: string) {
     setBusyId(contractId);
@@ -94,27 +101,18 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
       showError("Erro inesperado ao concluir contrato.");
     } finally {
       setBusyId(null);
+      setDialog(null);
     }
   }
 
-  async function cancelContract(contractId: string) {
-    const reason = window.prompt("Motivo do cancelamento:");
-    if (!reason || reason.trim().length < 5) {
-      warning("Motivo inválido", "Informe um motivo com pelo menos 5 caracteres.");
-      return;
-    }
-
+  async function cancelContract(contractId: string, reason: string) {
     setBusyId(contractId);
 
     try {
       const response = await fetch(`/api/contracts/${contractId}/cancel`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          reason: reason.trim(),
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
       });
 
       const result = await response.json();
@@ -141,10 +139,38 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
       showError("Erro inesperado ao cancelar contrato.");
     } finally {
       setBusyId(null);
+      setDialog(null);
+    }
+  }
+
+  function handleDialogConfirm(inputValue?: string) {
+    if (!dialog) return;
+    if (dialog.type === "complete") {
+      void completeContract(dialog.contractId);
+    } else {
+      void cancelContract(dialog.contractId, inputValue ?? "");
     }
   }
 
   return (
+    <>
+      <ConfirmDialog
+        open={dialog !== null}
+        title={dialog?.type === "cancel" ? "Cancelar contrato" : "Concluir contrato"}
+        description={
+          dialog?.type === "cancel"
+            ? "Esta ação não pode ser desfeita. Informe o motivo do cancelamento."
+            : "Confirme a conclusão do contrato. Esta ação não pode ser desfeita."
+        }
+        inputLabel={dialog?.type === "cancel" ? "Motivo do cancelamento" : undefined}
+        inputPlaceholder="Ex: Trabalho concluído conforme combinado..."
+        inputMinLength={5}
+        confirmLabel={dialog?.type === "cancel" ? "Cancelar contrato" : "Concluir contrato"}
+        destructive={dialog?.type === "cancel"}
+        busy={busyId !== null}
+        onConfirm={handleDialogConfirm}
+        onCancel={() => setDialog(null)}
+      />
     <section id="gestao-contratos" className="theme-card rounded-[34px] px-6 py-8 sm:px-8">
       <p className="theme-chip theme-chip-blue w-fit">Contratos</p>
       <h2 className="mt-4 text-3xl">Gestão de contratos</h2>
@@ -215,7 +241,7 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
                     size="sm"
                     icon={CheckCircle2}
                     disabled={busyId === contract.id}
-                    onClick={() => completeContract(contract.id)}
+                    onClick={() => setDialog({ type: "complete", contractId: contract.id })}
                     className="disabled:opacity-60"
                   >
                     Concluir
@@ -226,7 +252,7 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
                     icon={CircleOff}
                     variant="secondary"
                     disabled={busyId === contract.id}
-                    onClick={() => cancelContract(contract.id)}
+                    onClick={() => setDialog({ type: "cancel", contractId: contract.id })}
                     className="disabled:opacity-60"
                   >
                     Cancelar
@@ -238,5 +264,6 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
         )}
       </ul>
     </section>
+    </>
   );
 }

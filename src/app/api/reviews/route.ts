@@ -8,8 +8,57 @@ import {
   ApplicationStatus,
   ContractStatus,
   NotificationType,
+  Prisma,
   UserRole,
 } from "@prisma/client";
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const revieweeId = searchParams.get("revieweeId") ?? undefined;
+  const reviewerId = searchParams.get("reviewerId") ?? undefined;
+  const jobId = searchParams.get("jobId") ?? undefined;
+  const page = Math.max(Number(searchParams.get("page") ?? "1"), 1);
+  const pageSize = Math.min(Math.max(Number(searchParams.get("pageSize") ?? "10"), 1), 50);
+
+  if (!revieweeId && !reviewerId && !jobId) {
+    return fail(400, "At least one of revieweeId, reviewerId or jobId is required");
+  }
+
+  const where: Prisma.ReviewWhereInput = {};
+  if (revieweeId) where.revieweeId = revieweeId;
+  if (reviewerId) where.reviewerId = reviewerId;
+  if (jobId) where.jobId = jobId;
+
+  const [reviews, total] = await Promise.all([
+    prisma.review.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      select: {
+        id: true,
+        rating: true,
+        comment: true,
+        createdAt: true,
+        reviewer: {
+          select: { id: true, name: true, image: true },
+        },
+        job: {
+          select: { id: true, title: true },
+        },
+      },
+    }),
+    prisma.review.count({ where }),
+  ]);
+
+  return ok({
+    items: reviews.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+    page,
+    pageSize,
+    total,
+    totalPages: Math.ceil(total / pageSize),
+  });
+}
 
 export async function POST(request: Request) {
   const authResult = await requireUser([UserRole.FAMILY, UserRole.PROFESSIONAL]);

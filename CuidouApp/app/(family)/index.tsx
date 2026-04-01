@@ -36,6 +36,16 @@ const sections = [
     title: "Contratos",
     description: "Conclua ou cancele contratos em andamento.",
   },
+  {
+    href: "/(protected)/chat",
+    title: "Mensagens",
+    description: "Converse com profissionais sobre vagas e contratos.",
+  },
+  {
+    href: "/(protected)/notifications",
+    title: "Notificacoes",
+    description: "Veja alertas e atividades da plataforma.",
+  },
 ] as const;
 
 export default function FamilyHomeScreen() {

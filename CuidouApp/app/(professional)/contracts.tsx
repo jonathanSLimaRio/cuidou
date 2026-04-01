@@ -1,7 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "expo-router";
 import { useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { appTheme } from "@/constants/theme";
 import { Button } from "@/src/components/ui/button";
@@ -11,7 +11,7 @@ import { LoadingBlock } from "@/src/components/ui/loading-block";
 import { ScreenShell } from "@/src/components/ui/screen-shell";
 import { useToast } from "@/src/hooks/use-toast";
 import { ApiClientError } from "@/src/lib/api/client";
-import { familyRepository } from "@/src/lib/api/family-repository";
+import { professionalRepository } from "@/src/lib/api/professional-repository";
 import { contractStatusLabel } from "@/src/lib/family-formatters";
 import type { ContractStatus } from "@/src/lib/types/family";
 
@@ -22,69 +22,33 @@ const statusFilters: { label: string; value?: ContractStatus }[] = [
   { label: "Cancelados", value: "CANCELED" },
 ];
 
-type ActionModal =
-  | { type: "complete"; contractId: string }
-  | { type: "cancel"; contractId: string }
-  | { type: "review"; contractId: string; applicationId: string }
-  | null;
-
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiClientError) return error.message;
-  return "Nao foi possivel concluir esta acao.";
+  return "Nao foi possivel enviar avaliacao.";
 }
 
-export default function FamilyContractsScreen() {
+export default function ProfessionalContractsScreen() {
   const toast = useToast();
-  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<ContractStatus | undefined>(undefined);
-  const [actionModal, setActionModal] = useState<ActionModal>(null);
-  const [cancelReason, setCancelReason] = useState("");
+  const [reviewModal, setReviewModal] = useState<{ applicationId: string } | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewedApplicationIds, setReviewedApplicationIds] = useState<Set<string>>(new Set());
 
   const contractsQuery = useQuery({
-    queryKey: ["family-contracts"],
-    queryFn: () => familyRepository.listFamilyContracts(),
-  });
-
-  const completeMutation = useMutation({
-    mutationFn: (contractId: string) => familyRepository.completeContract(contractId),
-    onSuccess: () => {
-      toast.success("Contrato concluido", "Status atualizado com sucesso.");
-      void contractsQuery.refetch();
-      void queryClient.invalidateQueries({ queryKey: ["family-jobs"] });
-      setActionModal(null);
-    },
-    onError: (error) => {
-      toast.error("Falha ao concluir contrato", getErrorMessage(error));
-    },
-  });
-
-  const cancelMutation = useMutation({
-    mutationFn: (input: { contractId: string; reason: string }) =>
-      familyRepository.cancelContract(input.contractId, input.reason),
-    onSuccess: () => {
-      toast.success("Contrato cancelado", "Status atualizado com sucesso.");
-      void contractsQuery.refetch();
-      void queryClient.invalidateQueries({ queryKey: ["family-jobs"] });
-      setCancelReason("");
-      setActionModal(null);
-    },
-    onError: (error) => {
-      toast.error("Falha ao cancelar contrato", getErrorMessage(error));
-    },
+    queryKey: ["professional-contracts"],
+    queryFn: () => professionalRepository.listContracts(),
   });
 
   const reviewMutation = useMutation({
     mutationFn: (input: { applicationId: string; rating: number; comment?: string }) =>
-      familyRepository.submitReview(input.applicationId, input.rating, input.comment),
+      professionalRepository.submitReview(input.applicationId, input.rating, input.comment),
     onSuccess: (_, variables) => {
       toast.success("Avaliacao enviada", "Obrigado pelo feedback!");
       setReviewedApplicationIds((prev) => new Set([...prev, variables.applicationId]));
       setReviewRating(5);
       setReviewComment("");
-      setActionModal(null);
+      setReviewModal(null);
     },
     onError: (error) => {
       toast.error("Falha ao enviar avaliacao", getErrorMessage(error));
@@ -94,117 +58,59 @@ export default function FamilyContractsScreen() {
   const items = useMemo(() => {
     const all = contractsQuery.data?.items ?? [];
     if (!statusFilter) return all;
-    return all.filter((contract) => contract.status === statusFilter);
+    return all.filter((c) => c.status === statusFilter);
   }, [contractsQuery.data?.items, statusFilter]);
 
-  const isModalBusy =
-    completeMutation.isPending || cancelMutation.isPending || reviewMutation.isPending;
-
-  function handleModalConfirm() {
-    if (!actionModal) return;
-    if (actionModal.type === "complete") {
-      completeMutation.mutate(actionModal.contractId);
-    } else if (actionModal.type === "cancel") {
-      if (cancelReason.trim().length < 5) {
-        toast.warning("Motivo invalido", "Informe um motivo com pelo menos 5 caracteres.");
-        return;
-      }
-      cancelMutation.mutate({ contractId: actionModal.contractId, reason: cancelReason.trim() });
-    } else if (actionModal.type === "review") {
-      reviewMutation.mutate({
-        applicationId: actionModal.applicationId,
-        rating: reviewRating,
-        comment: reviewComment.trim() || undefined,
-      });
-    }
-  }
-
   return (
-    <ScreenShell title="Contratos da familia" subtitle="Conclua ou cancele contratos em andamento.">
-      <Link href="/(family)" asChild>
+    <ScreenShell title="Meus contratos" subtitle="Visualize contratos e avalie familias ao concluir.">
+      <Link href="/(professional)" asChild>
         <Button label="Voltar ao hub" variant="secondary" />
       </Link>
 
-      {/* Action Modal */}
-      <Modal visible={actionModal !== null} transparent animationType="fade">
+      {/* Review Modal */}
+      <Modal visible={reviewModal !== null} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>
-              {actionModal?.type === "complete"
-                ? "Concluir contrato"
-                : actionModal?.type === "cancel"
-                  ? "Cancelar contrato"
-                  : "Avaliar profissional"}
-            </Text>
+            <Text style={styles.modalTitle}>Avaliar familia</Text>
+            <Text style={styles.modalDesc}>Selecione uma nota de 1 a 5 estrelas.</Text>
 
-            {actionModal?.type === "complete" ? (
-              <Text style={styles.modalDesc}>
-                Confirme a conclusao do contrato. Esta acao nao pode ser desfeita.
-              </Text>
-            ) : null}
+            <View style={styles.starsRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Pressable key={star} onPress={() => setReviewRating(star)}>
+                  <Text style={[styles.star, reviewRating >= star && styles.starActive]}>★</Text>
+                </Pressable>
+              ))}
+            </View>
 
-            {actionModal?.type === "cancel" ? (
-              <>
-                <Text style={styles.modalDesc}>
-                  Informe o motivo do cancelamento (minimo 5 caracteres).
-                </Text>
-                <TextInput
-                  value={cancelReason}
-                  onChangeText={setCancelReason}
-                  placeholder="Ex: Trabalho encerrado por acordo..."
-                  placeholderTextColor={appTheme.colors.textMuted}
-                  multiline
-                  numberOfLines={3}
-                  style={[styles.input, styles.inputMultiline]}
-                />
-              </>
-            ) : null}
-
-            {actionModal?.type === "review" ? (
-              <>
-                <Text style={styles.modalDesc}>Selecione uma nota de 1 a 5 estrelas.</Text>
-                <View style={styles.starsRow}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Pressable key={star} onPress={() => setReviewRating(star)}>
-                      <Text style={[styles.star, reviewRating >= star && styles.starActive]}>
-                        ★
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <TextInput
-                  value={reviewComment}
-                  onChangeText={setReviewComment}
-                  placeholder="Comentario opcional..."
-                  placeholderTextColor={appTheme.colors.textMuted}
-                  multiline
-                  numberOfLines={3}
-                  style={[styles.input, styles.inputMultiline]}
-                />
-              </>
-            ) : null}
+            <TextInput
+              value={reviewComment}
+              onChangeText={setReviewComment}
+              placeholder="Comentario opcional..."
+              placeholderTextColor={appTheme.colors.textMuted}
+              multiline
+              numberOfLines={3}
+              style={[styles.input, styles.inputMultiline]}
+            />
 
             <View style={styles.modalActions}>
               <Button
-                label="Voltar"
+                label="Cancelar"
                 variant="secondary"
-                disabled={isModalBusy}
-                onPress={() => {
-                  setActionModal(null);
-                  setCancelReason("");
-                }}
+                disabled={reviewMutation.isPending}
+                onPress={() => setReviewModal(null)}
               />
               <Button
-                label={
-                  actionModal?.type === "complete"
-                    ? "Confirmar conclusao"
-                    : actionModal?.type === "cancel"
-                      ? "Confirmar cancelamento"
-                      : "Enviar avaliacao"
-                }
-                loading={isModalBusy}
-                disabled={isModalBusy}
-                onPress={handleModalConfirm}
+                label="Enviar avaliacao"
+                loading={reviewMutation.isPending}
+                disabled={reviewMutation.isPending}
+                onPress={() => {
+                  if (!reviewModal) return;
+                  reviewMutation.mutate({
+                    applicationId: reviewModal.applicationId,
+                    rating: reviewRating,
+                    comment: reviewComment.trim() || undefined,
+                  });
+                }}
               />
             </View>
           </View>
@@ -232,14 +138,14 @@ export default function FamilyContractsScreen() {
       {contractsQuery.isError ? (
         <ErrorState
           title="Falha ao carregar contratos"
-          description="Nao foi possivel listar contratos da familia."
+          description="Nao foi possivel listar seus contratos."
           onRetry={() => contractsQuery.refetch()}
         />
       ) : null}
       {!contractsQuery.isPending && !contractsQuery.isError && items.length === 0 ? (
         <EmptyState
           title="Sem contratos neste filtro"
-          description="Aceite candidaturas no pipeline para iniciar novos contratos."
+          description="Contratos sao criados quando uma familia aceita sua candidatura."
         />
       ) : null}
 
@@ -252,7 +158,7 @@ export default function FamilyContractsScreen() {
               <View key={contract.id} style={styles.card}>
                 <Text style={styles.cardTitle}>{contract.job.title}</Text>
                 <Text style={styles.meta}>
-                  Profissional: {contract.professional.name ?? contract.professional.email ?? "-"}
+                  Familia: {contract.family.name ?? contract.family.email ?? "-"}
                 </Text>
                 <Text style={styles.meta}>Status: {contractStatusLabel(contract.status)}</Text>
                 <Text style={styles.meta}>
@@ -272,38 +178,15 @@ export default function FamilyContractsScreen() {
                   <Text style={styles.warning}>Motivo: {contract.cancelReason}</Text>
                 ) : null}
 
-                {contract.status === "IN_PROGRESS" ? (
-                  <View style={styles.actions}>
-                    <Button
-                      label="Concluir contrato"
-                      onPress={() =>
-                        setActionModal({ type: "complete", contractId: contract.id })
-                      }
-                    />
-                    <Button
-                      label="Cancelar contrato"
-                      variant="secondary"
-                      onPress={() => {
-                        setCancelReason("");
-                        setActionModal({ type: "cancel", contractId: contract.id });
-                      }}
-                    />
-                  </View>
-                ) : null}
-
                 {contract.status === "COMPLETED" && !alreadyReviewed ? (
                   <View style={[styles.actions, styles.reviewBanner]}>
-                    <Text style={styles.reviewBannerText}>Avalie o profissional</Text>
+                    <Text style={styles.reviewBannerText}>Avalie a familia</Text>
                     <Button
                       label="Deixar avaliacao"
                       onPress={() => {
                         setReviewRating(5);
                         setReviewComment("");
-                        setActionModal({
-                          type: "review",
-                          contractId: contract.id,
-                          applicationId: contract.applicationId,
-                        });
+                        setReviewModal({ applicationId: contract.applicationId });
                       }}
                     />
                   </View>
@@ -376,7 +259,7 @@ const styles = StyleSheet.create({
     fontWeight: appTheme.typography.weight.semibold,
   },
   reviewedLabel: {
-    color: appTheme.colors.success ?? appTheme.colors.indigo,
+    color: appTheme.colors.indigo,
     fontSize: appTheme.typography.size.sm,
     marginTop: appTheme.spacing.xs,
   },

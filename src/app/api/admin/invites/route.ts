@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth-guard";
 import { writeAuditLog } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
-import { ok } from "@/lib/http";
+import { fail, ok } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
 import { adminInviteSchema } from "@/lib/schemas";
@@ -33,6 +33,20 @@ export async function POST(request: Request) {
   }
 
   const { email, expiresInDays } = bodyResult.data;
+
+  // Prevent duplicate pending invites for the same email
+  const existingPending = await prisma.adminInvite.findFirst({
+    where: {
+      email,
+      acceptedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+  });
+
+  if (existingPending) {
+    return fail(409, "A pending invite for this email already exists");
+  }
+
   const token = crypto.randomUUID().replaceAll("-", "");
   const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
 
@@ -51,7 +65,7 @@ export async function POST(request: Request) {
   await sendEmail({
     to: email,
     subject: "Convite para administracao - Cuidou",
-    html: `<p>Voce recebeu um convite para ser admin da plataforma Cuidou.</p><p>Acesse o link para aceitar: <a href="${acceptUrl}">${acceptUrl}</a></p><p>Token de validacao: <strong>${token}</strong></p>`,
+    html: `<p>Voce recebeu um convite para ser admin da plataforma Cuidou.</p><p>Clique no link abaixo para aceitar o convite:</p><p><a href="${acceptUrl}">${acceptUrl}</a></p><p>O link expira em ${expiresInDays} dia(s).</p>`,
   });
 
   await writeAuditLog({
