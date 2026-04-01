@@ -12,9 +12,12 @@ export type CurrentUser = {
   status: UserStatus;
 };
 
-const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+const authSecret =
+  process.env.AUTH_SECRET ??
+  process.env.NEXTAUTH_SECRET ??
+  (process.env.NODE_ENV !== "production" ? "dev-secret-local-only-change-in-prod" : undefined);
 
-if (!authSecret && process.env.NODE_ENV === "production") {
+if (!authSecret) {
   throw new Error(
     "AUTH_SECRET environment variable is required in production. " +
       "Generate one with: openssl rand -base64 32",

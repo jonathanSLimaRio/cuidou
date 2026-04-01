@@ -11,20 +11,20 @@ function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL;
 
   if (!connectionString) {
-    return new PrismaClient();
+    throw new Error(
+      "DATABASE_URL environment variable is not set. " +
+        "Add it to your .env.local file. Example:\n" +
+        "DATABASE_URL=postgresql://user:password@localhost:5432/cuidou_dev",
+    );
   }
 
   const pool =
     globalForPrisma.pgPool ??
     new Pool({
       connectionString,
-      // Connection acquisition timeout — fail fast if pool is exhausted
       connectionTimeoutMillis: 5_000,
-      // Max idle time before closing a connection
       idleTimeoutMillis: 30_000,
-      // Cap pool size to avoid overwhelming the DB
       max: 10,
-      // Statement timeout enforced at the pg driver level (10s)
       options: "--statement_timeout=10000",
     });
 

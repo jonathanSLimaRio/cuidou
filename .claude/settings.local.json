@@ -4,7 +4,9 @@
       "Bash(npx tsc:*)",
       "Bash(test -d /c/Users/jonathan/Documents/GitHub/cuidou/src/app/api/admin/invites/[id])",
       "Bash(find /c/Users/jonathan/Documents/GitHub/cuidou/src/app/api/admin/invites/[id] -type f)",
-      "Bash(test -d /c/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\\\\\(admin\\\\\\))"
+      "Bash(test -d /c/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\\\\\(admin\\\\\\))",
+      "Bash(Remove-Item \"C:\\\\Users\\\\jonathan\\\\Documents\\\\GitHub\\\\cuidou\\\\src\\\\middleware.ts\" -Force)",
+      "Bash(node -e \"const c=require\\(''crypto''\\);console.log\\(c.randomBytes\\(32\\).toString\\(''base64''\\)\\)\")"
     ]
   }
 }
