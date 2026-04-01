@@ -5,8 +5,8 @@ import { parseJsonBody } from "@/lib/request";
 import { professionalProfileSchema } from "@/lib/schemas";
 import { UserRole } from "@prisma/client";
 
-export async function GET() {
-  const authResult = await requireUser([UserRole.PROFESSIONAL]);
+export async function GET(request: Request) {
+  const authResult = await requireUser([UserRole.PROFESSIONAL], request);
   if ("response" in authResult) {
     return authResult.response;
   }
@@ -25,7 +25,7 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const authResult = await requireUser([UserRole.PROFESSIONAL]);
+  const authResult = await requireUser([UserRole.PROFESSIONAL], request);
   if ("response" in authResult) {
     return authResult.response;
   }

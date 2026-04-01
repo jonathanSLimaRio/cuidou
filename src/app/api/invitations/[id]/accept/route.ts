@@ -44,7 +44,7 @@ async function markInvitationExpired(invitationId: string) {
 export async function POST(request: Request, { params }: Params) {
   const { id: invitationId } = await params;
 
-  const authResult = await requireUser([UserRole.PROFESSIONAL]);
+  const authResult = await requireUser([UserRole.PROFESSIONAL], request);
   if ("response" in authResult) {
     return authResult.response;
   }

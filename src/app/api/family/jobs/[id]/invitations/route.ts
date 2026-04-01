@@ -8,10 +8,10 @@ type Params = {
   params: Promise<{ id: string }>;
 };
 
-export async function GET(_: Request, { params }: Params) {
+export async function GET(request: Request, { params }: Params) {
   const { id: jobId } = await params;
 
-  const authResult = await requireUser([UserRole.FAMILY]);
+  const authResult = await requireUser([UserRole.FAMILY], request);
   if ("response" in authResult) {
     return authResult.response;
   }

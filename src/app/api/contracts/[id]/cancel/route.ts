@@ -22,7 +22,7 @@ type Params = {
 export async function POST(request: Request, { params }: Params) {
   const { id: contractId } = await params;
 
-  const authResult = await requireUser([UserRole.FAMILY, UserRole.PROFESSIONAL]);
+  const authResult = await requireUser([UserRole.FAMILY, UserRole.PROFESSIONAL], request);
   if ("response" in authResult) {
     return authResult.response;
   }

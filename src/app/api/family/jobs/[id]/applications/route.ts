@@ -9,10 +9,10 @@ type Params = {
   }>;
 };
 
-export async function GET(_: Request, { params }: Params) {
+export async function GET(request: Request, { params }: Params) {
   const { id: jobId } = await params;
 
-  const authResult = await requireUser([UserRole.FAMILY, UserRole.ADMIN]);
+  const authResult = await requireUser([UserRole.FAMILY, UserRole.ADMIN], request);
   if ("response" in authResult) {
     return authResult.response;
   }

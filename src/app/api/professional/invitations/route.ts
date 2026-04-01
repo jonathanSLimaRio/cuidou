@@ -1,20 +1,25 @@
 import { requireUser } from "@/lib/auth-guard";
-import { ok } from "@/lib/http";
+import { fail, ok } from "@/lib/http";
 import { expirePendingInvitationsWithNotifications } from "@/lib/invitations";
 import { prisma } from "@/lib/prisma";
 import { JobInvitationStatus, UserRole } from "@prisma/client";
 
 export async function GET(request: Request) {
-  const authResult = await requireUser([UserRole.PROFESSIONAL]);
+  const authResult = await requireUser([UserRole.PROFESSIONAL], request);
   if ("response" in authResult) {
     return authResult.response;
   }
 
   const { searchParams } = new URL(request.url);
   const statusParam = searchParams.get("status");
-  const status = statusParam && Object.values(JobInvitationStatus).includes(statusParam as JobInvitationStatus)
-    ? (statusParam as JobInvitationStatus)
-    : null;
+  if (statusParam && !Object.values(JobInvitationStatus).includes(statusParam as JobInvitationStatus)) {
+    return fail(422, "validation_error", {
+      field: "status",
+      accepted: Object.values(JobInvitationStatus),
+    });
+  }
+
+  const status = statusParam as JobInvitationStatus | null;
 
   await expirePendingInvitationsWithNotifications({ professionalId: authResult.user.id });
 

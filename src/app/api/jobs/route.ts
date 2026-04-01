@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import { requireUser } from "@/lib/auth-guard";
 import { fail, ok } from "@/lib/http";
 import { buildScheduleSummary } from "@/lib/job-schedule";
@@ -8,7 +7,7 @@ import { createJobSchema } from "@/lib/schemas";
 import { JobStatus, UserRole } from "@prisma/client";
 
 export async function POST(request: Request) {
-  const authResult = await requireUser([UserRole.FAMILY]);
+  const authResult = await requireUser([UserRole.FAMILY], request);
   if ("response" in authResult) {
     return authResult.response;
   }
@@ -88,12 +87,12 @@ export async function GET(request: Request) {
 
   let familyId: string | undefined;
   if (mine) {
-    const session = await auth();
-    if (!session?.user?.id || session.user.role !== UserRole.FAMILY) {
-      return fail(401, "Only authenticated families can use mine=true");
+    const authResult = await requireUser([UserRole.FAMILY], request);
+    if ("response" in authResult) {
+      return authResult.response;
     }
 
-    familyId = session.user.id;
+    familyId = authResult.user.id;
   }
 
   const where = {

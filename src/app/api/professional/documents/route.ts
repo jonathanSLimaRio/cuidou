@@ -19,7 +19,7 @@ const documentTypeSchema = z.enum([
 ]);
 
 export async function POST(request: Request) {
-  const authResult = await requireUser([UserRole.PROFESSIONAL]);
+  const authResult = await requireUser([UserRole.PROFESSIONAL], request);
   if ("response" in authResult) {
     return authResult.response;
   }
@@ -90,4 +90,58 @@ export async function POST(request: Request) {
   });
 
   return ok({ document }, 201);
+}
+
+export async function GET(request: Request) {
+  const authResult = await requireUser([UserRole.PROFESSIONAL], request);
+  if ("response" in authResult) {
+    return authResult.response;
+  }
+
+  const { searchParams } = new URL(request.url);
+  const page = Math.max(Number(searchParams.get("page") ?? "1"), 1);
+  const pageSize = Math.min(Math.max(Number(searchParams.get("pageSize") ?? "20"), 1), 100);
+  const statusParam = searchParams.get("status");
+  if (statusParam && !Object.values(VerificationStatus).includes(statusParam as VerificationStatus)) {
+    return fail(422, "validation_error", {
+      field: "status",
+      accepted: Object.values(VerificationStatus),
+    });
+  }
+
+  const status = statusParam as VerificationStatus | null;
+
+  const profile = await prisma.professionalProfile.findUnique({
+    where: { userId: authResult.user.id },
+    select: { id: true },
+  });
+
+  if (!profile) {
+    return fail(404, "Professional profile not found");
+  }
+
+  const where = {
+    professionalProfileId: profile.id,
+    ...(status ? { status } : {}),
+  };
+
+  const [items, total] = await Promise.all([
+    prisma.professionalDocument.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.professionalDocument.count({
+      where,
+    }),
+  ]);
+
+  return ok({
+    items,
+    page,
+    pageSize,
+    total,
+    totalPages: Math.ceil(total / pageSize),
+  });
 }

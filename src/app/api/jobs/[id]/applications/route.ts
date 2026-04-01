@@ -17,7 +17,7 @@ type Params = {
 export async function POST(request: Request, { params }: Params) {
   const { id: jobId } = await params;
 
-  const authResult = await requireUser([UserRole.PROFESSIONAL]);
+  const authResult = await requireUser([UserRole.PROFESSIONAL], request);
   if ("response" in authResult) {
     return authResult.response;
   }

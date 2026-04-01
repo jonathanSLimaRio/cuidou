@@ -9,10 +9,10 @@ type Params = {
   params: Promise<{ id: string }>;
 };
 
-export async function POST(_: Request, { params }: Params) {
+export async function POST(request: Request, { params }: Params) {
   const { id: invitationId } = await params;
 
-  const authResult = await requireUser([UserRole.FAMILY]);
+  const authResult = await requireUser([UserRole.FAMILY], request);
   if ("response" in authResult) {
     return authResult.response;
   }

@@ -64,7 +64,7 @@ export async function GET(_: Request, { params }: Params) {
 export async function PUT(request: Request, { params }: Params) {
   const { id } = await params;
 
-  const authResult = await requireUser([UserRole.FAMILY, UserRole.ADMIN]);
+  const authResult = await requireUser([UserRole.FAMILY, UserRole.ADMIN], request);
   if ("response" in authResult) {
     return authResult.response;
   }
