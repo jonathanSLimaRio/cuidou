@@ -1,0 +1,28 @@
+appId: com.cuidou.app
+---
+# Assumes already logged in as FAMILY
+- launchApp
+
+# Navigate to jobs section
+- tapOn:
+    text: "Vagas"
+
+# Tap create job
+- tapOn:
+    text: "Nova vaga"
+
+# Fill job details
+- tapOn:
+    id: "job-title-input"
+- inputText: "Babysitter para criança de 2 anos"
+
+- tapOn:
+    id: "job-description-input"
+- inputText: "Precisamos de babysitter para nosso filho de 2 anos, três vezes por semana."
+
+# Submit
+- tapOn:
+    text: "Publicar vaga"
+
+# Confirm success
+- assertVisible: "Vaga publicada"

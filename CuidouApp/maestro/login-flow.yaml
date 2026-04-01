@@ -1,0 +1,19 @@
+appId: com.cuidou.app
+---
+- launchApp:
+    clearState: true
+
+# Wait for login screen
+- assertVisible: "E-mail"
+- assertVisible: "Senha"
+
+# Enter credentials
+- tapOn: "E-mail"
+- inputText: "test-family@cuidou.app"
+- tapOn: "Senha"
+- inputText: "Senha123"
+- tapOn:
+    text: "Entrar"
+
+# Should navigate away from login
+- assertNotVisible: "Entrar"

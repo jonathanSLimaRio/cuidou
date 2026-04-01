@@ -1,0 +1,25 @@
+appId: com.cuidou.app
+---
+# Assumes logged in as PROFESSIONAL
+- launchApp
+
+# Navigate to marketplace
+- tapOn:
+    text: "Explorar vagas"
+
+# Tap first job
+- tapOn:
+    id: "job-card-0"
+
+# Apply
+- tapOn:
+    text: "Candidatar-se"
+
+# Confirm dialog if present
+- tapOn:
+    text: "Confirmar"
+    optional: true
+
+# Should show success state
+- assertVisible:
+    text: "Candidatura enviada"
