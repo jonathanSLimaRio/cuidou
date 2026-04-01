@@ -5,8 +5,10 @@ import { ActionButton } from "@/components/theme/action-button";
 import { ProfessionalSummaryCard } from "@/components/theme/professional-summary-card";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { ApplicationStatus } from "@prisma/client";
-import { Check, Heart, HeartOff, X } from "lucide-react";
+import { Check, ChevronDown, Heart, HeartOff, X } from "lucide-react";
 import { useMemo, useState } from "react";
+
+const PAGE_SIZE = 5;
 
 type PipelineApplication = {
   id: string;
@@ -87,6 +89,7 @@ function canDecide(status: ApplicationStatus) {
 export function ApplicationsPipeline({ initialGroups }: Props) {
   const { error: showError, success } = useToast();
   const [groups, setGroups] = useState(initialGroups);
+  const [visibleCountByJob, setVisibleCountByJob] = useState<Record<string, number>>({});
   const [busyActionById, setBusyActionById] = useState<Record<string, "accept" | "reject" | "favorite" | null>>(
     {},
   );
@@ -224,7 +227,12 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
         </p>
       ) : (
         <div className="mt-5 space-y-4">
-          {groups.map((group) => (
+          {groups.map((group) => {
+            const visibleCount = visibleCountByJob[group.jobId] ?? PAGE_SIZE;
+            const visibleApplications = group.applications.slice(0, visibleCount);
+            const hasMore = group.applications.length > visibleCount;
+
+            return (
             <article key={group.jobId} className="theme-list-card p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-xl leading-tight text-[var(--theme-navy)]">{group.jobTitle}</h3>
@@ -234,7 +242,7 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
               </div>
 
               <ul className="mt-3 space-y-3">
-                {group.applications.map((application) => {
+                {visibleApplications.map((application) => {
                   const meta = statusMeta(application.status);
                   const isBusy = Boolean(busyActionById[application.id]);
 
@@ -295,8 +303,25 @@ export function ApplicationsPipeline({ initialGroups }: Props) {
                   );
                 })}
               </ul>
+
+              {hasMore && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setVisibleCountByJob((prev) => ({
+                      ...prev,
+                      [group.jobId]: visibleCount + PAGE_SIZE,
+                    }))
+                  }
+                  className="mt-3 flex w-full items-center justify-center gap-1 rounded-xl border border-[var(--theme-border)] py-2 text-sm text-[var(--theme-muted)] hover:bg-[var(--theme-bg-soft)] transition-colors"
+                >
+                  <ChevronDown size={16} />
+                  Ver mais ({group.applications.length - visibleCount} restante(s))
+                </button>
+              )}
             </article>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>

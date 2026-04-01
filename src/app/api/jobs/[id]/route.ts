@@ -5,7 +5,7 @@ import { buildScheduleSummary } from "@/lib/job-schedule";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
 import { updateJobSchema } from "@/lib/schemas";
-import { JobStatus, UserRole } from "@prisma/client";
+import { ContractStatus, JobStatus, UserRole } from "@prisma/client";
 
 type Params = {
   params: Promise<{
@@ -162,4 +162,39 @@ export async function PUT(request: Request, { params }: Params) {
       scheduleSummary: buildScheduleSummary(job.scheduleSlots),
     },
   });
+}
+
+export async function DELETE(_: Request, { params }: Params) {
+  const { id } = await params;
+
+  const authResult = await requireUser([UserRole.FAMILY, UserRole.ADMIN]);
+  if ("response" in authResult) {
+    return authResult.response;
+  }
+
+  const existing = await prisma.jobPost.findUnique({
+    where: { id },
+    select: { familyId: true },
+  });
+
+  if (!existing) {
+    return fail(404, "Job not found");
+  }
+
+  if (authResult.user.role === UserRole.FAMILY && existing.familyId !== authResult.user.id) {
+    return fail(403, "You can only delete your own jobs");
+  }
+
+  const activeContract = await prisma.contract.findFirst({
+    where: { jobId: id, status: ContractStatus.IN_PROGRESS },
+    select: { id: true },
+  });
+
+  if (activeContract) {
+    return fail(409, "Não é possível excluir uma vaga com contrato ativo.");
+  }
+
+  await prisma.jobPost.delete({ where: { id } });
+
+  return ok({ success: true });
 }

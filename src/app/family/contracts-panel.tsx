@@ -5,7 +5,7 @@ import { ReviewForm } from "@/components/reviews/review-form";
 import { ActionButton } from "@/components/theme/action-button";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { ContractStatus } from "@prisma/client";
-import { CheckCircle2, CircleOff } from "lucide-react";
+import { CheckCircle2, CircleOff, Clock } from "lucide-react";
 import { useState } from "react";
 
 type ContractItem = {
@@ -20,11 +20,23 @@ type ContractItem = {
   hasReviewedByCurrentUser: boolean;
   job: {
     title: string;
+    hourlyRateMin: number | null;
+    hourlyRateMax: number | null;
   };
   professional: {
     name: string | null;
   };
 };
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function formatRate(min: number | null, max: number | null) {
+  if (!min && !max) return null;
+  if (min && max && min !== max) return `R$ ${min}–${max}/h`;
+  return `R$ ${min ?? max}/h`;
+}
 
 type Props = {
   initialContracts: ContractItem[];
@@ -156,6 +168,22 @@ export function FamilyContractsPanel({ initialContracts }: Props) {
               <p className="mt-2 text-sm text-[var(--theme-body)]">
                 Profissional: {contract.professional.name ?? "-"}
               </p>
+
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--theme-muted)]">
+                <span className="flex items-center gap-1">
+                  <Clock size={12} />
+                  Início: {formatDate(contract.startedAt)}
+                </span>
+                {contract.completedAt && (
+                  <span>Conclusão: {formatDate(contract.completedAt)}</span>
+                )}
+                {contract.canceledAt && (
+                  <span>Cancelado em: {formatDate(contract.canceledAt)}</span>
+                )}
+                {formatRate(contract.job.hourlyRateMin, contract.job.hourlyRateMax) && (
+                  <span>{formatRate(contract.job.hourlyRateMin, contract.job.hourlyRateMax)}</span>
+                )}
+              </div>
 
               {contract.status === ContractStatus.CANCELED && contract.cancelReason ? (
                 <p className="theme-alert theme-alert-warning mt-2">Motivo: {contract.cancelReason}</p>

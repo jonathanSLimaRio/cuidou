@@ -7,12 +7,14 @@ import { StatusBadge } from "@/components/theme/status-badge";
 import { expirePendingInvitationsWithNotifications } from "@/lib/invitations";
 import { prisma } from "@/lib/prisma";
 import { JobInvitationStatus } from "@prisma/client";
-import { CalendarClock, CalendarPlus, LayoutDashboard, Search, Users } from "lucide-react";
+import { ApplicationStatus, JobStatus } from "@prisma/client";
+import { Briefcase, CalendarClock, CalendarPlus, ClipboardList, FileCheck2, LayoutDashboard, Search, TrendingUp, Users } from "lucide-react";
 import { redirect } from "next/navigation";
 import { FamilyContractsPanel } from "./contracts-panel";
 import { ApplicationsPipeline } from "./applications-pipeline";
 import { InvitationsPanel } from "./invitations-panel";
 import { JobForm } from "./job-form";
+import { DeleteJobButton, ReopenJobButton } from "./job-actions";
 import { FamilyProfileForm } from "./profile-form";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +83,8 @@ export default async function FamilyAreaPage() {
         job: {
           select: {
             title: true,
+            hourlyRateMin: true,
+            hourlyRateMax: true,
           },
         },
         professional: {
@@ -223,6 +227,17 @@ export default async function FamilyAreaPage() {
     }))
     .filter((group) => group.items.length > 0);
 
+  const openJobsCount = jobs.filter((j) => j.status === JobStatus.OPEN).length;
+  const pendingAppsCount = applications.filter(
+    (a) => a.status === ApplicationStatus.SUBMITTED || a.status === ApplicationStatus.SHORTLISTED,
+  ).length;
+  const activeContractsCount = contracts.filter((c) => c.status === "IN_PROGRESS").length;
+  const decidedAppsCount = applications.filter(
+    (a) => a.status === ApplicationStatus.ACCEPTED || a.status === ApplicationStatus.REJECTED,
+  ).length;
+  const responseRate =
+    applications.length > 0 ? Math.round((decidedAppsCount / applications.length) * 100) : 0;
+
   const acceptedInvitationPairSet = new Set(
     acceptedInvitationPairs.map((item) => `${item.jobId}:${item.professionalId}`),
   );
@@ -288,23 +303,41 @@ export default async function FamilyAreaPage() {
         }
       />
 
-      <section className="grid gap-3 md:grid-cols-2">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <article className="theme-card-soft rounded-3xl px-5 py-5">
-          <p className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Contato principal</p>
-          <p className="mt-2 text-2xl">{profile?.contactName ?? "Não preenchido"}</p>
-          <p className="mt-2 text-sm text-[var(--theme-body)]">
-            Atualize esse campo para agilizar retorno em processos de candidatura.
-          </p>
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">
+            <Briefcase size={14} />
+            Vagas abertas
+          </div>
+          <p className="mt-2 text-4xl font-semibold">{openJobsCount}</p>
+          <p className="mt-1 text-sm text-[var(--theme-body)]">de {jobs.length} vaga(s) criada(s)</p>
         </article>
 
         <article className="theme-card-soft rounded-3xl px-5 py-5">
-          <p className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Localização</p>
-          <p className="mt-2 text-2xl">
-            {profile?.city ?? "-"} / {profile?.state ?? "-"}
-          </p>
-          <p className="mt-2 text-sm text-[var(--theme-body)]">
-            Localização impacta descoberta de profissionais e qualidade das candidaturas.
-          </p>
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">
+            <ClipboardList size={14} />
+            Candidaturas pendentes
+          </div>
+          <p className="mt-2 text-4xl font-semibold">{pendingAppsCount}</p>
+          <p className="mt-1 text-sm text-[var(--theme-body)]">de {applications.length} candidatura(s) total</p>
+        </article>
+
+        <article className="theme-card-soft rounded-3xl px-5 py-5">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">
+            <FileCheck2 size={14} />
+            Contratos ativos
+          </div>
+          <p className="mt-2 text-4xl font-semibold">{activeContractsCount}</p>
+          <p className="mt-1 text-sm text-[var(--theme-body)]">de {contracts.length} contrato(s) criado(s)</p>
+        </article>
+
+        <article className="theme-card-soft rounded-3xl px-5 py-5">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">
+            <TrendingUp size={14} />
+            Taxa de resposta
+          </div>
+          <p className="mt-2 text-4xl font-semibold">{responseRate}%</p>
+          <p className="mt-1 text-sm text-[var(--theme-body)]">{decidedAppsCount} decidida(s) de {applications.length}</p>
         </article>
       </section>
 
@@ -390,6 +423,13 @@ export default async function FamilyAreaPage() {
 
                   <h3 className="mt-3 text-2xl leading-tight">{job.title}</h3>
 
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(job.status === JobStatus.PAUSED || job.status === JobStatus.CLOSED) && (
+                      <ReopenJobButton jobId={job.id} />
+                    )}
+                    <DeleteJobButton jobId={job.id} jobTitle={job.title} />
+                  </div>
+
                   <details className="mt-4 rounded-2xl border border-[var(--theme-border)] bg-white/90 p-4">
                     <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[var(--theme-navy)]">
                       <CalendarClock size={16} />
@@ -448,6 +488,11 @@ export default async function FamilyAreaPage() {
           startedAt: contract.startedAt.toISOString(),
           completedAt: contract.completedAt?.toISOString() ?? null,
           canceledAt: contract.canceledAt?.toISOString() ?? null,
+          job: {
+            title: contract.job.title,
+            hourlyRateMin: contract.job.hourlyRateMin,
+            hourlyRateMax: contract.job.hourlyRateMax,
+          },
         }))}
       />
 
