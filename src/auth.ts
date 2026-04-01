@@ -127,7 +127,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.status = dbUser.status;
         }
       } catch (error) {
-        console.error("Failed to sync auth token role/status", error);
+        // console.error used intentionally here — auth.ts runs in edge/middleware context
+        // where our server-side logger import is not available
+        console.warn("[auth] Failed to sync auth token role/status", String(error));
       } finally {
         token.roleSyncedAt = Date.now();
       }

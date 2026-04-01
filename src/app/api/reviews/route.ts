@@ -3,6 +3,7 @@ import { fail, ok } from "@/lib/http";
 import { notifyUser } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
+import { checkRateLimit, rateLimitHeaders, rateLimitKey } from "@/lib/rate-limiter";
 import { reviewSchema } from "@/lib/schemas";
 import {
   ApplicationStatus,
@@ -11,6 +12,8 @@ import {
   Prisma,
   UserRole,
 } from "@prisma/client";
+
+const POST_RATE_LIMIT = { max: 3, windowMs: 60 * 60 * 1000 }; // 3 per hour
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -61,6 +64,19 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const rlKey = rateLimitKey("reviews-post", request);
+  const rl = checkRateLimit(rlKey, POST_RATE_LIMIT);
+  if (!rl.allowed) {
+    return new Response(JSON.stringify({ error: "Too many review submissions. Please try again later." }), {
+      status: 429,
+      headers: {
+        "Content-Type": "application/json",
+        "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+        ...rateLimitHeaders(rl, POST_RATE_LIMIT.max),
+      },
+    });
+  }
+
   const authResult = await requireUser([UserRole.FAMILY, UserRole.PROFESSIONAL]);
   if ("response" in authResult) {
     return authResult.response;

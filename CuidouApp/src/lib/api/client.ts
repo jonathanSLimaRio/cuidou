@@ -2,6 +2,8 @@ import { appConfig } from "@/src/lib/config";
 import { getAccessToken } from "@/src/lib/session/runtime-session";
 import type { ApiErrorResponse } from "@/src/lib/types/auth";
 
+const REQUEST_TIMEOUT_MS = 10_000;
+
 type Primitive = string | number | boolean;
 type QueryValue = Primitive | null | undefined;
 
@@ -10,6 +12,7 @@ export type ApiRequestOptions = RequestInit & {
   retryAuth?: boolean;
   query?: Record<string, QueryValue>;
   json?: unknown;
+  timeoutMs?: number;
 };
 
 export class ApiClientError extends Error {
@@ -110,6 +113,7 @@ function parseErrorPayload(payload: unknown) {
 async function executeRequest(path: string, options: ApiRequestOptions) {
   const url = withQuery(normalizePath(path), options.query);
   const headers = toHeaders(options.headers);
+  const timeoutMs = options.timeoutMs ?? REQUEST_TIMEOUT_MS;
 
   if (options.json !== undefined) {
     headers.set("Content-Type", "application/json");
@@ -122,11 +126,19 @@ async function executeRequest(path: string, options: ApiRequestOptions) {
     }
   }
 
-  return fetch(url, {
-    ...options,
-    headers,
-    body: options.json !== undefined ? JSON.stringify(options.json) : options.body,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      headers,
+      body: options.json !== undefined ? JSON.stringify(options.json) : options.body,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function apiRequest<T>(

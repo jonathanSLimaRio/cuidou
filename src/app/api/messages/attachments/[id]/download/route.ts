@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth-guard";
 import { fail } from "@/lib/http";
+import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import {
   extractWordPressMediaId,
@@ -74,8 +75,7 @@ export async function GET(_: Request, { params }: Params) {
       },
     });
   } catch (error) {
-    console.error("Failed to fetch attachment binary for protected download", {
-      error,
+    logger.error("Failed to fetch attachment binary for protected download", error, {
       attachmentId: attachment.id,
       mediaId,
       pathname: attachment.pathname,

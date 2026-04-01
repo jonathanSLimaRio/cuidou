@@ -18,6 +18,14 @@ function createPrismaClient() {
     globalForPrisma.pgPool ??
     new Pool({
       connectionString,
+      // Connection acquisition timeout — fail fast if pool is exhausted
+      connectionTimeoutMillis: 5_000,
+      // Max idle time before closing a connection
+      idleTimeoutMillis: 30_000,
+      // Cap pool size to avoid overwhelming the DB
+      max: 10,
+      // Statement timeout enforced at the pg driver level (10s)
+      options: "--statement_timeout=10000",
     });
 
   if (process.env.NODE_ENV !== "production") {

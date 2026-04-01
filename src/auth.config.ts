@@ -2,10 +2,16 @@ import type { UserRole, UserStatus } from "@prisma/client";
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 
-const authSecret =
-  process.env.AUTH_SECRET ??
-  process.env.NEXTAUTH_SECRET ??
-  (process.env.NODE_ENV === "development" ? "dev-auth-secret-change-me" : undefined);
+const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+
+if (!authSecret && process.env.NODE_ENV === "production") {
+  throw new Error(
+    "AUTH_SECRET environment variable is required in production. " +
+      "Generate one with: openssl rand -base64 32",
+  );
+}
+
+const isProd = process.env.NODE_ENV === "production";
 
 const authConfig = {
   trustHost: true,
@@ -15,6 +21,17 @@ const authConfig = {
   },
   pages: {
     signIn: "/login",
+  },
+  cookies: {
+    sessionToken: {
+      name: isProd ? "__Secure-cuidou.session-token" : "cuidou.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax" as const,
+        path: "/",
+        secure: isProd,
+      },
+    },
   },
   providers: [
     Google({

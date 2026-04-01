@@ -12,10 +12,14 @@ export type CurrentUser = {
   status: UserStatus;
 };
 
-const authSecret =
-  process.env.AUTH_SECRET ??
-  process.env.NEXTAUTH_SECRET ??
-  (process.env.NODE_ENV === "development" ? "dev-auth-secret-change-me" : undefined);
+const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+
+if (!authSecret && process.env.NODE_ENV === "production") {
+  throw new Error(
+    "AUTH_SECRET environment variable is required in production. " +
+      "Generate one with: openssl rand -base64 32",
+  );
+}
 
 function buildCurrentUser(user: {
   id: string;

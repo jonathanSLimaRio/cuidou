@@ -2,15 +2,19 @@ import { requireUser } from "@/lib/auth-guard";
 import { resolveQuickReply } from "@/lib/chat-quick-replies";
 import { sendEmail } from "@/lib/email";
 import { fail, ok } from "@/lib/http";
+import { logger } from "@/lib/logger";
 import { notifyUser } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
+import { checkRateLimit, rateLimitHeaders, rateLimitKey } from "@/lib/rate-limiter";
 import { messageSchema } from "@/lib/schemas";
 import {
   deleteWordPressMedia,
   uploadMediaToWordPress,
 } from "@/lib/wordpress-media";
 import { MessageKind, NotificationType, UserRole } from "@prisma/client";
+
+const MSG_RATE_LIMIT = { max: 30, windowMs: 5 * 60 * 1000 }; // 30 per 5 min
 
 type Params = {
   params: Promise<{
@@ -150,6 +154,19 @@ export async function GET(request: Request, { params }: Params) {
 
 export async function POST(request: Request, { params }: Params) {
   const { id: conversationId } = await params;
+
+  const rlKey = rateLimitKey(`messages-${conversationId}`, request);
+  const rl = checkRateLimit(rlKey, MSG_RATE_LIMIT);
+  if (!rl.allowed) {
+    return new Response(JSON.stringify({ error: "Too many messages. Please slow down." }), {
+      status: 429,
+      headers: {
+        "Content-Type": "application/json",
+        "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+        ...rateLimitHeaders(rl, MSG_RATE_LIMIT.max),
+      },
+    });
+  }
 
   const authResult = await requireUser([UserRole.FAMILY, UserRole.PROFESSIONAL]);
   if ("response" in authResult) {
@@ -296,11 +313,11 @@ export async function POST(request: Request, { params }: Params) {
           uploadedAttachments.map((item) => deleteWordPressMedia(item.mediaId)),
         );
       } catch (cleanupError) {
-        console.error("Failed to cleanup uploaded attachments", cleanupError);
+        logger.error("Failed to cleanup uploaded attachments", cleanupError);
       }
     }
 
-    console.error("Attachment upload to WordPress failed", error);
+    logger.error("Attachment upload to WordPress failed", error);
     return fail(502, "Failed to upload attachments");
   }
 
@@ -364,11 +381,11 @@ export async function POST(request: Request, { params }: Params) {
           uploadedAttachments.map((item) => deleteWordPressMedia(item.mediaId)),
         );
       } catch (cleanupError) {
-        console.error("Failed to cleanup uploaded attachments after DB error", cleanupError);
+        logger.error("Failed to cleanup uploaded attachments after DB error", cleanupError);
       }
     }
 
-    console.error("Message transaction failed", error);
+    logger.error("Message transaction failed", error);
     return fail(500, "Failed to save message");
   }
 

@@ -1,3 +1,6 @@
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+import { validateExternalUrl } from "@/lib/file-validation";
+
 const WORDPRESS_URL = process.env.WORDPRESS_URL;
 const WP_USER = process.env.WP_USER;
 const WP_APP_PASS = process.env.WP_APP_PASS;
@@ -29,6 +32,31 @@ function buildWordPressMediaEndpoint(pathname: string) {
   return `${base}${pathname}`;
 }
 
+/** Validate that a URL belongs to the configured WordPress hostname (SSRF protection). */
+function validateWordPressUrl(url: string): void {
+  const ssrfCheck = validateExternalUrl(url);
+  if (!ssrfCheck.ok) {
+    throw new Error(`SSRF protection: ${ssrfCheck.error}`);
+  }
+
+  if (WORDPRESS_URL) {
+    try {
+      const allowed = new URL(WORDPRESS_URL);
+      const target = new URL(url);
+      if (target.hostname !== allowed.hostname) {
+        throw new Error(
+          `SSRF protection: URL hostname "${target.hostname}" is not the configured WordPress host`,
+        );
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.startsWith("SSRF protection")) {
+        throw e;
+      }
+      // If WORDPRESS_URL is not a valid URL itself, skip hostname check
+    }
+  }
+}
+
 export type UploadWordPressMediaParams = {
   buffer: Uint8Array;
   fileName: string;
@@ -54,7 +82,7 @@ export async function uploadMediaToWordPress(
     : `${Date.now()}-${safeName}`;
 
   const endpoint = buildWordPressMediaEndpoint("/wp-json/wp/v2/media");
-  const response = await fetch(endpoint, {
+  const response = await fetchWithTimeout(endpoint, {
     method: "POST",
     headers: {
       Authorization: toBasicAuthHeader(),
@@ -63,6 +91,7 @@ export async function uploadMediaToWordPress(
     },
     body: Buffer.from(params.buffer),
     cache: "no-store",
+    timeoutMs: 30_000, // uploads can be slower
   });
 
   if (!response.ok) {
@@ -85,15 +114,13 @@ export async function uploadMediaToWordPress(
   if (params.title) {
     try {
       const metaEndpoint = buildWordPressMediaEndpoint(`/wp-json/wp/v2/media/${payload.id}`);
-      await fetch(metaEndpoint, {
+      await fetchWithTimeout(metaEndpoint, {
         method: "POST",
         headers: {
           Authorization: toBasicAuthHeader(),
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          title: params.title,
-        }),
+        body: JSON.stringify({ title: params.title }),
         cache: "no-store",
       });
     } catch {
@@ -113,7 +140,7 @@ export async function uploadMediaToWordPress(
 export async function deleteWordPressMedia(mediaId: number) {
   const endpoint = buildWordPressMediaEndpoint(`/wp-json/wp/v2/media/${mediaId}?force=true`);
 
-  const response = await fetch(endpoint, {
+  const response = await fetchWithTimeout(endpoint, {
     method: "DELETE",
     headers: {
       Authorization: toBasicAuthHeader(),
@@ -134,7 +161,10 @@ export async function fetchWordPressMediaBinary(sourceUrl: string) {
     throw new Error("Invalid WordPress source URL");
   }
 
-  const response = await fetch(sourceUrl, {
+  // SSRF protection: validate hostname is the configured WordPress host
+  validateWordPressUrl(sourceUrl);
+
+  const response = await fetchWithTimeout(sourceUrl, {
     method: "GET",
     headers: {
       Authorization: toBasicAuthHeader(),
