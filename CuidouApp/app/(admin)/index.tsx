@@ -31,6 +31,16 @@ const sections = [
     title: "Vagas",
     description: "Modere status e visibilidade das vagas.",
   },
+  {
+    href: "/(admin)/invites",
+    title: "Convites de admin",
+    description: "Crie e gerencie convites de acesso administrativo.",
+  },
+  {
+    href: "/(admin)/audit-log",
+    title: "Trilha de auditoria",
+    description: "Consulte o histórico de todas as ações administrativas.",
+  },
 ] as const;
 
 export default function AdminHomeScreen() {

@@ -71,3 +71,26 @@ export type AdminInvite = {
   acceptedAt: string | null;
   createdAt: string;
 };
+
+export type AuditLog = {
+  id: string;
+  adminId: string;
+  action: string;
+  targetType: string;
+  targetId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  admin: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  };
+};
+
+export type AuditLogPage = {
+  items: AuditLog[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};

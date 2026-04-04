@@ -12,6 +12,7 @@ import { ScreenShell } from "@/src/components/ui/screen-shell";
 import { familyRepository } from "@/src/lib/api/family-repository";
 import { moneyRange, serviceTypeLabel } from "@/src/lib/marketplace-formatters";
 import type { JobStatus } from "@/src/lib/types/marketplace";
+import { useRouter } from "expo-router";
 
 const PAGE_SIZE = 20;
 
@@ -24,6 +25,7 @@ const statusFilters: { label: string; value?: JobStatus }[] = [
 ];
 
 export default function FamilyJobsScreen() {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<JobStatus | undefined>(undefined);
 
   const jobsQuery = useInfiniteQuery({
@@ -102,9 +104,17 @@ export default function FamilyJobsScreen() {
               <Text style={styles.body} numberOfLines={3}>
                 {job.description}
               </Text>
-              <Link href={`/(family)/jobs/${job.id}/edit`} asChild>
-                <Button label="Editar vaga" variant="secondary" />
-              </Link>
+              <View style={styles.cardActions}>
+                <Link href={`/(family)/jobs/${job.id}/edit`} asChild>
+                  <Button label="Editar vaga" variant="secondary" />
+                </Link>
+                {job.status === "OPEN" ? (
+                  <Button
+                    label="Convidar profissionais"
+                    onPress={() => router.push(`/(family)/jobs/${job.id}/invite`)}
+                  />
+                ) : null}
+              </View>
             </View>
           ))}
 
@@ -186,6 +196,10 @@ const styles = StyleSheet.create({
   meta: {
     color: appTheme.colors.textMuted,
     fontSize: appTheme.typography.size.sm,
+  },
+  cardActions: {
+    gap: appTheme.spacing.sm,
+    marginTop: 4,
   },
 });
 

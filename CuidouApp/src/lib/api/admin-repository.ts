@@ -6,6 +6,7 @@ import type {
   AdminMetrics,
   AdminReport,
   AdminUser,
+  AuditLogPage,
 } from "@/src/lib/types/admin";
 
 export const adminRepository = {
@@ -107,6 +108,23 @@ export const adminRepository = {
   async revokeInvite(inviteId: string) {
     return apiRequest<{ success: boolean }>(`/api/admin/invites/${inviteId}/revoke`, {
       method: "POST",
+      auth: true,
+    });
+  },
+
+  async listAuditLogs(params?: {
+    action?: string;
+    targetType?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<AuditLogPage> {
+    const query = new URLSearchParams();
+    if (params?.action) query.set("action", params.action);
+    if (params?.targetType) query.set("targetType", params.targetType);
+    query.set("page", String(params?.page ?? 1));
+    query.set("pageSize", String(params?.pageSize ?? 50));
+    return apiRequest<AuditLogPage>(`/api/admin/audit-logs?${query.toString()}`, {
+      method: "GET",
       auth: true,
     });
   },

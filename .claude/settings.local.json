@@ -22,7 +22,16 @@
       "Bash(git commit:*)",
       "Bash(/dev/null echo:*)",
       "Bash(sort echo:*)",
-      "Bash(cat /c/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\\\\\(protected\\\\\\)/chat/[id].tsx)"
+      "Bash(cat /c/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\\\\\(protected\\\\\\)/chat/[id].tsx)",
+      "Bash(find /c/Users/jonathan/Documents/GitHub/cuidou/src/lib -type f -name *.ts -o -name *.tsx)",
+      "Bash(ls \"C:\\\\Users\\\\jonathan\\\\Documents\\\\GitHub\\\\cuidou\\\\CuidouApp\\\\app\\\\\\(family\\)\"\")",
+      "Bash(ls \"C:/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\(family\\)/\")",
+      "Bash(ls \"C:/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\(marketplace\\)/\")",
+      "Bash(ls \"C:/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\(family\\)/jobs/\")",
+      "Bash(ls \"C:/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\(marketplace\\)/professionals/\")",
+      "Bash(ls \"C:/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\(family\\)/jobs/[id]/\")",
+      "Bash(ls \"C:/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\(admin\\)/\")",
+      "Bash(dir \"C:\\\\Users\\\\jonathan\\\\Documents\\\\GitHub\\\\cuidou\\\\CuidouApp\\\\app\\\\\\(admin\\)\")"
     ]
   }
 }
