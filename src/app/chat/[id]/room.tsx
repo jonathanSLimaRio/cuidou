@@ -4,7 +4,7 @@ import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
 import { AppIcon } from "@/components/theme/app-icon";
 import { ArrowUp, Ban, Paperclip, Reply, SendHorizontal } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type QuickReply = {
   key: string;
@@ -52,6 +52,9 @@ function mergeMessages(current: Message[], incoming: Message[]) {
   return [...byId.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
+const RECONNECT_BASE_MS = 1_000;
+const RECONNECT_MAX_MS = 30_000;
+
 export function ChatRoom({
   conversationId,
   currentUserId,
@@ -73,6 +76,11 @@ export function ChatRoom({
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [blockedBySelf, setBlockedBySelf] = useState(initialBlockedBySelf);
   const [updatingBlock, setUpdatingBlock] = useState(false);
+
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectDelayRef = useRef(RECONNECT_BASE_MS);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unmountedRef = useRef(false);
 
   const loadLatestMessages = useCallback(async () => {
     try {
@@ -140,16 +148,86 @@ export function ChatRoom({
     }
   }, []);
 
+  const connectWebSocket = useCallback(() => {
+    if (unmountedRef.current) return;
+
+    fetch(`/api/ws-token?conversationId=${encodeURIComponent(conversationId)}`)
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to get WS token");
+        return r.json() as Promise<{ token: string }>;
+      })
+      .then(({ token }) => {
+        if (unmountedRef.current) return;
+
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const ws = new WebSocket(
+          `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(token)}&conversationId=${encodeURIComponent(conversationId)}`,
+        );
+
+        ws.onopen = () => {
+          reconnectDelayRef.current = RECONNECT_BASE_MS;
+        };
+
+        ws.onmessage = (event: MessageEvent<string>) => {
+          try {
+            const data = JSON.parse(event.data) as {
+              type: string;
+              conversationId?: string;
+              message?: Message;
+            };
+            if (
+              data.type === "new_message" &&
+              data.conversationId === conversationId &&
+              data.message
+            ) {
+              setMessages((current) => mergeMessages(current, [data.message!]));
+            }
+          } catch {
+            // Ignore malformed frames.
+          }
+        };
+
+        ws.onclose = () => {
+          wsRef.current = null;
+          if (!unmountedRef.current) {
+            scheduleReconnect();
+          }
+        };
+
+        ws.onerror = () => {
+          ws.close();
+        };
+
+        wsRef.current = ws;
+      })
+      .catch(() => {
+        if (!unmountedRef.current) {
+          scheduleReconnect();
+        }
+      });
+  }, [conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function scheduleReconnect() {
+    const delay = reconnectDelayRef.current;
+    reconnectDelayRef.current = Math.min(delay * 2, RECONNECT_MAX_MS);
+    reconnectTimerRef.current = setTimeout(connectWebSocket, delay);
+  }
+
   useEffect(() => {
+    unmountedRef.current = false;
     void loadLatestMessages();
     void loadQuickReplies();
+    connectWebSocket();
 
-    const interval = setInterval(() => {
-      void loadLatestMessages();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [loadLatestMessages, loadQuickReplies]);
+    return () => {
+      unmountedRef.current = true;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
+  // connectWebSocket and loadLatestMessages are stable refs; only run on mount.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const sortedMessages = useMemo(
     () => [...messages].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
@@ -194,7 +272,7 @@ export function ChatRoom({
         });
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as { message?: Message; error?: string };
 
       if (!response.ok) {
         showError("Falha ao enviar mensagem.", result.error);
@@ -203,7 +281,12 @@ export function ChatRoom({
 
       setContent("");
       setFiles([]);
-      await loadLatestMessages();
+
+      // Add the sent message immediately from the POST response.
+      // The WS broadcast will deliver it to the other participant.
+      if (result.message) {
+        setMessages((current) => mergeMessages(current, [result.message!]));
+      }
     } catch {
       showError("Erro inesperado ao enviar mensagem.");
     } finally {
@@ -230,14 +313,16 @@ export function ChatRoom({
         }),
       });
 
-      const result = await response.json();
+      const result = (await response.json()) as { message?: Message; error?: string };
 
       if (!response.ok) {
         showError("Falha ao enviar resposta rapida.", result.error);
         return;
       }
 
-      await loadLatestMessages();
+      if (result.message) {
+        setMessages((current) => mergeMessages(current, [result.message!]));
+      }
     } catch {
       showError("Erro inesperado ao enviar resposta rapida.");
     } finally {
