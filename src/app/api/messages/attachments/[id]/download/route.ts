@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import {
   extractWordPressMediaId,
   fetchWordPressMediaBinary,
+  isLocalUploadRef,
 } from "@/lib/wordpress-media";
 import { UserRole } from "@prisma/client";
 
@@ -54,7 +55,9 @@ export async function GET(_: Request, { params }: Params) {
   }
 
   const mediaId = extractWordPressMediaId(attachment.pathname);
-  if (!mediaId) {
+  const isLocal = isLocalUploadRef(attachment.pathname);
+
+  if (!mediaId && !isLocal) {
     return fail(410, "Attachment points to a legacy storage format");
   }
 

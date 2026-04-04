@@ -1,12 +1,25 @@
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { validateExternalUrl } from "@/lib/file-validation";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 const WORDPRESS_URL = process.env.WORDPRESS_URL;
 const WP_USER = process.env.WP_USER;
 const WP_APP_PASS = process.env.WP_APP_PASS;
 
+/** Prefix used to identify locally-stored uploads (fallback when WordPress is not configured). */
+const LOCAL_UPLOAD_SCHEME = "local-upload:";
+
+function getLocalUploadDir(): string {
+  return process.env.LOCAL_UPLOAD_DIR ?? "./uploads";
+}
+
 function sanitizeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+export function isWordPressConfigured(): boolean {
+  return Boolean(WORDPRESS_URL && WP_USER && WP_APP_PASS);
 }
 
 function ensureWordPressEnv() {
@@ -66,16 +79,48 @@ export type UploadWordPressMediaParams = {
 };
 
 export type WordPressMediaUploadResult = {
+  /** WordPress media ID, or 0 for locally-stored uploads. */
   mediaId: number;
+  /** WordPress source URL, or a `local-upload:{relpath}` reference. */
   sourceUrl: string;
+  /** Opaque pathname to store in the DB (e.g. `wp-media:{id}` or `local-upload:{relpath}`). */
+  pathname: string;
   mimeType: string;
   fileName: string;
   sizeBytes: number;
 };
 
+async function uploadToLocalStorage(
+  params: UploadWordPressMediaParams,
+): Promise<WordPressMediaUploadResult> {
+  const ext = path.extname(params.fileName) || "";
+  const uuid = crypto.randomUUID();
+  const category = params.folderTag ? sanitizeFileName(params.folderTag) : "misc";
+  const relpath = `${category}/${uuid}${ext}`;
+  const absPath = path.join(getLocalUploadDir(), category, `${uuid}${ext}`);
+
+  await fs.mkdir(path.dirname(absPath), { recursive: true });
+  await fs.writeFile(absPath, params.buffer);
+
+  const ref = `${LOCAL_UPLOAD_SCHEME}${relpath}`;
+
+  return {
+    mediaId: 0,
+    sourceUrl: ref,
+    pathname: ref,
+    mimeType: params.mimeType ?? "application/octet-stream",
+    fileName: sanitizeFileName(params.fileName),
+    sizeBytes: params.buffer.byteLength,
+  };
+}
+
 export async function uploadMediaToWordPress(
   params: UploadWordPressMediaParams,
 ): Promise<WordPressMediaUploadResult> {
+  if (!isWordPressConfigured()) {
+    return uploadToLocalStorage(params);
+  }
+
   const safeName = sanitizeFileName(params.fileName);
   const prefixedName = params.folderTag
     ? `${sanitizeFileName(params.folderTag)}-${Date.now()}-${safeName}`
@@ -131,6 +176,7 @@ export async function uploadMediaToWordPress(
   return {
     mediaId: payload.id,
     sourceUrl: payload.source_url,
+    pathname: `wp-media:${payload.id}`,
     mimeType: payload.mime_type || params.mimeType || "application/octet-stream",
     fileName: safeName,
     sizeBytes: params.buffer.byteLength,
@@ -138,6 +184,11 @@ export async function uploadMediaToWordPress(
 }
 
 export async function deleteWordPressMedia(mediaId: number) {
+  // mediaId 0 is the sentinel for locally-stored uploads; nothing to delete via WP.
+  if (mediaId === 0) {
+    return;
+  }
+
   const endpoint = buildWordPressMediaEndpoint(`/wp-json/wp/v2/media/${mediaId}?force=true`);
 
   const response = await fetchWithTimeout(endpoint, {
@@ -157,6 +208,23 @@ export async function deleteWordPressMedia(mediaId: number) {
 }
 
 export async function fetchWordPressMediaBinary(sourceUrl: string) {
+  if (sourceUrl.startsWith(LOCAL_UPLOAD_SCHEME)) {
+    const relpath = sourceUrl.slice(LOCAL_UPLOAD_SCHEME.length);
+    const absPath = path.join(getLocalUploadDir(), relpath);
+    const buffer = await fs.readFile(absPath);
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(buffer);
+        controller.close();
+      },
+    });
+    return {
+      stream,
+      contentType: null,
+      contentLength: String(buffer.byteLength),
+    };
+  }
+
   if (!sourceUrl.startsWith("http://") && !sourceUrl.startsWith("https://")) {
     throw new Error("Invalid WordPress source URL");
   }
@@ -184,6 +252,11 @@ export async function fetchWordPressMediaBinary(sourceUrl: string) {
     contentType: response.headers.get("content-type"),
     contentLength: response.headers.get("content-length"),
   };
+}
+
+/** Returns true if a stored reference points to a local (non-WordPress) upload. */
+export function isLocalUploadRef(ref: string): boolean {
+  return ref.startsWith(LOCAL_UPLOAD_SCHEME);
 }
 
 export function extractWordPressMediaId(pathname: string) {

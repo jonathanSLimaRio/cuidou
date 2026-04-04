@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth-guard";
+import { emitNewMessage } from "@/lib/chat-events";
 import { resolveQuickReply } from "@/lib/chat-quick-replies";
 import { sendEmail } from "@/lib/email";
 import { fail, ok } from "@/lib/http";
@@ -298,7 +299,7 @@ export async function POST(request: Request, { params }: Params) {
       uploadedAttachments.push({
         id: crypto.randomUUID(),
         mediaId: upload.mediaId,
-        pathname: `wp-media:${upload.mediaId}`,
+        pathname: upload.pathname,
         url: upload.sourceUrl,
         downloadUrl: "",
         mimeType: upload.mimeType || file.type,
@@ -425,5 +426,10 @@ export async function POST(request: Request, { params }: Params) {
     });
   }
 
-  return ok({ message: toPublicMessage(message) }, 201);
+  const publicMessage = toPublicMessage(message);
+
+  // Broadcast to any WebSocket clients connected to this conversation room.
+  emitNewMessage(conversationId, publicMessage as Record<string, unknown>);
+
+  return ok({ message: publicMessage }, 201);
 }
