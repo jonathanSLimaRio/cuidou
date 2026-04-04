@@ -55,3 +55,16 @@ export type QuickReply = {
   key: string;
   text: string;
 };
+
+export type ConversationDetail = {
+  id: string;
+  familyId: string;
+  professionalId: string;
+  blockedBySelf: boolean;
+  isBlockedByFamily: boolean;
+  isBlockedByProfessional: boolean;
+  job: { id: string; title: string; serviceType: string };
+  family: ConversationUser;
+  professional: ConversationUser;
+  counterpart: ConversationUser;
+};
