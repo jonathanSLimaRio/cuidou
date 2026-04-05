@@ -31,7 +31,8 @@
       "Bash(ls \"C:/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\(marketplace\\)/professionals/\")",
       "Bash(ls \"C:/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\(family\\)/jobs/[id]/\")",
       "Bash(ls \"C:/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\(admin\\)/\")",
-      "Bash(dir \"C:\\\\Users\\\\jonathan\\\\Documents\\\\GitHub\\\\cuidou\\\\CuidouApp\\\\app\\\\\\(admin\\)\")"
+      "Bash(dir \"C:\\\\Users\\\\jonathan\\\\Documents\\\\GitHub\\\\cuidou\\\\CuidouApp\\\\app\\\\\\(admin\\)\")",
+      "Bash(grep -r \"setInterval\\\\|polling\\\\|refetch\" /c/Users/jonathan/Documents/GitHub/cuidou/src --include=*.ts --include=*.tsx)"
     ]
   }
 }

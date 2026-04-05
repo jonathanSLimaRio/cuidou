@@ -77,6 +77,10 @@ export function ChatRoom({
   const [blockedBySelf, setBlockedBySelf] = useState(initialBlockedBySelf);
   const [updatingBlock, setUpdatingBlock] = useState(false);
 
+  const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "reconnecting">(
+    "connecting",
+  );
+
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectDelayRef = useRef(RECONNECT_BASE_MS);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -151,6 +155,8 @@ export function ChatRoom({
   const connectWebSocket = useCallback(() => {
     if (unmountedRef.current) return;
 
+    setWsStatus("connecting");
+
     fetch(`/api/ws-token?conversationId=${encodeURIComponent(conversationId)}`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to get WS token");
@@ -166,6 +172,7 @@ export function ChatRoom({
 
         ws.onopen = () => {
           reconnectDelayRef.current = RECONNECT_BASE_MS;
+          setWsStatus("connected");
         };
 
         ws.onmessage = (event: MessageEvent<string>) => {
@@ -190,6 +197,7 @@ export function ChatRoom({
         ws.onclose = () => {
           wsRef.current = null;
           if (!unmountedRef.current) {
+            setWsStatus("reconnecting");
             scheduleReconnect();
           }
         };
@@ -360,7 +368,7 @@ export function ChatRoom({
 
   return (
     <section className="theme-card rounded-[34px] p-4 sm:p-5">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <ActionButton
           type="button"
           size="sm"
@@ -371,6 +379,23 @@ export function ChatRoom({
         >
           {blockedBySelf ? "Desbloquear conversa" : "Bloquear conversa"}
         </ActionButton>
+
+        <span className="flex items-center gap-1.5 text-xs text-[var(--theme-muted)]">
+          <span
+            className={`inline-block h-2 w-2 rounded-full ${
+              wsStatus === "connected"
+                ? "bg-green-500"
+                : wsStatus === "reconnecting"
+                  ? "bg-yellow-400"
+                  : "bg-gray-300"
+            }`}
+          />
+          {wsStatus === "connected"
+            ? "Ao vivo"
+            : wsStatus === "reconnecting"
+              ? "Reconectando..."
+              : "Conectando..."}
+        </span>
       </div>
 
       {blockedBySelf ? (
