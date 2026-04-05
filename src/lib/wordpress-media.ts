@@ -7,7 +7,7 @@ const WORDPRESS_URL = process.env.WORDPRESS_URL;
 const WP_USER = process.env.WP_USER;
 const WP_APP_PASS = process.env.WP_APP_PASS;
 
-/** Prefix used to identify locally-stored uploads (fallback when WordPress is not configured). */
+/** Prefix used to identify locally-stored uploads (legacy — kept for backward compatibility with existing DB records). */
 const LOCAL_UPLOAD_SCHEME = "local-upload:";
 
 function getLocalUploadDir(): string {
@@ -79,48 +79,20 @@ export type UploadWordPressMediaParams = {
 };
 
 export type WordPressMediaUploadResult = {
-  /** WordPress media ID, or 0 for locally-stored uploads. */
+  /** WordPress media ID. */
   mediaId: number;
-  /** WordPress source URL, or a `local-upload:{relpath}` reference. */
+  /** WordPress source URL. */
   sourceUrl: string;
-  /** Opaque pathname to store in the DB (e.g. `wp-media:{id}` or `local-upload:{relpath}`). */
+  /** Opaque pathname to store in the DB (e.g. `wp-media:{id}`). */
   pathname: string;
   mimeType: string;
   fileName: string;
   sizeBytes: number;
 };
 
-async function uploadToLocalStorage(
-  params: UploadWordPressMediaParams,
-): Promise<WordPressMediaUploadResult> {
-  const ext = path.extname(params.fileName) || "";
-  const uuid = crypto.randomUUID();
-  const category = params.folderTag ? sanitizeFileName(params.folderTag) : "misc";
-  const relpath = `${category}/${uuid}${ext}`;
-  const absPath = path.join(getLocalUploadDir(), category, `${uuid}${ext}`);
-
-  await fs.mkdir(path.dirname(absPath), { recursive: true });
-  await fs.writeFile(absPath, params.buffer);
-
-  const ref = `${LOCAL_UPLOAD_SCHEME}${relpath}`;
-
-  return {
-    mediaId: 0,
-    sourceUrl: ref,
-    pathname: ref,
-    mimeType: params.mimeType ?? "application/octet-stream",
-    fileName: sanitizeFileName(params.fileName),
-    sizeBytes: params.buffer.byteLength,
-  };
-}
-
 export async function uploadMediaToWordPress(
   params: UploadWordPressMediaParams,
 ): Promise<WordPressMediaUploadResult> {
-  if (!isWordPressConfigured()) {
-    return uploadToLocalStorage(params);
-  }
-
   const safeName = sanitizeFileName(params.fileName);
   const prefixedName = params.folderTag
     ? `${sanitizeFileName(params.folderTag)}-${Date.now()}-${safeName}`
