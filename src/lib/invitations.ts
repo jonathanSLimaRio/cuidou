@@ -1,45 +1,22 @@
 import { JobInvitationStatus, NotificationType, Prisma, PrismaClient } from "@prisma/client";
 import { sendEmail } from "@/lib/email";
+import {
+  buildInvitationExpiry,
+  INVITATION_DEFAULT_EXPIRY_DAYS,
+  invitationStatusLabel,
+  invitationStatusTone,
+} from "@/lib/invitation-core";
 import { notifyMany } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 
 type InvitationDb = PrismaClient | Prisma.TransactionClient;
 
-export const INVITATION_DEFAULT_EXPIRY_DAYS = 7;
-
-export const invitationStatusLabel: Record<JobInvitationStatus, string> = {
-  PENDING: "Pendente",
-  ACCEPTED: "Aceito",
-  DECLINED: "Recusado",
-  EXPIRED: "Expirado",
-  CANCELED: "Cancelado",
+export {
+  buildInvitationExpiry,
+  INVITATION_DEFAULT_EXPIRY_DAYS,
+  invitationStatusLabel,
+  invitationStatusTone,
 };
-
-export function invitationStatusTone(status: JobInvitationStatus) {
-  if (status === "PENDING") {
-    return "warning" as const;
-  }
-
-  if (status === "ACCEPTED") {
-    return "success" as const;
-  }
-
-  if (status === "DECLINED") {
-    return "danger" as const;
-  }
-
-  if (status === "EXPIRED") {
-    return "neutral" as const;
-  }
-
-  return "info" as const;
-}
-
-export function buildInvitationExpiry(days?: number) {
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + (days ?? INVITATION_DEFAULT_EXPIRY_DAYS));
-  return expiresAt;
-}
 
 export async function expirePendingInvitations(db: InvitationDb, extraWhere?: Prisma.JobInvitationWhereInput) {
   return db.jobInvitation.updateMany({

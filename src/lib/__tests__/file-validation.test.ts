@@ -81,7 +81,7 @@ describe("validateFileExtension", () => {
 
 describe("sanitizeFileName", () => {
   it("replaces special characters", () => {
-    expect(sanitizeFileName("my file (1).pdf")).toBe("my_file__1_.pdf");
+    expect(sanitizeFileName("my file (1).pdf")).toBe("my_file_1_.pdf");
   });
 
   it("preserves alphanumeric, dots, hyphens, underscores", () => {

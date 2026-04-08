@@ -13,6 +13,11 @@ import { useAuth } from "@/src/hooks/use-auth";
 import { useToast } from "@/src/hooks/use-toast";
 import { familyRepository } from "@/src/lib/api/family-repository";
 import { professionalRepository } from "@/src/lib/api/professional-repository";
+import {
+  normalizeNotificationPayload,
+  resolveNotificationNavigationTarget,
+  type NotificationRoutingRole,
+} from "@/src/navigation/notification-routing";
 
 type NotificationItem = {
   id: string;
@@ -24,12 +29,16 @@ type NotificationItem = {
   data: Record<string, string> | null;
 };
 
-function resolveDeepLink(data: Record<string, string> | null): string | null {
-  if (!data) return null;
-  if (data.conversationId) return `/(protected)/chat/${data.conversationId}`;
-  if (data.contractId) return null; // no deep-link route on mobile yet
-  if (data.applicationId) return null;
-  return null;
+function resolveDeepLink(
+  item: Pick<NotificationItem, "type" | "data">,
+  role: NotificationRoutingRole | undefined,
+): string | null {
+  const payload = normalizeNotificationPayload({
+    ...(item.data ?? {}),
+    notificationType: item.type,
+  });
+
+  return resolveNotificationNavigationTarget(payload, role);
 }
 
 export default function NotificationsScreen() {
@@ -73,7 +82,7 @@ export default function NotificationsScreen() {
     if (!item.readAt) {
       await markOneMutation.mutateAsync(item.id);
     }
-    const link = resolveDeepLink(item.data);
+    const link = resolveDeepLink(item, user?.role ?? undefined);
     if (link) {
       router.push(link as never);
     }
@@ -135,7 +144,7 @@ export default function NotificationsScreen() {
           <View style={styles.list}>
             {items.map((item) => {
               const isUnread = item.readAt === null;
-              const hasDeepLink = Boolean(resolveDeepLink(item.data));
+              const hasDeepLink = Boolean(resolveDeepLink(item, user?.role ?? undefined));
 
               return (
                 <Pressable

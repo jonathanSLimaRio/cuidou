@@ -1,6 +1,8 @@
 import { Component, type PropsWithChildren, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { captureSentryException } from "@/src/lib/sentry";
+
 type Props = PropsWithChildren<{
   fallback?: ReactNode;
 }>;
@@ -18,12 +20,18 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: { componentStack?: string | null }) {
-    // In production this would pipe to Sentry or a crash reporter
-    console.error("[ErrorBoundary]", {
-      message: error.message,
-      stack: error.stack,
-      componentStack: info.componentStack,
+    captureSentryException(error, {
+      source: "mobile_error_boundary",
+      hasComponentStack: Boolean(info.componentStack),
     });
+
+    if (__DEV__) {
+      console.error("[ErrorBoundary]", {
+        message: error.message,
+        stack: error.stack,
+        componentStack: info.componentStack,
+      });
+    }
   }
 
   handleReset = () => {
@@ -38,7 +46,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <View style={styles.container}>
-          <Text style={styles.emoji}>⚠️</Text>
+          <Text style={styles.emoji}>!</Text>
           <Text style={styles.title}>Algo deu errado</Text>
           <Text style={styles.subtitle}>
             Ocorreu um erro inesperado. Por favor, tente novamente.

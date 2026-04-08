@@ -33,7 +33,8 @@ function needsAuthForApi(pathname: string) {
 export default auth((req) => {
   const start = Date.now();
   const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID();
-  const { pathname, method } = req.nextUrl;
+  const { pathname } = req.nextUrl;
+  const method = req.method;
   const session = req.auth;
 
   // Allow the invite acceptance page — it's public (uses a one-time token)

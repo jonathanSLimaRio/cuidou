@@ -1,50 +1,109 @@
-# Welcome to your Expo app 👋
+# CuidouApp (Mobile)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicativo mobile (Expo + React Native) do ecossistema Cuidou.
 
-## Get started
+Este app consome a API do projeto web em `../` e cobre os fluxos de:
+- autenticacao (email/senha e Google),
+- onboarding por papel,
+- dashboard de familia,
+- dashboard de profissional,
+- modulos de admin,
+- chat em tempo real com anexos,
+- notificacoes push (registro de token e deep link interno).
 
-1. Install dependencies
+## Stack
 
-   ```bash
-   npm install
-   ```
+- Expo SDK 54
+- React Native 0.81
+- Expo Router (roteamento por arquivos)
+- TanStack Query
+- Expo Notifications
+- Expo Document Picker
+- Expo Secure Store
+- Sentry (erro e crash reporting)
 
-2. Start the app
+## Estrutura de rotas
 
-   ```bash
-   npx expo start
-   ```
+- `app/(public)` login, signup, termos, privacidade
+- `app/(marketplace)` marketplace publico
+- `app/(protected)` onboarding, notificacoes e chat
+- `app/(family)` area da familia
+- `app/(professional)` area da profissional
+- `app/(admin)` area de administracao
 
-In the output, you'll find options to open the app in a
+## Pre-requisitos
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- Node.js 20+
+- npm 10+
+- API web rodando (projeto raiz) em `http://localhost:3000` ou URL configurada
+- Expo CLI (via `npx expo ...`)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Configuracao
 
-## Get a fresh project
+As configuracoes de runtime ficam em `app.json` e em variaveis `EXPO_PUBLIC_*`.
 
-When you're ready, run:
+Campos principais:
+- `EXPO_PUBLIC_API_BASE_URL` (ou `expo.extra.apiBaseUrl`)
+- `EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID` (opcional)
+- `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` (opcional)
+- `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` (opcional)
+- `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (opcional)
+- `EXPO_PUBLIC_SENTRY_DSN` (opcional, recomendado para release)
+- `EXPO_PUBLIC_APP_ENV` (opcional, default: `development`)
+- `EXPO_PUBLIC_APP_RELEASE` (opcional, default: `slug@version`)
+
+Se os IDs do Google nao estiverem configurados, login Google fica desabilitado no app (com fallback para email/senha).
+
+## Rodando localmente
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Atalhos:
 
-## Learn more
+```bash
+npm run android
+npm run ios
+npm run web
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Automacao mobile (Maestro)
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Fluxos existentes:
+- `maestro/login-flow.yaml`
+- `maestro/family-create-job.yaml`
+- `maestro/professional-apply.yaml`
 
-## Join the community
+Execucao:
 
-Join our community of developers creating universal apps.
+```bash
+maestro test maestro/login-flow.yaml
+maestro test maestro/family-create-job.yaml
+maestro test maestro/professional-apply.yaml
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Estado atual e pontos de atencao (Sprint 1)
+
+- README atualizado para refletir o app real (antes estava no template padrao Expo).
+- Roteamento de push corrigido:
+  - `APPLICATION_RECEIVED` agora navega para `/(family)/pipeline`.
+  - `INVITATION_STATUS_UPDATED` agora roteia por papel (`FAMILY`/`PROFESSIONAL`).
+  - cold start depende de auth hidratada e usa deduplicacao para evitar navegacao duplicada.
+- Pipeline de release mobile fechado:
+  - `eas.json` versionado com perfis `preview` e `production`.
+  - `ios.buildNumber` e `android.versionCode` definidos em `app.json`.
+- Crash reporting MVP ativo:
+  - bootstrap do Sentry no root layout.
+  - captura no `ErrorBoundary`.
+  - tags basicas de ambiente/release/user.
+
+## Relacao com o backend
+
+Este app depende das rotas do projeto web em `../src/app/api`.
+Antes de validar fluxos mobile, garantir que o backend esteja com:
+- banco migrado,
+- seed executado (quando necessario),
+- auth configurada,
+- endpoint de health disponivel.

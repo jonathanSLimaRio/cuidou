@@ -4,7 +4,7 @@ import {
   INVITATION_DEFAULT_EXPIRY_DAYS,
   invitationStatusLabel,
   invitationStatusTone,
-} from "../invitations";
+} from "../invitation-core";
 
 describe("buildInvitationExpiry", () => {
   it("defaults to INVITATION_DEFAULT_EXPIRY_DAYS days from now", () => {

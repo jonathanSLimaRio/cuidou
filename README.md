@@ -61,8 +61,12 @@ AUTH_GOOGLE_SECRET=
 WORDPRESS_URL=       # Armazenamento de mídia — sem isso, uploads salvos em ./uploads/
 WP_USER=
 WP_APP_PASS=
+NEXT_PUBLIC_WORDPRESS_API_HOSTNAME= # Hostname do WordPress para next/image
 RESEND_API_KEY=      # Email transacional — sem isso, emails apenas logados
 RESEND_FROM_EMAIL=
+NEXT_PUBLIC_APP_URL= # URL publica da app (ex: http://localhost:3000 em dev)
+HOST=                # Host do server custom (padrao: localhost)
+PORT=                # Porta do server custom (padrao: 3000)
 LOCAL_UPLOAD_DIR=    # Diretório local de uploads (padrão: ./uploads)
 ```
 
@@ -151,3 +155,15 @@ npm run design:media -- --only=homeHero,loginHero
 # Usa arquivos já existentes sem gerar novamente
 npm run design:media -- --skip-generate
 ```
+
+## Aplicativo mobile (Expo)
+
+O repositorio tambem inclui o app mobile em `./CuidouApp`.
+
+Documentacao do mobile:
+- `CuidouApp/README.md`
+
+Fluxos automatizados mobile (Maestro):
+- `CuidouApp/maestro/login-flow.yaml`
+- `CuidouApp/maestro/family-create-job.yaml`
+- `CuidouApp/maestro/professional-apply.yaml`

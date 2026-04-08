@@ -15,6 +15,7 @@ import {
 
 import { ApiClientError, registerApiAuthHooks } from "@/src/lib/api/client";
 import { authRepository } from "@/src/lib/api/auth-repository";
+import { setSentryUserContext } from "@/src/lib/sentry";
 import {
   clearAuthSession,
   loadAuthSession,
@@ -248,6 +249,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       },
     });
   }, [clearSession, refreshSession]);
+
+  useEffect(() => {
+    setSentryUserContext(user);
+  }, [user]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener(
