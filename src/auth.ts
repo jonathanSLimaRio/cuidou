@@ -145,11 +145,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       return session;
     },
-    async signIn({ user }) {
+    async signIn({ user, account }) {
       if (!user.email) {
         return false;
       }
 
+      // Credentials provider: status checks are already handled inside
+      // authorize() which throws PendingApprovalError / SuspendedAccountError /
+      // BannedAccountError with specific codes. Re-checking here would cause
+      // NextAuth to swallow those errors and emit a generic "CredentialsSignin",
+      // which would show "Email ou senha inválidos" instead of the real message.
+      if (account?.provider === "credentials") {
+        return true;
+      }
+
+      // For OAuth providers (Google, etc): enforce ACTIVE status.
       const dbUser = await prisma.user.findUnique({
         where: { email: user.email },
         select: { status: true },

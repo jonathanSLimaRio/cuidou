@@ -5,9 +5,8 @@ import { BlobDecor } from "@/components/theme/blob-decor";
 import { CtaButton } from "@/components/theme/cta-button";
 import { resolveDesignImage } from "@/lib/design-media";
 import { getWordPressMediaGallery } from "@/lib/wordpress-content";
-import { BadgeCheck, LockKeyhole, LogIn, UserPlus } from "lucide-react";
+import { BadgeCheck, Baby, HeartHandshake, LockKeyhole, LogIn, Users } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +28,10 @@ export default async function LoginPage({
   const session = await auth();
 
   if (session?.user) {
+    // Admin must use /admin, not /dashboard
+    if (session.user.role === "ADMIN") {
+      redirect("/admin");
+    }
     redirect("/dashboard");
   }
 
@@ -62,10 +65,10 @@ export default async function LoginPage({
 
               <div>
                 <h2 className="text-3xl leading-tight !text-white">
-                  Escolha seu método de acesso e entre na Cuidou.
+                  Conecte sua família às melhores profissionais de cuidado.
                 </h2>
                 <p className="mt-3 text-sm leading-relaxed !text-white/90">
-                  Você pode entrar com Google ou email/senha, e criar cadastro local quando precisar.
+                  Plataforma para famílias, babás e cuidadoras de idosos. Cadastro local exige aprovação admin.
                 </p>
               </div>
 
@@ -90,17 +93,8 @@ export default async function LoginPage({
             <p className="theme-chip theme-chip-blue">Login</p>
             <h1 className="mt-4 text-3xl sm:text-4xl">Escolha como entrar</h1>
             <p className="mt-3 max-w-[58ch] text-sm leading-relaxed text-[var(--theme-muted)]">
-              Use seu método preferido para login. Se ainda não tiver conta local, faça seu cadastro.
+              Use seu método preferido para login. Se ainda não tiver conta local, crie seu cadastro abaixo.
             </p>
-
-            <div className="mt-5 space-y-3 text-sm text-[var(--theme-body)]">
-              <div className="theme-card-soft rounded-2xl px-4 py-3">
-                Sua sessão será protegida e sincronizada entre desktop e mobile.
-              </div>
-              <div className="theme-card-soft rounded-2xl px-4 py-3">
-                Após login, você continua do ponto exato da sua jornada.
-              </div>
-            </div>
 
             <form
               action={async () => {
@@ -114,7 +108,7 @@ export default async function LoginPage({
               </CtaButton>
             </form>
 
-            <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.08em] text-[var(--brand-purple-secondary)]">
+            <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.08em] text-[var(--theme-muted)]">
               <span className="theme-divider flex-1" />
               <span>ou</span>
               <span className="theme-divider flex-1" />
@@ -126,22 +120,54 @@ export default async function LoginPage({
               initialError={resolvedSearchParams.error}
             />
 
-            <div className="mt-5 space-y-2.5">
-              <CtaButton
-                href={`/signup?next=${encodeURIComponent(nextPath)}`}
-                variant="outline"
-                className="w-full"
-                icon={UserPlus}
-              >
-                Criar cadastro
-              </CtaButton>
-              <Link
-                href={`/signup?next=${encodeURIComponent(nextPath)}`}
-                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--brand-purple-primary)] underline decoration-[1.5px] underline-offset-3 hover:text-[var(--brand-purple-secondary)]"
-              >
-                <AppIcon icon={UserPlus} size="sm" />
-                Preferir abrir a tela completa de cadastro local
-              </Link>
+            {/* Signup paths — differentiated by user type */}
+            <div className="mt-6 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.07em] text-[var(--theme-muted)]">
+                Ainda não tem conta? Escolha seu perfil:
+              </p>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {/* Família */}
+                <a
+                  href={`/signup?tipo=FAMILY&next=${encodeURIComponent(nextPath)}`}
+                  id="signup-family-btn"
+                  className="group flex flex-col gap-2 rounded-2xl border-2 border-[var(--theme-border)] bg-[var(--theme-cream)] px-4 py-3 text-left transition-all hover:border-[var(--theme-indigo)] hover:bg-white"
+                >
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--theme-navy)] group-hover:text-[var(--theme-indigo)]">
+                    <AppIcon icon={Users} size="sm" />
+                    Sou família
+                  </span>
+                  <span className="text-xs leading-relaxed text-[var(--theme-muted)]">
+                    Quero contratar uma babá ou cuidadora de idosos.
+                  </span>
+                </a>
+
+                {/* Profissional */}
+                <div className="flex flex-col gap-2 rounded-2xl border-2 border-[var(--theme-border)] bg-[var(--theme-cream)] px-4 py-3">
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--theme-navy)]">
+                    <AppIcon icon={HeartHandshake} size="sm" />
+                    Sou profissional
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href={`/signup?tipo=PROFESSIONAL&subtipo=BABYSITTER&next=${encodeURIComponent(nextPath)}`}
+                      id="signup-babysitter-btn"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[var(--theme-border)] bg-white px-3 py-1 text-xs font-medium text-[var(--theme-body)] transition-all hover:border-[var(--theme-indigo)] hover:text-[var(--theme-indigo)]"
+                    >
+                      <AppIcon icon={Baby} size="sm" />
+                      Babá
+                    </a>
+                    <a
+                      href={`/signup?tipo=PROFESSIONAL&subtipo=ELDER_CAREGIVER&next=${encodeURIComponent(nextPath)}`}
+                      id="signup-caregiver-btn"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[var(--theme-border)] bg-white px-3 py-1 text-xs font-medium text-[var(--theme-body)] transition-all hover:border-[var(--theme-indigo)] hover:text-[var(--theme-indigo)]"
+                    >
+                      <AppIcon icon={HeartHandshake} size="sm" />
+                      Cuidadora de idosos
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         </div>

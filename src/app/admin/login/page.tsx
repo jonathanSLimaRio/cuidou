@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { CredentialsLoginForm } from "@/components/auth/credentials-login-form";
+import { AdminLoginForm } from "@/components/auth/admin-login-form";
 import { BlobDecor } from "@/components/theme/blob-decor";
 import { redirect } from "next/navigation";
 
@@ -25,6 +25,10 @@ export default async function AdminLoginPage({
     redirect(nextPath);
   }
 
+  // If someone is logged in but NOT admin, we show an access denied message.
+  // They likely tried to access /admin while logged in as regular user.
+  const isNonAdminLoggedIn = !!session?.user && session.user.role !== ("ADMIN" as string);
+
   return (
     <main className="theme-page bg-slate-900 min-h-screen flex items-center justify-center p-4">
       <BlobDecor tone="pink" className="fixed -right-20 -top-20 h-96 w-96 opacity-20 blur-3xl pointer-events-none" />
@@ -39,11 +43,25 @@ export default async function AdminLoginPage({
           </p>
         </div>
 
-        <CredentialsLoginForm
-          nextPath={nextPath}
-          initialCode={resolvedSearchParams.code}
-          initialError={resolvedSearchParams.error}
-        />
+        {isNonAdminLoggedIn ? (
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm text-red-300">
+            <p className="font-semibold">Acesso negado</p>
+            <p className="mt-1 leading-relaxed">
+              Sua conta não tem permissão de acesso ao painel administrativo.
+              Se você é um usuário da plataforma, acesse o{" "}
+              <a href="/dashboard" className="underline hover:text-red-100">
+                painel de usuário
+              </a>
+              .
+            </p>
+          </div>
+        ) : (
+          <AdminLoginForm
+            nextPath={nextPath}
+            initialCode={resolvedSearchParams.code}
+            initialError={resolvedSearchParams.error}
+          />
+        )}
       </section>
     </main>
   );

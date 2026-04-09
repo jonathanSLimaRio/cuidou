@@ -2,20 +2,31 @@
 
 import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
-import { UserPlus } from "lucide-react";
+import { Baby, HeartHandshake, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 
+type UserRoleOption = "FAMILY" | "PROFESSIONAL";
+type SubtypeOption = "BABYSITTER" | "ELDER_CAREGIVER";
+
 type Props = {
   nextPath?: string;
+  presetRole?: UserRoleOption;
+  presetSubtype?: SubtypeOption;
 };
 
-export function SignupForm({ nextPath = "/dashboard" }: Props) {
+export function SignupForm({
+  nextPath = "/dashboard",
+  presetRole,
+  presetSubtype,
+}: Props) {
   const { error: showError, success } = useToast();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState<UserRoleOption | undefined>(presetRole);
+  const [subtype, setSubtype] = useState<SubtypeOption | undefined>(presetSubtype);
   const [loading, setLoading] = useState(false);
 
   const loginHref = useMemo(
@@ -25,6 +36,12 @@ export function SignupForm({ nextPath = "/dashboard" }: Props) {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!role) {
+      showError("Selecione seu tipo de perfil.", "Escolha entre Família ou Profissional.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -38,6 +55,8 @@ export function SignupForm({ nextPath = "/dashboard" }: Props) {
           email,
           password,
           confirmPassword,
+          role,
+          subtype: role === "PROFESSIONAL" ? subtype : undefined,
         }),
       });
 
@@ -49,8 +68,7 @@ export function SignupForm({ nextPath = "/dashboard" }: Props) {
 
       success(
         "Cadastro enviado com sucesso.",
-        payload.message ??
-          "Sua conta está pendente de aprovação administrativa.",
+        payload.message ?? "Sua conta está pendente de aprovação administrativa.",
       );
       setName("");
       setEmail("");
@@ -65,7 +83,104 @@ export function SignupForm({ nextPath = "/dashboard" }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="mt-6 space-y-3">
-      <label className="space-y-1">
+
+      {/* Role selector — hidden if preset from URL */}
+      {!presetRole && (
+        <fieldset>
+          <legend className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">
+            Meu perfil é
+          </legend>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              id="role-family-btn"
+              onClick={() => { setRole("FAMILY"); setSubtype(undefined); }}
+              className={`flex flex-col items-start gap-1 rounded-2xl border-2 px-4 py-3 text-left text-sm transition-all ${
+                role === "FAMILY"
+                  ? "border-[var(--theme-indigo)] bg-[var(--theme-indigo)]/8 text-[var(--theme-indigo)]"
+                  : "border-[var(--theme-border)] bg-white text-[var(--theme-body)] hover:border-[var(--theme-indigo)]/50"
+              }`}
+            >
+              <Users size={16} />
+              <span className="font-semibold">Família</span>
+              <span className="text-xs opacity-70">Quero contratar</span>
+            </button>
+
+            <button
+              type="button"
+              id="role-professional-btn"
+              onClick={() => setRole("PROFESSIONAL")}
+              className={`flex flex-col items-start gap-1 rounded-2xl border-2 px-4 py-3 text-left text-sm transition-all ${
+                role === "PROFESSIONAL"
+                  ? "border-[var(--theme-indigo)] bg-[var(--theme-indigo)]/8 text-[var(--theme-indigo)]"
+                  : "border-[var(--theme-border)] bg-white text-[var(--theme-body)] hover:border-[var(--theme-indigo)]/50"
+              }`}
+            >
+              <HeartHandshake size={16} />
+              <span className="font-semibold">Profissional</span>
+              <span className="text-xs opacity-70">Quero trabalhar</span>
+            </button>
+          </div>
+        </fieldset>
+      )}
+
+      {/* Subtype selector for professionals */}
+      {(role === "PROFESSIONAL") && !presetSubtype && (
+        <fieldset>
+          <legend className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">
+            Especialidade
+          </legend>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              id="subtype-babysitter-btn"
+              onClick={() => setSubtype("BABYSITTER")}
+              className={`flex items-center gap-2 rounded-2xl border-2 px-4 py-2.5 text-sm transition-all ${
+                subtype === "BABYSITTER"
+                  ? "border-[var(--theme-indigo)] bg-[var(--theme-indigo)]/8 text-[var(--theme-indigo)]"
+                  : "border-[var(--theme-border)] bg-white text-[var(--theme-body)] hover:border-[var(--theme-indigo)]/50"
+              }`}
+            >
+              <Baby size={15} />
+              Babá
+            </button>
+            <button
+              type="button"
+              id="subtype-caregiver-btn"
+              onClick={() => setSubtype("ELDER_CAREGIVER")}
+              className={`flex items-center gap-2 rounded-2xl border-2 px-4 py-2.5 text-sm transition-all ${
+                subtype === "ELDER_CAREGIVER"
+                  ? "border-[var(--theme-indigo)] bg-[var(--theme-indigo)]/8 text-[var(--theme-indigo)]"
+                  : "border-[var(--theme-border)] bg-white text-[var(--theme-body)] hover:border-[var(--theme-indigo)]/50"
+              }`}
+            >
+              <HeartHandshake size={15} />
+              Cuidadora
+            </button>
+          </div>
+        </fieldset>
+      )}
+
+      {/* Show preset summary if role came from URL */}
+      {presetRole && (
+        <div className="flex items-center gap-2 rounded-xl bg-[var(--theme-indigo)]/8 px-3 py-2 text-sm text-[var(--theme-indigo)]">
+          {presetRole === "FAMILY" ? <Users size={15} /> : <HeartHandshake size={15} />}
+          <span className="font-medium">
+            {presetRole === "FAMILY"
+              ? "Perfil: Família"
+              : presetSubtype === "BABYSITTER"
+                ? "Perfil: Babá"
+                : presetSubtype === "ELDER_CAREGIVER"
+                  ? "Perfil: Cuidadora de idosos"
+                  : "Perfil: Profissional"}
+          </span>
+          <a href="/signup" className="ml-auto text-xs underline opacity-70 hover:opacity-100">
+            Alterar
+          </a>
+        </div>
+      )}
+
+      <label className="block space-y-1">
         <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Nome</span>
         <input
           type="text"
@@ -78,7 +193,7 @@ export function SignupForm({ nextPath = "/dashboard" }: Props) {
         />
       </label>
 
-      <label className="space-y-1">
+      <label className="block space-y-1">
         <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Email</span>
         <input
           type="email"
@@ -91,7 +206,7 @@ export function SignupForm({ nextPath = "/dashboard" }: Props) {
         />
       </label>
 
-      <label className="space-y-1">
+      <label className="block space-y-1">
         <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Senha</span>
         <input
           type="password"
@@ -104,7 +219,7 @@ export function SignupForm({ nextPath = "/dashboard" }: Props) {
         />
       </label>
 
-      <label className="space-y-1">
+      <label className="block space-y-1">
         <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Confirmar senha</span>
         <input
           type="password"

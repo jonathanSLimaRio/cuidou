@@ -52,14 +52,21 @@ export async function POST(request: Request) {
       email,
       passwordHash,
       status: UserStatus.PENDING,
+      // If the user selected a role at signup, store it so onboarding can skip the picker.
+      role: payload.role ?? null,
     },
   });
 
-  return ok(
-    {
-      message:
-        "Cadastro enviado. Sua conta está pendente de aprovação da equipe administrativa.",
-    },
-    201,
-  );
+  const roleLabel =
+    payload.role === "FAMILY"
+      ? "família"
+      : payload.role === "PROFESSIONAL"
+        ? "profissional"
+        : null;
+
+  const message = roleLabel
+    ? `Cadastro enviado como ${roleLabel}. Sua conta está pendente de aprovação da equipe administrativa.`
+    : "Cadastro enviado. Sua conta está pendente de aprovação da equipe administrativa.";
+
+  return ok({ message }, 201);
 }

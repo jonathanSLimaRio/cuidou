@@ -37,6 +37,9 @@ export const localSignupSchema = z
     email: z.email().trim().toLowerCase(),
     password: strongPasswordSchema,
     confirmPassword: z.string(),
+    // Optional: pre-assign role at signup to skip the onboarding role picker
+    role: roleSchema.optional(),
+    subtype: serviceTypeSchema.optional(),
   })
   .refine((value) => value.password === value.confirmPassword, {
     message: "Passwords do not match",

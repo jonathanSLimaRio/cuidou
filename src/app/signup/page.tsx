@@ -12,6 +12,8 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{
   next?: string;
+  tipo?: string;
+  subtipo?: string;
 }>;
 
 export default async function SignupPage({
@@ -21,6 +23,23 @@ export default async function SignupPage({
 }) {
   const resolvedSearchParams = await searchParams;
   const nextPath = resolvedSearchParams.next || "/dashboard";
+  const tipoParam = resolvedSearchParams.tipo;
+  const subtipoParam = resolvedSearchParams.subtipo;
+
+  // Normalise to valid UserRole values or undefined
+  const presetRole: "FAMILY" | "PROFESSIONAL" | undefined =
+    tipoParam === "FAMILY"
+      ? "FAMILY"
+      : tipoParam === "PROFESSIONAL"
+        ? "PROFESSIONAL"
+        : undefined;
+
+  const presetSubtype: "BABYSITTER" | "ELDER_CAREGIVER" | undefined =
+    subtipoParam === "BABYSITTER"
+      ? "BABYSITTER"
+      : subtipoParam === "ELDER_CAREGIVER"
+        ? "ELDER_CAREGIVER"
+        : undefined;
 
   const session = await auth();
   if (session?.user) {
@@ -29,6 +48,17 @@ export default async function SignupPage({
 
   const gallery = await getWordPressMediaGallery(20);
   const heroImage = resolveDesignImage("onboardingHero", gallery, 3, "Cadastro local com aprovação");
+
+  const roleLabel =
+    presetRole === "FAMILY"
+      ? "Sou família"
+      : presetRole === "PROFESSIONAL"
+        ? presetSubtype === "BABYSITTER"
+          ? "Sou babá"
+          : presetSubtype === "ELDER_CAREGIVER"
+            ? "Sou cuidadora de idosos"
+            : "Sou profissional"
+        : "Cadastro";
 
   return (
     <main className="theme-page">
@@ -39,7 +69,7 @@ export default async function SignupPage({
             <BlobDecor tone="pink" className="-left-6 bottom-6 h-24 w-24 opacity-75" />
 
             <div className="relative flex w-full flex-col gap-6">
-              <p className="theme-chip theme-chip-yellow w-fit">Cadastro local</p>
+              <p className="theme-chip theme-chip-yellow w-fit">{roleLabel}</p>
 
               <div className="overflow-hidden rounded-3xl border border-white/20 bg-white/12 p-2">
                 <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-white/20">
@@ -57,10 +87,10 @@ export default async function SignupPage({
 
               <div>
                 <h2 className="text-3xl leading-tight text-white">
-                  Crie sua conta com email e senha para entrar na fila de aprovação.
+                  Crie sua conta e entre na fila de aprovação.
                 </h2>
                 <p className="mt-3 text-sm leading-relaxed text-white/85">
-                  Após aprovação do admin, você poderá fazer login normal e concluir onboarding.
+                  Após aprovação do admin, você poderá fazer login e concluir o onboarding.
                 </p>
               </div>
 
@@ -88,7 +118,11 @@ export default async function SignupPage({
               Complete os dados abaixo para solicitar aprovação de acesso.
             </p>
 
-            <SignupForm nextPath={nextPath} />
+            <SignupForm
+              nextPath={nextPath}
+              presetRole={presetRole}
+              presetSubtype={presetSubtype}
+            />
           </section>
         </div>
       </div>
