@@ -1,25 +1,87 @@
 import { AppIcon } from "@/components/theme/app-icon";
-import { CtaButton } from "@/components/theme/cta-button";
 import { DataCard } from "@/components/theme/data-card";
 import { DataTableShell } from "@/components/theme/data-table-shell";
 import { PageHeader } from "@/components/theme/page-header";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { getAdminMetrics, MetricsWindow } from "@/lib/admin-metrics";
 import { prisma } from "@/lib/prisma";
-import { CalendarRange, LineChart, Puzzle } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  CalendarRange,
+  ClipboardList,
+  Flag,
+  LineChart,
+  ScrollText,
+  ShieldCheck,
+  Stethoscope,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
-import { AuditLogViewer } from "./audit-log-viewer";
-import { ModerationConsole } from "./moderation-console";
 import { PendingUsersPanel } from "./pending-users-panel";
 
-// Dashboard numbers don't need to be second-accurate — revalidate every 60s
-// so repeat visits don't hammer the DB with identical COUNT queries.
-// (Auth check is handled by middleware + (protected)/layout.tsx.)
 export const revalidate = 60;
 
 type SearchParams = Promise<{
   window?: string;
 }>;
+
+const quickActions = [
+  {
+    href: "/admin/approvals",
+    icon: ClipboardList,
+    label: "Aprovações",
+    description: "Revisar contas pendentes de ativação",
+    color: "var(--admin-warning)",
+    bg: "rgba(245, 179, 71, 0.1)",
+    border: "rgba(245, 179, 71, 0.25)",
+  },
+  {
+    href: "/admin/reports",
+    icon: Flag,
+    label: "Denúncias",
+    description: "Moderar denúncias abertas",
+    color: "var(--admin-danger)",
+    bg: "rgba(244, 113, 116, 0.1)",
+    border: "rgba(244, 113, 116, 0.25)",
+  },
+  {
+    href: "/admin/professionals",
+    icon: Stethoscope,
+    label: "Profissionais",
+    description: "Gerenciar perfis e documentos",
+    color: "var(--admin-accent)",
+    bg: "rgba(124, 142, 255, 0.1)",
+    border: "rgba(124, 142, 255, 0.25)",
+  },
+  {
+    href: "/admin/families",
+    icon: Users,
+    label: "Famílias",
+    description: "Visualizar contas de famílias",
+    color: "var(--admin-success)",
+    bg: "rgba(57, 210, 138, 0.1)",
+    border: "rgba(57, 210, 138, 0.25)",
+  },
+  {
+    href: "/admin/audit",
+    icon: ScrollText,
+    label: "Auditoria",
+    description: "Log completo de ações administrativas",
+    color: "var(--admin-text-dim)",
+    bg: "rgba(141, 153, 196, 0.1)",
+    border: "rgba(141, 153, 196, 0.2)",
+  },
+  {
+    href: "/admin/invites",
+    icon: ShieldCheck,
+    label: "Convites Admin",
+    description: "Criar e gerenciar convites de admin",
+    color: "var(--admin-accent)",
+    bg: "rgba(124, 142, 255, 0.08)",
+    border: "rgba(124, 142, 255, 0.2)",
+  },
+] as const;
 
 export default async function AdminPage({
   searchParams,
@@ -38,52 +100,44 @@ export default async function AdminPage({
     prisma.jobPost.count({ where: { status: "OPEN" } }),
     getAdminMetrics(windowDays),
     prisma.user.findMany({
-      where: {
-        status: "PENDING",
-        passwordHash: {
-          not: null,
-        },
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        createdAt: true,
-        status: true,
-      },
+      where: { status: "PENDING", passwordHash: { not: null } },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, email: true, createdAt: true, status: true },
       take: 200,
     }),
   ]);
+
+  const urgentCount = (pendingUsers.length) + openReports + pendingDocs;
 
   return (
     <>
       <PageHeader
         eyebrow="Admin"
         title="Painel administrativo"
-        description="Monitore moderação, operação e métricas principais do marketplace em uma visão consolidada."
+        description="Visão consolidada de operação, moderação e métricas do marketplace Cuidou."
         actions={
-          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--theme-border)] bg-white px-3 py-2 text-sm">
-            <span className="inline-flex items-center gap-1.5 text-[var(--theme-muted)]">
+          <div
+            className="flex flex-wrap items-center gap-2 rounded-2xl border px-3 py-2 text-sm"
+            style={{ borderColor: "var(--admin-border)", background: "var(--admin-panel)" }}
+          >
+            <span className="inline-flex items-center gap-1.5" style={{ color: "var(--admin-text-dim)" }}>
               <AppIcon icon={CalendarRange} size="sm" />
               Janela:
             </span>
-            {[7, 30, 90].map((value) => {
-              const isActive = value === metrics.windowDays;
-
+            {([7, 30, 90] as const).map((value) => {
+              const isWindowActive = value === metrics.windowDays;
               return (
                 <Link
                   key={value}
                   href={`/admin?window=${value}`}
-                  className={`rounded-full px-3 py-1.5 ${
-                    isActive
-                      ? "bg-[var(--theme-indigo)] text-white"
-                      : "border border-[var(--theme-border)] bg-white text-[var(--theme-body)]"
-                  }`}
+                  className="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
+                  style={
+                    isWindowActive
+                      ? { background: "var(--admin-accent)", color: "#0b1020" }
+                      : { border: "1px solid var(--admin-border)", color: "var(--admin-text-dim)" }
+                  }
                 >
-                  {value} dias
+                  {value}d
                 </Link>
               );
             })}
@@ -91,26 +145,130 @@ export default async function AdminPage({
         }
       />
 
+      {/* Urgent alert banner */}
+      {urgentCount > 0 && (
+        <div
+          className="flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-medium"
+          style={{
+            borderColor: "rgba(245, 179, 71, 0.4)",
+            background: "rgba(245, 179, 71, 0.08)",
+            color: "var(--admin-warning)",
+          }}
+        >
+          <AlertTriangle size={16} />
+          <span>
+            {urgentCount} item{urgentCount !== 1 ? "s" : ""} requer{urgentCount === 1 ? "" : "em"} atenção:
+            {pendingUsers.length > 0 && ` ${pendingUsers.length} aprovação(ões)`}
+            {pendingUsers.length > 0 && openReports > 0 && ","}
+            {openReports > 0 && ` ${openReports} denúncia(s)`}
+            {(pendingUsers.length > 0 || openReports > 0) && pendingDocs > 0 && ","}
+            {pendingDocs > 0 && ` ${pendingDocs} documento(s)`}
+          </span>
+        </div>
+      )}
+
+      {/* KPI cards */}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <DataCard label="Docs em revisão" value={pendingDocs} tone="tint" />
         <DataCard label="Denúncias abertas" value={openReports} tone="surface" />
-        <DataCard label="Usuários" value={totalUsers} tone="surface" />
+        <DataCard label="Total de usuários" value={totalUsers} tone="surface" />
         <DataCard label="Vagas abertas" value={openJobs} tone="deep" />
       </section>
 
+      {/* Secondary metrics */}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <DataCard
           label="Tempo médio até contratar"
-          value={metrics.averageTimeToHireHours === null ? "-" : `${metrics.averageTimeToHireHours}h`}
+          value={metrics.averageTimeToHireHours === null ? "—" : `${metrics.averageTimeToHireHours}h`}
           tone="surface"
         />
-        <DataCard label="Taxa de resposta em 24h" value={`${metrics.responseRate24h}%`} tone="surface" />
+        <DataCard label="Taxa de resposta 24h" value={`${metrics.responseRate24h}%`} tone="surface" />
         <DataCard label="Contratos em andamento" value={metrics.contractsByStatus.IN_PROGRESS} tone="tint" />
       </section>
 
+      {/* Quick Actions */}
+      <section>
+        <p
+          className="mb-3 text-xs font-bold uppercase tracking-widest"
+          style={{ color: "var(--admin-text-dim)" }}
+        >
+          Ações rápidas
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="group flex items-center gap-4 rounded-2xl border p-4 transition-all hover:scale-[1.01]"
+                style={{ borderColor: action.border, background: action.bg }}
+              >
+                <span
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-110"
+                  style={{ background: action.bg, border: `1px solid ${action.border}` }}
+                >
+                  <Icon size={18} style={{ color: action.color }} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: "var(--admin-text)" }}>
+                    {action.label}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs" style={{ color: "var(--admin-text-dim)" }}>
+                    {action.description}
+                  </p>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Applications trend table */}
+      <DataTableShell
+        title="Tendência diária de candidaturas"
+        description="Volume de candidaturas por dia no período selecionado."
+        actions={
+          <Link
+            href={`/api/admin/metrics?window=${windowDays}`}
+            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
+            style={{ borderColor: "var(--admin-border)", color: "var(--admin-text-dim)" }}
+          >
+            <Activity size={12} />
+            API
+          </Link>
+        }
+      >
+        {metrics.applicationsTrendDaily.length === 0 ? (
+          <div
+            className="rounded-xl px-4 py-3 text-sm"
+            style={{ background: "var(--admin-panel-2)", color: "var(--admin-text-dim)" }}
+          >
+            Sem candidaturas no período selecionado.
+          </div>
+        ) : (
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {metrics.applicationsTrendDaily.map((entry) => (
+              <li
+                key={entry.date}
+                className="flex items-center justify-between rounded-xl px-3 py-3"
+                style={{ background: "var(--admin-panel-2)", border: "1px solid var(--admin-border)" }}
+              >
+                <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "var(--admin-text)" }}>
+                  <AppIcon icon={LineChart} size="sm" />
+                  {entry.date}
+                </span>
+                <StatusBadge tone="blue">{entry.count}</StatusBadge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </DataTableShell>
+
+      {/* Denúncias por tipo */}
       <DataTableShell
         title="Denúncias por tipo"
-        description="Distribuição por alvo para priorizar regras de moderação e revisão operacional."
+        description="Distribuição por alvo para priorizar regras de moderação."
       >
         <div className="theme-table-wrap">
           <table className="theme-table min-w-[420px]">
@@ -134,34 +292,7 @@ export default async function AdminPage({
         </div>
       </DataTableShell>
 
-      <DataTableShell
-        title="Tendência diária de candidaturas"
-        description="Série temporal para acompanhar volume de entrada e sazonalidade de demanda."
-        actions={
-          <CtaButton href="/api/admin/metrics?window=30" variant="outline" size="sm" icon={Puzzle}>
-            API de métricas
-          </CtaButton>
-        }
-      >
-        {metrics.applicationsTrendDaily.length === 0 ? (
-          <div className="theme-card-soft rounded-2xl px-4 py-3 text-sm text-[var(--theme-muted)]">
-            Sem candidaturas no período selecionado.
-          </div>
-        ) : (
-          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {metrics.applicationsTrendDaily.map((entry) => (
-              <li key={entry.date} className="theme-list-card flex items-center justify-between px-3 py-3">
-                <span className="inline-flex items-center gap-1.5 text-sm text-[var(--theme-body)]">
-                  <AppIcon icon={LineChart} size="sm" />
-                  {entry.date}
-                </span>
-                <StatusBadge tone="blue">{entry.count}</StatusBadge>
-              </li>
-            ))}
-          </ul>
-        )}
-      </DataTableShell>
-
+      {/* Pending users panel at the bottom — urgency items */}
       <PendingUsersPanel
         initialUsers={pendingUsers.map((user) => ({
           ...user,
@@ -169,10 +300,6 @@ export default async function AdminPage({
           createdAt: user.createdAt.toISOString(),
         }))}
       />
-
-      <ModerationConsole />
-
-      <AuditLogViewer />
     </>
   );
 }

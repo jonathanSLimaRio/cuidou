@@ -50,13 +50,21 @@ export default auth((req) => {
     if (pathname.startsWith("/admin/login") && session?.user?.role === UserRole.ADMIN) {
       return NextResponse.redirect(new URL("/admin", req.url));
     }
-    return NextResponse.next();
+    // Inject pathname so SiteHeader can suppress itself on /admin/* routes
+    const reqHeaders = new Headers(req.headers);
+    reqHeaders.set("x-pathname", pathname);
+    return NextResponse.next({ request: { headers: reqHeaders } });
   }
 
   const isProtectedPage = protectedPagePrefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
   const isApiProtected = needsAuthForApi(pathname);
+
+  // Inject pathname into request headers so Server Components (e.g. SiteHeader)
+  // can detect the current route without using usePathname (client-only).
+  const reqHeaders = new Headers(req.headers);
+  reqHeaders.set("x-pathname", pathname);
 
   let response: NextResponse;
 
@@ -79,9 +87,9 @@ export default auth((req) => {
   ) {
     response = NextResponse.redirect(new URL("/dashboard", req.url));
   }
-  // 3. Default allow
+  // 3. Default allow — pass along injected request headers
   else {
-    response = NextResponse.next();
+    response = NextResponse.next({ request: { headers: reqHeaders } });
   }
 
   // Structured request log (edge-compatible via console)
@@ -98,8 +106,9 @@ export default auth((req) => {
     }),
   );
 
-  // Forward requestId so downstream API routes can correlate logs
+  // Forward requestId and pathname for downstream correlation and route detection
   response.headers.set("x-request-id", requestId);
+  response.headers.set("x-pathname", pathname);
 
   return response;
 });

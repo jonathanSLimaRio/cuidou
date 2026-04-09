@@ -277,7 +277,7 @@ a.btn-primary:visited {
 
 .btn-secondary {
   color: var(--brand-purple-primary);
-  background: white;
+  background: var(--theme-surface);
   border: 1px solid rgba(49, 12, 120, 0.38);
 }
 
@@ -304,7 +304,7 @@ a.btn-primary:visited {
   width: 100%;
   border: 1px solid var(--theme-border);
   border-radius: 0.95rem;
-  background: white;
+  background: var(--theme-surface);
   color: var(--theme-indigo-strong);
 }
 
@@ -343,7 +343,7 @@ a.btn-primary:visited {
   overflow-x: auto;
   border: 1px solid var(--theme-border);
   border-radius: var(--theme-radius-md);
-  background: white;
+  background: var(--theme-surface);
 }
 
 .theme-table {
@@ -817,7 +817,8 @@ a.btn-primary:visited {
   background: rgba(124, 142, 255, 0.14);
   border-color: rgba(124, 142, 255, 0.35);
   color: var(--admin-text);
-  box-shadow: inset 0 0 0 1px rgba(124, 142, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(124, 142, 255, 0.08), 0 0 12px -6px rgba(124, 142, 255, 0.4);
+  font-weight: 600;
 }
 
 .admin-sidebar__footer {
@@ -942,9 +943,13 @@ a.btn-primary:visited {
   }
 }
 
-/* Admin-scoped overrides of the main theme tokens so existing theme-*
- * components (cards, tables, badges) inherit a dark palette only inside
- * the admin shell without touching the rest of the app. */
+/* =============================================================================
+ * Admin shell — comprehensive dark overrides.
+ * Covers ALL theme-* components that use hardcoded white/light backgrounds
+ * so nothing inside .admin-shell ever shows a white surface.
+ * ============================================================================= */
+
+/* CSS token cascade */
 .admin-shell {
   --theme-bg: var(--admin-bg);
   --theme-surface: var(--admin-panel);
@@ -956,20 +961,28 @@ a.btn-primary:visited {
   --theme-indigo-strong: var(--admin-accent-strong);
 }
 
+/* Cards */
 .admin-shell .theme-card,
 .admin-shell .theme-card-soft,
 .admin-shell .theme-list-card {
   background: var(--admin-panel);
-  border: 1px solid var(--admin-border);
+  border-color: var(--admin-border);
   color: var(--admin-text);
   box-shadow: none;
 }
 
+.admin-shell .theme-card-deep {
+  background: linear-gradient(152deg, var(--admin-accent-strong), #0d1a66);
+  border-color: rgba(124, 142, 255, 0.3);
+  color: var(--admin-text);
+}
+
+/* Form fields */
 .admin-shell .theme-field,
 .admin-shell .theme-select,
 .admin-shell .theme-textarea {
   background: var(--admin-panel-2);
-  border: 1px solid var(--admin-border);
+  border-color: var(--admin-border);
   color: var(--admin-text);
 }
 
@@ -978,17 +991,147 @@ a.btn-primary:visited {
   color: var(--admin-text-dim);
 }
 
-.admin-shell .theme-table thead th {
-  color: var(--admin-text-dim);
-  border-bottom-color: var(--admin-border);
+/* Select option items (rendered by OS but worth setting) */
+.admin-shell .theme-select option {
+  background: var(--admin-panel-2);
+  color: var(--admin-text);
 }
 
-.admin-shell .theme-table tbody td {
+/* ── Tables ──────────────────────────────────────────────────────────────── */
+.admin-shell .theme-table-wrap {
+  background: var(--admin-panel);
+  border-color: var(--admin-border);
+}
+
+.admin-shell .theme-table {
+  background: var(--admin-panel);
+  color: var(--admin-text);
+}
+
+/* Header row */
+.admin-shell .theme-table thead tr,
+.admin-shell .theme-table thead {
+  background: var(--admin-panel-2);
+}
+
+.admin-shell .theme-table th {
+  background: var(--admin-panel-2);
+  color: var(--admin-text-dim);
+  border-bottom-color: var(--admin-border);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Body rows */
+.admin-shell .theme-table tbody tr {
+  background: var(--admin-panel);
+}
+
+.admin-shell .theme-table tbody tr:nth-child(even) {
+  background: rgba(26, 36, 68, 0.5);
+}
+
+.admin-shell .theme-table tbody tr:hover {
+  background: rgba(124, 142, 255, 0.06);
+}
+
+.admin-shell .theme-table td {
   color: var(--admin-text);
   border-bottom-color: var(--admin-border);
 }
 
+.admin-shell .theme-table tr:last-child td {
+  border-bottom: 0;
+}
+
+/* ── Buttons inside admin ───────────────────────────────────────────────── */
+.admin-shell .btn-secondary {
+  background: var(--admin-panel-2);
+  border-color: var(--admin-border);
+  color: var(--admin-text);
+}
+
+.admin-shell .btn-secondary:hover {
+  background: rgba(124, 142, 255, 0.15);
+  border-color: var(--admin-accent);
+  color: var(--admin-text);
+}
+
+.admin-shell .btn-soft {
+  background: rgba(124, 142, 255, 0.1);
+  border-color: rgba(124, 142, 255, 0.25);
+  color: var(--admin-accent);
+}
+
+.admin-shell .btn-soft:hover {
+  background: rgba(124, 142, 255, 0.2);
+}
+
+/* ── Alerts ─────────────────────────────────────────────────────────────── */
+.admin-shell .theme-alert-danger {
+  background: rgba(244, 113, 116, 0.1);
+  border-color: rgba(244, 113, 116, 0.3);
+  color: var(--admin-danger);
+}
+
+.admin-shell .theme-alert-success {
+  background: rgba(57, 210, 138, 0.1);
+  border-color: rgba(57, 210, 138, 0.3);
+  color: var(--admin-success);
+}
+
+.admin-shell .theme-alert-warning {
+  background: rgba(245, 179, 71, 0.1);
+  border-color: rgba(245, 179, 71, 0.3);
+  color: var(--admin-warning);
+}
+
+/* ── Modal panels ──────────────────────────────────────────────────────── */
+.admin-shell .theme-modal-backdrop {
+  background: rgba(4, 8, 22, 0.72);
+}
+
+.admin-shell .theme-modal-panel {
+  background: var(--admin-panel);
+  border-color: var(--admin-border);
+  color: var(--admin-text);
+}
+
+.admin-shell .theme-modal-header {
+  border-bottom-color: var(--admin-border);
+}
+
+.admin-shell .theme-modal-close {
+  background: var(--admin-panel-2);
+  border-color: var(--admin-border);
+  color: var(--admin-text);
+}
+
+/* ── Misc overrides ─────────────────────────────────────────────────────── */
 .admin-shell a {
   color: var(--admin-accent);
 }
+
+/* Override Tailwind bg-white anywhere inside admin shell */
+.admin-shell .bg-white,
+.admin-shell [class*="bg-white"] {
+  background-color: var(--admin-panel) !important;
+}
+
+/* Headings inside admin get light color */
+.admin-shell :where(h1, h2, h3, h4, h5, h6) {
+  color: var(--admin-text);
+}
+
+/* Dividers */
+.admin-shell .theme-divider {
+  background: linear-gradient(
+    90deg,
+    rgba(124, 142, 255, 0),
+    rgba(124, 142, 255, 0.35),
+    rgba(124, 142, 255, 0)
+  );
+}
+
 

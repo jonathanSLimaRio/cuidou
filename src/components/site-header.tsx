@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { headers } from "next/headers";
+
 function roleHome(role?: string | null) {
   if (role === "ADMIN") {
     return "/admin";
@@ -32,9 +34,18 @@ function roleHome(role?: string | null) {
 }
 
 export async function SiteHeader() {
+  // Suppress the public header inside the admin backoffice.
+  // /admin/* has its own shell/navigation.
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") ?? headersList.get("x-invoke-path") ?? "";
+  if (pathname.startsWith("/admin")) {
+    return null;
+  }
+
   const session = await auth();
   const hasSession = Boolean(session?.user);
   const homePath = roleHome(session?.user?.role);
+
 
   return (
     <header className="sticky top-0 z-40">
