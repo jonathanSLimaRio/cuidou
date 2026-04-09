@@ -32,7 +32,20 @@
       "Bash(ls \"C:/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\(family\\)/jobs/[id]/\")",
       "Bash(ls \"C:/Users/jonathan/Documents/GitHub/cuidou/CuidouApp/app/\\(admin\\)/\")",
       "Bash(dir \"C:\\\\Users\\\\jonathan\\\\Documents\\\\GitHub\\\\cuidou\\\\CuidouApp\\\\app\\\\\\(admin\\)\")",
-      "Bash(grep -r \"setInterval\\\\|polling\\\\|refetch\" /c/Users/jonathan/Documents/GitHub/cuidou/src --include=*.ts --include=*.tsx)"
+      "Bash(grep -r \"setInterval\\\\|polling\\\\|refetch\" /c/Users/jonathan/Documents/GitHub/cuidou/src --include=*.ts --include=*.tsx)",
+      "Bash(npx vercel:*)",
+      "Read(//c/Users/jonathan/.local/share/com.vercel.cli/**)",
+      "Read(//c/Users/jonathan/.vercel/**)",
+      "Read(//c/Users/jonathan/AppData/Local/com.vercel.cli/**)",
+      "Read(//c/Users/jonathan/AppData/Roaming/vercel/**)",
+      "Bash(ls src/lib/chat-ws-server*)",
+      "Bash(ls src/lib/auth*)",
+      "Bash(mv \"src/app/admin/audit-log-viewer.tsx\" \"src/app/admin/\\(protected\\)/audit-log-viewer.tsx\")",
+      "Bash(mv \"src/app/admin/moderation-console.tsx\" \"src/app/admin/\\(protected\\)/moderation-console.tsx\")",
+      "Bash(mv \"src/app/admin/pending-users-panel.tsx\" \"src/app/admin/\\(protected\\)/pending-users-panel.tsx\")",
+      "Bash(mv \"src/app/admin/loading.tsx\" \"src/app/admin/\\(protected\\)/loading.tsx\")",
+      "Bash(yarn typecheck:*)",
+      "Bash(yarn lint:*)"
     ]
   }
 }

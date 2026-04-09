@@ -20,7 +20,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
     "migrate:blob-to-wordpress": "tsx scripts/migrate_blob_to_wordpress.ts",
-    "design:media": "tsx scripts/generate_and_upload_design_media.ts"
+    "design:media": "tsx scripts/generate_and_upload_design_media.ts",
+    "super-admin": "tsx scripts/create_super_admin.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

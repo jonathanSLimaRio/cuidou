@@ -5,6 +5,7 @@
  *   Development:  npx tsx server.ts
  *   Production:   NODE_ENV=production npx tsx server.ts
  */
+import "./src/lib/load-env";
 import { createServer } from "node:http";
 import { parse } from "node:url";
 import next from "next";

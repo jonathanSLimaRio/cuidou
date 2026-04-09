@@ -14,6 +14,11 @@ const protectedPagePrefixes = [
   "/admin",
 ];
 
+// Public admin routes — accessible without a session (login page itself).
+// MUST be checked before the protectedPagePrefixes guard to prevent
+// an infinite redirect loop: /admin/login → blocked → /admin/login → ...
+const publicAdminPaths = ["/admin/login", "/admin/invite/accept"];
+
 function needsAuthForApi(pathname: string) {
   if (!pathname.startsWith("/api")) {
     return false;
@@ -37,8 +42,14 @@ export default auth((req) => {
   const method = req.method;
   const session = req.auth;
 
-  // Allow the invite acceptance page — it's public (uses a one-time token)
-  if (pathname.startsWith("/admin/invite/accept")) {
+  // Public admin paths (login page, invite acceptance) — must bypass all guards.
+  // Without this early-return, the /admin prefix guard would redirect any
+  // unauthenticated request (including to /admin/login itself) in a tight loop.
+  if (publicAdminPaths.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    // If already authenticated as ADMIN, redirect away from the login page.
+    if (pathname.startsWith("/admin/login") && session?.user?.role === UserRole.ADMIN) {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
     return NextResponse.next();
   }
 
@@ -54,7 +65,8 @@ export default auth((req) => {
     if (pathname.startsWith("/api")) {
       response = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     } else {
-      const loginUrl = new URL("/login", req.url);
+      const baseLogin = pathname.startsWith("/admin") ? "/admin/login" : "/login";
+      const loginUrl = new URL(baseLogin, req.url);
       const nextPath = `${pathname}${req.nextUrl.search}`;
       loginUrl.searchParams.set("next", nextPath);
       response = NextResponse.redirect(loginUrl);

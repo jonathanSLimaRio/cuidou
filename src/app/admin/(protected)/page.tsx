@@ -1,5 +1,3 @@
-import { auth } from "@/auth";
-import { AppShell } from "@/components/theme/app-shell";
 import { AppIcon } from "@/components/theme/app-icon";
 import { CtaButton } from "@/components/theme/cta-button";
 import { DataCard } from "@/components/theme/data-card";
@@ -10,12 +8,14 @@ import { getAdminMetrics, MetricsWindow } from "@/lib/admin-metrics";
 import { prisma } from "@/lib/prisma";
 import { CalendarRange, LineChart, Puzzle } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { AuditLogViewer } from "./audit-log-viewer";
 import { ModerationConsole } from "./moderation-console";
 import { PendingUsersPanel } from "./pending-users-panel";
 
-export const dynamic = "force-dynamic";
+// Dashboard numbers don't need to be second-accurate — revalidate every 60s
+// so repeat visits don't hammer the DB with identical COUNT queries.
+// (Auth check is handled by middleware + (protected)/layout.tsx.)
+export const revalidate = 60;
 
 type SearchParams = Promise<{
   window?: string;
@@ -26,16 +26,6 @@ export default async function AdminPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const session = await auth();
-
-  if (!session?.user) {
-    redirect("/login");
-  }
-
-  if (session.user.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
-
   const resolvedSearchParams = await searchParams;
   const windowParam = resolvedSearchParams.window;
   const windowDays: MetricsWindow =
@@ -69,12 +59,7 @@ export default async function AdminPage({
   ]);
 
   return (
-    <AppShell
-      breadcrumbs={[
-        { label: "Home", href: "/" },
-        { label: "Admin" },
-      ]}
-    >
+    <>
       <PageHeader
         eyebrow="Admin"
         title="Painel administrativo"
@@ -188,6 +173,6 @@ export default async function AdminPage({
       <ModerationConsole />
 
       <AuditLogViewer />
-    </AppShell>
+    </>
   );
 }
