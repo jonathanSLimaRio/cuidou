@@ -65,7 +65,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const rlKey = rateLimitKey("reviews-post", request);
-  const rl = checkRateLimit(rlKey, POST_RATE_LIMIT);
+    const rl = await checkRateLimit(rlKey, POST_RATE_LIMIT);
   if (!rl.allowed) {
     return new Response(JSON.stringify({ error: "Too many review submissions. Please try again later." }), {
       status: 429,

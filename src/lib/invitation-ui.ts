@@ -1,4 +1,4 @@
-import { JobInvitationStatus } from "@prisma/client";
+import { JobInvitationStatus } from "@/lib/prisma-enums";
 
 export const invitationStatusLabel: Record<JobInvitationStatus, string> = {
   PENDING: "Pendente",

@@ -10,47 +10,47 @@ describe("checkRateLimit", () => {
     vi.useRealTimers();
   });
 
-  it("allows requests under the limit", () => {
+  it("allows requests under the limit", async () => {
     const key = `test-allow-${Date.now()}`;
     const opts = { max: 3, windowMs: 60_000 };
 
-    expect(checkRateLimit(key, opts).allowed).toBe(true);
-    expect(checkRateLimit(key, opts).allowed).toBe(true);
-    expect(checkRateLimit(key, opts).allowed).toBe(true);
+    await expect(checkRateLimit(key, opts)).resolves.toMatchObject({ allowed: true });
+    await expect(checkRateLimit(key, opts)).resolves.toMatchObject({ allowed: true });
+    await expect(checkRateLimit(key, opts)).resolves.toMatchObject({ allowed: true });
   });
 
-  it("blocks after reaching the limit", () => {
+  it("blocks after reaching the limit", async () => {
     const key = `test-block-${Date.now()}`;
     const opts = { max: 2, windowMs: 60_000 };
 
-    checkRateLimit(key, opts);
-    checkRateLimit(key, opts);
-    const third = checkRateLimit(key, opts);
+    await checkRateLimit(key, opts);
+    await checkRateLimit(key, opts);
+    const third = await checkRateLimit(key, opts);
 
     expect(third.allowed).toBe(false);
     expect(third.remaining).toBe(0);
   });
 
-  it("reports correct remaining count", () => {
+  it("reports correct remaining count", async () => {
     const key = `test-remaining-${Date.now()}`;
     const opts = { max: 5, windowMs: 60_000 };
 
-    checkRateLimit(key, opts);
-    const result = checkRateLimit(key, opts);
+    await checkRateLimit(key, opts);
+    const result = await checkRateLimit(key, opts);
     expect(result.remaining).toBe(3);
   });
 
-  it("allows again after window expires", () => {
+  it("allows again after window expires", async () => {
     const key = `test-window-${Date.now()}`;
     const opts = { max: 1, windowMs: 1_000 };
 
-    checkRateLimit(key, opts);
-    expect(checkRateLimit(key, opts).allowed).toBe(false);
+    await checkRateLimit(key, opts);
+    await expect(checkRateLimit(key, opts)).resolves.toMatchObject({ allowed: false });
 
     // Advance time past window
     vi.advanceTimersByTime(1_100);
 
-    expect(checkRateLimit(key, opts).allowed).toBe(true);
+    await expect(checkRateLimit(key, opts)).resolves.toMatchObject({ allowed: true });
   });
 });
 

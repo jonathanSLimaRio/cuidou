@@ -38,6 +38,7 @@ export function ConfirmDialog({
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInputValue("");
       const t = setTimeout(() => textareaRef.current?.focus(), 60);
       return () => clearTimeout(t);

@@ -1,4 +1,4 @@
-import { Shift, Weekday } from "@prisma/client";
+import { Shift, Weekday } from "@/lib/prisma-enums";
 
 export const WEEKDAY_ORDER: Weekday[] = [
   "MONDAY",

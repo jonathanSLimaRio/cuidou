@@ -2,7 +2,7 @@
 
 import { ReviewForm } from "@/components/reviews/review-form";
 import { StatusBadge } from "@/components/theme/status-badge";
-import { ContractStatus } from "@prisma/client";
+import { ContractStatus } from "@/lib/prisma-enums";
 import { useState } from "react";
 
 type ContractItem = {

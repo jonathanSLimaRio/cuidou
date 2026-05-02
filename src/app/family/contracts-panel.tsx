@@ -5,7 +5,7 @@ import { ReviewForm } from "@/components/reviews/review-form";
 import { ActionButton } from "@/components/theme/action-button";
 import { ConfirmDialog } from "@/components/theme/confirm-dialog";
 import { StatusBadge } from "@/components/theme/status-badge";
-import { ContractStatus } from "@prisma/client";
+import { ContractStatus } from "@/lib/prisma-enums";
 import { CheckCircle2, CircleOff, Clock } from "lucide-react";
 import { useState } from "react";
 

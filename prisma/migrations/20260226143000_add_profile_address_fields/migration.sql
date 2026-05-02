@@ -1,0 +1,4 @@
+-- Reconciled from production migration history.
+-- Address fields are already present in the local baseline migration:
+-- FamilyProfile.state/city/neighborhood and ProfessionalProfile.state/city/neighborhood.
+-- Keep this migration name locally so Prisma history matches the remote database.

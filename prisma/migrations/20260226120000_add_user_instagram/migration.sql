@@ -1,0 +1,3 @@
+-- Reconciled from production migration history.
+-- The current Prisma schema does not contain a User.instagram field.
+-- Keep this migration name locally so Prisma history matches the remote database.

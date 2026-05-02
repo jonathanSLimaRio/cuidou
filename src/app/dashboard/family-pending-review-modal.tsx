@@ -5,7 +5,7 @@ import { ActionButton } from "@/components/theme/action-button";
 import { DataCard } from "@/components/theme/data-card";
 import { ModalShell } from "@/components/theme/modal-shell";
 import { ProfessionalSummaryCard } from "@/components/theme/professional-summary-card";
-import { ApplicationStatus } from "@prisma/client";
+import { ApplicationStatus } from "@/lib/prisma-enums";
 import { Check, Heart, HeartOff, MessageCircleMore, X } from "lucide-react";
 import { useMemo, useState } from "react";
 

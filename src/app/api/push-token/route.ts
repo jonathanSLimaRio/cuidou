@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth-guard";
-import { fail, ok } from "@/lib/http";
+import { ok } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
 import { UserRole } from "@prisma/client";

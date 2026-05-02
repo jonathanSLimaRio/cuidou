@@ -1,5 +1,5 @@
 import authConfig from "@/auth.config";
-import { UserRole } from "@prisma/client";
+import { UserRole } from "@/lib/prisma-enums";
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 
@@ -26,6 +26,7 @@ function needsAuthForApi(pathname: string) {
 
   if (
     pathname.startsWith("/api/auth") ||
+    pathname === "/api/health" ||
     pathname.startsWith("/api/jobs") ||
     pathname.startsWith("/api/professionals")
   ) {

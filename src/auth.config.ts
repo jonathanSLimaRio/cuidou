@@ -1,21 +1,13 @@
 import type { UserRole, UserStatus } from "@prisma/client";
+import { getAuthSecret } from "@/lib/env";
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
-
-// The Edge runtime (proxy.ts / middleware) does not reliably expose NODE_ENV,
-// so we always fall back to a local-only dev placeholder rather than throwing.
-// The real security check (throw in production when unset) lives in auth-guard.ts
-// which runs only in the Node.js runtime where NODE_ENV is trustworthy.
-const authSecret =
-  process.env.AUTH_SECRET ??
-  process.env.NEXTAUTH_SECRET ??
-  "dev-secret-local-only-REPLACE-IN-PROD";
 
 const isProd = process.env.NODE_ENV === "production";
 
 const authConfig = {
   trustHost: true,
-  secret: authSecret,
+  secret: getAuthSecret(),
   session: {
     strategy: "jwt",
   },

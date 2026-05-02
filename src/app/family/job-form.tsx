@@ -2,7 +2,7 @@
 
 import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
-import { JobStatus, ServiceType } from "@prisma/client";
+import { JobStatus, ServiceType } from "@/lib/prisma-enums";
 import { Loader2, PlusCircle, Save } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";

@@ -3,7 +3,7 @@
 import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
 import { StatusBadge } from "@/components/theme/status-badge";
-import { DocumentType, VerificationStatus } from "@prisma/client";
+import { DocumentType, VerificationStatus } from "@/lib/prisma-enums";
 import { Upload } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";

@@ -5,7 +5,7 @@ import { ActionButton } from "@/components/theme/action-button";
 import { OpportunityStateCard } from "@/components/theme/opportunity-state-card";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { invitationStatusLabel, invitationStatusTone } from "@/lib/invitation-ui";
-import { JobInvitationStatus } from "@prisma/client";
+import { JobInvitationStatus } from "@/lib/prisma-enums";
 import { Ban, Clock3 } from "lucide-react";
 import { useMemo, useState } from "react";
 

@@ -8,9 +8,19 @@ import { hash } from "bcryptjs";
 
 const RATE_LIMIT = { max: 5, windowMs: 60 * 60 * 1000 }; // 5 per hour
 
+function withSignupRateLimitHeaders(
+  response: Response,
+  rl: Awaited<ReturnType<typeof checkRateLimit>>,
+) {
+  for (const [key, value] of Object.entries(rateLimitHeaders(rl, RATE_LIMIT.max))) {
+    response.headers.set(key, value);
+  }
+  return response;
+}
+
 export async function POST(request: Request) {
   const rlKey = rateLimitKey("signup", request);
-  const rl = checkRateLimit(rlKey, RATE_LIMIT);
+  const rl = await checkRateLimit(rlKey, RATE_LIMIT);
   if (!rl.allowed) {
     return new Response(JSON.stringify({ error: "Too many signup attempts. Please try again later." }), {
       status: 429,
@@ -24,7 +34,7 @@ export async function POST(request: Request) {
 
   const bodyResult = await parseJsonBody(request, localSignupSchema);
   if ("response" in bodyResult) {
-    return bodyResult.response;
+    return withSignupRateLimitHeaders(bodyResult.response ?? fail(400, "Invalid JSON body"), rl);
   }
 
   const payload = bodyResult.data;
@@ -68,5 +78,5 @@ export async function POST(request: Request) {
     ? `Cadastro enviado como ${roleLabel}. Sua conta está pendente de aprovação da equipe administrativa.`
     : "Cadastro enviado. Sua conta está pendente de aprovação da equipe administrativa.";
 
-  return ok({ message }, 201);
+  return withSignupRateLimitHeaders(ok({ message }, 201), rl);
 }

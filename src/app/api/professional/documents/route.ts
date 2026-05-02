@@ -33,7 +33,7 @@ const RATE_LIMIT = { max: 5, windowMs: 60 * 60 * 1000 }; // 5 per hour
 export async function POST(request: Request) {
   // Rate limiting
   const rlKey = rateLimitKey("documents-upload", request);
-  const rl = checkRateLimit(rlKey, RATE_LIMIT);
+  const rl = await checkRateLimit(rlKey, RATE_LIMIT);
   if (!rl.allowed) {
     return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), {
       status: 429,

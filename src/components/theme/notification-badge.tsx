@@ -28,6 +28,7 @@ export function NotificationBell({ linkClassName, showLabel = true }: Props) {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchUnread();
     const interval = setInterval(() => void fetchUnread(), 30_000);
 

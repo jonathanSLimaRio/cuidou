@@ -4,7 +4,7 @@ import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
 import { ProfessionalSummaryCard } from "@/components/theme/professional-summary-card";
 import { StatusBadge } from "@/components/theme/status-badge";
-import { ApplicationStatus } from "@prisma/client";
+import { ApplicationStatus } from "@/lib/prisma-enums";
 import { Check, ChevronDown, Heart, HeartOff, X } from "lucide-react";
 import { useMemo, useState } from "react";
 

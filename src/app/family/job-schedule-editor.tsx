@@ -2,7 +2,7 @@
 
 import { ActionButton } from "@/components/theme/action-button";
 import { timeToMinutes, WEEKDAY_LABEL, WEEKDAY_ORDER } from "@/lib/job-schedule";
-import { Weekday } from "@prisma/client";
+import { Weekday } from "@/lib/prisma-enums";
 import { Plus, Trash2 } from "lucide-react";
 
 export type JobScheduleSlotDraft = {

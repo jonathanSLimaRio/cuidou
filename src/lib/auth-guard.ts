@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { getAuthSecret } from "@/lib/env";
 import { fail } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { UserRole, UserStatus } from "@prisma/client";
@@ -12,17 +13,7 @@ export type CurrentUser = {
   status: UserStatus;
 };
 
-const authSecret =
-  process.env.AUTH_SECRET ??
-  process.env.NEXTAUTH_SECRET ??
-  (process.env.NODE_ENV !== "production" ? "dev-secret-local-only-change-in-prod" : undefined);
-
-if (!authSecret) {
-  throw new Error(
-    "AUTH_SECRET environment variable is required in production. " +
-      "Generate one with: openssl rand -base64 32",
-  );
-}
+const authSecret = getAuthSecret();
 
 function buildCurrentUser(user: {
   id: string;

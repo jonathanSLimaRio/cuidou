@@ -2,7 +2,7 @@
 
 import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
-import { Shift, Weekday } from "@prisma/client";
+import { Shift, Weekday } from "@/lib/prisma-enums";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 

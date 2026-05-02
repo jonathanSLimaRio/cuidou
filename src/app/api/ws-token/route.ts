@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth-guard";
+import { createConversationTokenRequest } from "@/lib/ably";
 import { fail, ok } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
-import { createWsToken } from "@/lib/ws-token";
 import { UserRole } from "@prisma/client";
 
 export async function GET(request: Request) {
@@ -29,11 +29,7 @@ export async function GET(request: Request) {
     if (!conversation) return fail(404, "Conversation not found or access denied");
   }
 
-  const token = createWsToken(
-    authResult.user.id,
-    authResult.user.role,
-    conversationId,
-  );
+  const tokenRequest = await createConversationTokenRequest(authResult.user.id, conversationId);
 
-  return ok({ token });
+  return ok({ tokenRequest });
 }

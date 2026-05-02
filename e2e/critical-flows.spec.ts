@@ -4,34 +4,31 @@ import { expect, test } from "@playwright/test";
 // Smoke — public pages load
 // ---------------------------------------------------------------------------
 test("landing page loads", async ({ page }) => {
-  await page.goto("/");
+  const response = await page.goto("/", { waitUntil: "domcontentloaded" });
+  expect(response?.status()).toBeLessThan(500);
   await expect(page).toHaveTitle(/Cuidou/i);
-  // At minimum the page must not 5xx
-  const response = await page.waitForResponse((r) => r.url().endsWith("/") || r.url().includes("localhost:3000"));
-  expect(response.status()).toBeLessThan(500);
 });
 
 test("login page loads", async ({ page }) => {
-  await page.goto("/login");
-  await expect(page.locator("form")).toBeVisible();
+  await page.goto("/login", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Entrar com email e senha" })).toBeVisible();
 });
 
 test("signup page loads", async ({ page }) => {
-  await page.goto("/signup");
-  await expect(page.locator("form")).toBeVisible();
+  await page.goto("/signup?tipo=FAMILY", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("button", { name: /Criar conta/i })).toBeVisible();
 });
 
 // ---------------------------------------------------------------------------
 // Flow 1 — Signup form validates client-side
 // ---------------------------------------------------------------------------
 test("signup form shows error for mismatched passwords", async ({ page }) => {
-  await page.goto("/signup");
-  await page.fill('input[name="name"]', "João Teste");
-  await page.fill('input[name="email"]', "joao@teste.com");
-  await page.fill('input[name="password"]', "Senha123");
-  await page.fill('input[name="confirmPassword"]', "Senha456");
-  await page.click('button[type="submit"]');
-  // Expect some error indicator to appear (message or aria-invalid)
+  await page.goto("/signup?tipo=FAMILY", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Nome").fill("Joao Teste");
+  await page.getByLabel("Email").fill("joao@teste.com");
+  await page.getByLabel("Senha", { exact: true }).fill("Senha123");
+  await page.getByLabel("Confirmar senha").fill("Senha456");
+  await page.getByRole("button", { name: /Criar conta/i }).click();
   await expect(
     page.locator('[aria-invalid="true"], [role="alert"], .error, [data-error]').first(),
   ).toBeVisible({ timeout: 5_000 });
@@ -41,8 +38,8 @@ test("signup form shows error for mismatched passwords", async ({ page }) => {
 // Flow 2 — Login form validates
 // ---------------------------------------------------------------------------
 test("login form shows error for empty fields", async ({ page }) => {
-  await page.goto("/login");
-  await page.click('button[type="submit"]');
+  await page.goto("/login", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: /Entrar com email e senha/i }).click();
   await expect(page.locator('input[name="email"]:invalid, [role="alert"]').first()).toBeVisible({
     timeout: 5_000,
   });
@@ -71,6 +68,7 @@ test("admin page redirects unauthenticated users to login", async ({ page }) => 
 // ---------------------------------------------------------------------------
 test("signup endpoint returns rate limit headers", async ({ request }) => {
   const res = await request.post("/api/auth/signup", {
+    headers: { "x-forwarded-for": `127.0.20.${Date.now() % 200}` },
     data: { name: "Test", email: `rl-test-${Date.now()}@test.com`, password: "Senha123", confirmPassword: "Senha123" },
   });
   // Regardless of outcome, rate limit headers should be present
