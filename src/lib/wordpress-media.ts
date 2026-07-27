@@ -182,7 +182,11 @@ export async function deleteWordPressMedia(mediaId: number) {
 export async function fetchWordPressMediaBinary(sourceUrl: string) {
   if (sourceUrl.startsWith(LOCAL_UPLOAD_SCHEME)) {
     const relpath = sourceUrl.slice(LOCAL_UPLOAD_SCHEME.length);
-    const absPath = path.join(getLocalUploadDir(), relpath);
+    const uploadRoot = path.resolve(getLocalUploadDir());
+    const absPath = path.resolve(uploadRoot, relpath);
+    if (absPath !== uploadRoot && !absPath.startsWith(`${uploadRoot}${path.sep}`)) {
+      throw new Error("Invalid local upload path");
+    }
     const buffer = await fs.readFile(absPath);
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {

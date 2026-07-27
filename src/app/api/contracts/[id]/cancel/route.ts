@@ -27,11 +27,6 @@ export async function POST(request: Request, { params }: Params) {
     return authResult.response;
   }
 
-  const bodyResult = await parseJsonBody(request, cancelContractSchema);
-  if ("response" in bodyResult) {
-    return bodyResult.response;
-  }
-
   const contract = await prisma.contract.findUnique({
     where: { id: contractId },
     include: {
@@ -58,8 +53,17 @@ export async function POST(request: Request, { params }: Params) {
     return fail(403, "You are not allowed to cancel this contract");
   }
 
+  if (contract.status === ContractStatus.CANCELED) {
+    return ok({ contract });
+  }
+
   if (contract.status !== ContractStatus.IN_PROGRESS) {
     return fail(400, "Only in-progress contracts can be canceled");
+  }
+
+  const bodyResult = await parseJsonBody(request, cancelContractSchema);
+  if ("response" in bodyResult) {
+    return bodyResult.response;
   }
 
   const canceledAt = new Date();

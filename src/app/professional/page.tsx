@@ -14,6 +14,7 @@ import { ProfessionalContractsPanel } from "./contracts-panel";
 import { DocumentsPanel } from "./documents-panel";
 import { ProfessionalInvitationsPanel } from "./invitations-panel";
 import { ProfessionalProfileForm } from "./profile-form";
+import { WithdrawApplicationButton } from "./withdraw-application-button";
 
 export const dynamic = "force-dynamic";
 
@@ -330,6 +331,9 @@ export default async function ProfessionalAreaPage() {
                 </div>
 
                 <h3 className="mt-3 text-2xl leading-tight">{application.job.title}</h3>
+                {application.status === "SUBMITTED" || application.status === "SHORTLISTED" ? (
+                  <WithdrawApplicationButton applicationId={application.id} />
+                ) : null}
               </li>
             ))}
           </ul>

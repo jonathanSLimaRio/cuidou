@@ -8,6 +8,8 @@ Cuidou é um marketplace bilateral de cuidado doméstico. Conecta **famílias** 
 
 ## 2. Arquitetura
 
+> **Estado atual (Sprint 3 — 27/07/2026):** web e mobile usam Ably Realtime. Referências históricas a `server.ts`, `ws` e `EventEmitter` devem ser lidas como legado; o contrato vigente é o fluxo Ably descrito abaixo.
+
 ### Camadas
 
 ```
@@ -15,17 +17,17 @@ Cuidou é um marketplace bilateral de cuidado doméstico. Conecta **famílias** 
 │                        Cliente (browser)                     │
 │  Next.js App Router  ·  React 19  ·  Tailwind CSS v4        │
 └──────────────────────────────┬──────────────────────────────┘
-                               │ HTTP / WebSocket
+                               │ HTTP / Ably Realtime
 ┌──────────────────────────────▼──────────────────────────────┐
-│                    server.ts (Node.js)                       │
+│                    Next.js + Ably Realtime                       │
 │  ┌─────────────────────────┐  ┌────────────────────────┐    │
-│  │     Next.js (HTTP)      │  │  WebSocket Server (ws) │    │
-│  │  API Routes (App Router)│  │  /ws — chat em tempo   │    │
+│  │     Next.js (HTTP)      │  │  Ably Realtime │    │
+│  │  API Routes (App Router)│  │  Ably — realtime   │    │
 │  │  Server Components      │  │  real por conversa     │    │
 │  └────────────┬────────────┘  └───────────┬────────────┘    │
 │               │                           │                  │
 │               └──────────┬────────────────┘                  │
-│                          │ EventEmitter (in-process)         │
+│                          │ Ably channels         │
 └──────────────────────────┼──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
@@ -40,10 +42,9 @@ Cuidou é um marketplace bilateral de cuidado doméstico. Conecta **famílias** 
 | Decisão | Escolha | Motivo |
 |---------|---------|--------|
 | Renderização | Server Components + Client Components | Dados sensíveis server-side; interatividade client-side |
-| WebSocket | Custom server (`server.ts` + `ws`) | App Router não suporta WS nativo; mesmo processo = zero latência de IPC |
-| Pub/sub WS | EventEmitter global (`global.__chatEvents`) | In-process, sobrevive ao HMR do Next.js em dev |
-| Auth WS | Token HMAC-SHA256 de 60 s | Evita parsing de cookie session no upgrade handler |
-| Upload de mídia | WordPress REST API | Armazenamento externo com CDN; fallback local (`./uploads/`) em dev |
+| Realtime | Ably Realtime (`ably`) | Pub/sub gerenciado, autorização por canal e suporte web/mobile |
+| Auth Realtime | Token request Ably de curta duração | Permissão limitada ao canal da conversa |
+| Upload de mídia | WordPress REST API | Armazenamento externo com CDN; referências locais legadas são somente leitura |
 | ORM | Prisma 7 + `@prisma/adapter-pg` | Tipo-seguro, migrations versionadas |
 | Email | Resend | Falha silenciosa quando não configurado (graceful degradation) |
 
@@ -119,6 +120,16 @@ Conversation
 | `POST` | `/api/auth/signup` | Cria conta local (status `PENDING`) |
 | `*` | `/api/auth/[...nextauth]` | Auth.js — login, callback, logout |
 
+### Autenticação mobile
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `POST` | `/api/mobile/auth/login` | Login email/senha; retorna access token de 15 minutos e refresh token rotativo |
+| `POST` | `/api/mobile/auth/google` | Troca um ID token Google validado por sessão mobile quando o provedor está configurado |
+| `POST` | `/api/mobile/auth/refresh` | Revoga o refresh token usado e emite um par novo |
+| `GET` | `/api/mobile/auth/session` | Retorna o usuário do Bearer token mobile vigente |
+| `POST` | `/api/mobile/auth/logout` | Revoga o refresh token atual; operação idempotente |
+
 ### Onboarding
 
 | Método | Rota | Descrição |
@@ -178,7 +189,7 @@ Conversation
 | `GET\|POST` | `/api/conversations/:id/messages` | Lista mensagens (cursor-based) ou envia nova (rate limit: 30/5min) |
 | `PATCH` | `/api/conversations/:id/block` | Bloqueia ou desbloqueia conversa |
 | `GET` | `/api/messages/attachments/:id/download` | Download protegido de anexo |
-| `GET` | `/api/ws-token` | Emite token para conexão WebSocket (TTL: 60 s) |
+| `GET` | `/api/ws-token` | Emite `tokenRequest` Ably para o canal da conversa |
 | `GET` | `/api/chat/quick-replies` | Lista respostas rápidas por papel |
 
 ### Contratos
@@ -282,22 +293,30 @@ Conversation
 - **Google OAuth** — acesso imediato após callback; cria conta com status `ACTIVE`
 - **Email/senha** — hash bcrypt; conta criada com status `PENDING`, requer aprovação de admin
 
+### Sessão mobile
+
+- O app Expo usa access token assinado com `AUTH_SECRET`, expiração de 15 minutos e claims mínimos (`sub`, papel e status).
+- Refresh tokens são valores aleatórios, armazenados somente como SHA-256 no modelo `MobileRefreshToken`, expiram em 30 dias e são rotacionados a cada uso.
+- Logout revoga o refresh token; reutilização de token rotacionado retorna erro e não cria uma nova sessão.
+- As APIs protegidas aceitam o Bearer token mobile e consultam o status/papel atuais no banco, evitando confiar em claims antigas.
+
 ### Proteção de rotas
 
 - Middleware (`auth.config.ts`) bloqueia `/dashboard`, `/family`, `/professional`, `/admin`, `/chat`, `/notifications` para não autenticados
 - `requireUser(roles?, request?)` em toda API — valida sessão + papel + status
 - Usuários `SUSPENDED` e `BANNED` são bloqueados no callback de autenticação
 
-### WebSocket
+### Realtime com Ably
 
-- Cliente solicita `GET /api/ws-token?conversationId=...` → recebe token HMAC-SHA256 (60 s)
-- Conecta em `ws://host/ws?token=...&conversationId=...`
-- Servidor valida token, papel e acesso à conversa antes de aceitar conexão
-- Admins: acesso a qualquer conversa sem verificação de membership
+- Cliente solicita `GET /api/ws-token?conversationId=...` e recebe `tokenRequest` Ably.
+- Cliente conecta ao Ably e assina somente `private:conversation:{conversationId}`.
+- O backend valida papel e acesso à conversa antes de emitir a permissão do canal.
+- A mensagem é persistida no PostgreSQL e publicada no Ably somente após a persistência.
+- Admins podem receber token para qualquer conversa conforme a regra de suporte do backend.
 
 ---
 
-## 7. Chat em tempo real (WebSocket)
+## 7. Chat em tempo real (Ably)
 
 ### Fluxo de uma mensagem
 
@@ -305,11 +324,11 @@ Conversation
 Remetente
   │  POST /api/conversations/:id/messages
   │  → salva no PostgreSQL
-  │  → emitNewMessage(conversationId, message)  ← EventEmitter
+  │  → publish `new_message` no canal Ably
   │                          │
-  │              chat-ws-server.ts
-  │              → rooms.get(conversationId)
-  │              → ws.send({ type: "new_message", message })
+  │              Ably channel
+  │              → channel = private:conversation:{conversationId}
+  │              → channel.publish("new_message", message)
   │                          │
   └─────────────────────────▼
                         Destinatário (browser)
@@ -322,19 +341,19 @@ Remetente
 ```
 onclose → scheduleReconnect()
   delay = min(delay * 2, 30_000)  // backoff exponencial: 1s → 2s → 4s → ... → 30s
-  setTimeout(connectWebSocket, delay)
+  cliente Ably reconecta com backoff
     → GET /api/ws-token  (novo token)
-    → new WebSocket(...)
+    → cliente Ably assina o canal
   onopen → delay = 1_000  (reseta)
 ```
 
-### Salas (rooms)
+### Canais
 
 ```typescript
-rooms: Map<conversationId, Set<RoomSocket>>
+channel: private:conversation:{conversationId}
 ```
 
-Cada socket carrega `userId` e `conversationId`. Ao desconectar, é removido da sala e do EventEmitter.
+A assinatura Ably é autorizada por conversa; o cliente recebe apenas a capacidade do canal correspondente e o SDK gerencia reconexão.
 
 ---
 
@@ -348,14 +367,9 @@ Quando `WORDPRESS_URL`, `WP_USER`, `WP_APP_PASS` configurados:
 - Timeout: 30 s por upload
 - `sourceUrl` armazenado no banco; `pathname = "wp-media:{id}"`
 
-### Fallback local (desenvolvimento)
+### Referências locais legadas
 
-Quando WordPress não configurado:
-- Arquivos salvos em `{LOCAL_UPLOAD_DIR}/{folderTag}/{uuid}.{ext}`
-- `LOCAL_UPLOAD_DIR` padrão: `./uploads`
-- `sourceUrl = "local-upload:{category}/{uuid}.{ext}"`
-- Download via `fetchWordPressMediaBinary` lê do disco
-- `deleteWordPressMedia(0)` → no-op
+O código consegue ler referências antigas `local-upload:` usando `LOCAL_UPLOAD_DIR` e não tenta removê-las via WordPress. Novos documentos e anexos são enviados pelo caminho WordPress; não há fallback local de escrita ativo.
 
 ### Tipos aceitos
 
@@ -554,9 +568,9 @@ Candidatura aceita → Conversation criada
 /chat → lista de conversas com contagem de não lidas
   ↓
 /chat/:id → ChatRoom
-  ├── Conexão WebSocket em ws://host/ws?token=...&conversationId=...
-  │     ├── Token obtido via GET /api/ws-token (60 s, apenas para handshake)
-  │     └── Reconexão automática com backoff exponencial
+  ├── Conexão Ably no canal private:conversation:{conversationId}
+  │     ├── Token request obtido via GET /api/ws-token
+  │     └── Reconexão gerenciada pelo cliente Ably
   ├── Carregar histórico → GET /api/conversations/:id/messages?take=30
   ├── Mensagens antigas → cursor-based pagination
   ├── Enviar texto → POST /api/conversations/:id/messages { content }
@@ -635,7 +649,7 @@ GET /api/admin/metrics?window=7|30|90
         ↓
 [Contrato IN_PROGRESS + Conversation criada]
         ↓
-[Chat em tempo real (WebSocket)]
+[Chat em tempo real (Ably)]
         ↓
 [Família ou Profissional conclui contrato]
         ↓
@@ -648,10 +662,12 @@ GET /api/admin/metrics?window=7|30|90
 
 | Variável | Obrigatória | Descrição |
 |----------|-------------|-----------|
-| `AUTH_SECRET` | Sim | Segredo de 32+ chars para JWT/sessão e tokens WS |
+| `AUTH_SECRET` | Sim | Segredo de 32+ chars para JWT/sessão |
+| `ABLY_API_KEY` | Sim em produção | Chave privada usada para token request e publicação Ably |
 | `DATABASE_URL` | Sim | PostgreSQL connection string |
 | `AUTH_GOOGLE_ID` | Não | Client ID OAuth Google |
 | `AUTH_GOOGLE_SECRET` | Não | Client secret OAuth Google |
+| `MOBILE_GOOGLE_CLIENT_IDS` | Não | Lista separada por vírgulas de audiences Google aceitas pelo app mobile |
 | `WORDPRESS_URL` | Não | URL base WordPress (sem trailing slash) |
 | `WP_USER` | Não | Usuário WordPress para upload |
 | `WP_APP_PASS` | Não | Application password WordPress |
@@ -662,3 +678,18 @@ GET /api/admin/metrics?window=7|30|90
 | `LOCAL_UPLOAD_DIR` | Não | Diretório de uploads locais (padrão: `./uploads`) |
 | `HOST` | Não | Host do servidor (padrão: `localhost`) |
 | `PORT` | Não | Porta do servidor (padrão: `3000`) |
+
+### Mobile e release
+
+O aplicativo Expo usa as seguintes variáveis no escopo de `CuidouApp`:
+
+- `EXPO_PUBLIC_API_BASE_URL`
+- `EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID`
+- `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
+- `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`
+- `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
+- `EXPO_PUBLIC_SENTRY_DSN`
+- `EXPO_PUBLIC_APP_ENV`
+- `EXPO_PUBLIC_APP_RELEASE`
+
+Essas variáveis são opcionais em desenvolvimento, mas ambiente e release devem ser definidos em builds de preview/produção para permitir rastreabilidade no Sentry.

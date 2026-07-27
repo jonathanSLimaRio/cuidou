@@ -4,6 +4,7 @@ import { sendEmail } from "@/lib/email";
 import { fail, ok } from "@/lib/http";
 import { notifyMany } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { ProductEventName, trackProductEvent } from "@/lib/product-events";
 import { parseJsonBody } from "@/lib/request";
 import { completeContractSchema } from "@/lib/schemas";
 import {
@@ -25,11 +26,6 @@ export async function POST(request: Request, { params }: Params) {
   const authResult = await requireUser([UserRole.FAMILY], request);
   if ("response" in authResult) {
     return authResult.response;
-  }
-
-  const bodyResult = await parseJsonBody(request, completeContractSchema);
-  if ("response" in bodyResult) {
-    return bodyResult.response;
   }
 
   const contract = await prisma.contract.findUnique({
@@ -55,8 +51,17 @@ export async function POST(request: Request, { params }: Params) {
     return fail(403, "Only the family owner can complete this contract");
   }
 
+  if (contract.status === ContractStatus.COMPLETED) {
+    return ok({ contract });
+  }
+
   if (contract.status !== ContractStatus.IN_PROGRESS) {
     return fail(400, "Only in-progress contracts can be completed");
+  }
+
+  const bodyResult = await parseJsonBody(request, completeContractSchema);
+  if ("response" in bodyResult) {
+    return bodyResult.response;
   }
 
   const completedAt = new Date();
@@ -121,6 +126,12 @@ export async function POST(request: Request, { params }: Params) {
       jobId: contract.jobId,
       applicationId: contract.applicationId,
     },
+  });
+
+  trackProductEvent({
+    name: ProductEventName.CONTRACT_COMPLETED,
+    userId: authResult.user.id,
+    metadata: { contractId, jobId: contract.jobId, applicationId: contract.applicationId },
   });
 
   return ok({ contract: updated });

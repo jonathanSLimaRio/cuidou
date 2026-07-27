@@ -69,7 +69,7 @@ export const marketplaceRepository = {
         serviceType: filters.serviceType || undefined,
         state: filters.state?.trim() || undefined,
         city: filters.city?.trim() || undefined,
-        verifiedOnly: filters.verifiedOnly === false ? "false" : "true",
+        verifiedOnly: "true",
         page,
         pageSize,
       },

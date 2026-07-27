@@ -167,6 +167,7 @@ export function FamilyJobForm({
 
       <Input
         label="Titulo"
+        testID="job-title-input"
         value={form.title}
         onChangeText={(value) => setForm((current) => ({ ...current, title: value }))}
         maxLength={160}
@@ -175,6 +176,7 @@ export function FamilyJobForm({
       <View style={styles.textAreaWrap}>
         <Text style={styles.label}>Descricao</Text>
         <TextInput
+          testID="job-description-input"
           editable={!loading}
           value={form.description}
           onChangeText={(value) => setForm((current) => ({ ...current, description: value }))}
@@ -188,12 +190,14 @@ export function FamilyJobForm({
 
       <Input
         label="Estado"
+        testID="job-state-input"
         value={form.state}
         onChangeText={(value) => setForm((current) => ({ ...current, state: value }))}
         maxLength={120}
       />
       <Input
         label="Cidade"
+        testID="job-city-input"
         value={form.city}
         onChangeText={(value) => setForm((current) => ({ ...current, city: value }))}
         maxLength={120}
@@ -265,7 +269,7 @@ export function FamilyJobForm({
         </View>
       ) : null}
 
-      <Button label={submitLabel} onPress={submit} loading={loading} />
+      <Button label={submitLabel} testID="job-submit-button" onPress={submit} loading={loading} />
     </View>
   );
 }
@@ -341,4 +345,3 @@ const styles = StyleSheet.create({
     gap: appTheme.spacing.sm,
   },
 });
-

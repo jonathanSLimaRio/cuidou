@@ -81,6 +81,15 @@ const quickActions = [
     bg: "rgba(124, 142, 255, 0.08)",
     border: "rgba(124, 142, 255, 0.2)",
   },
+  {
+    href: "/admin/leads",
+    icon: Users,
+    label: "Leads do piloto",
+    description: "Priorizar contatos por cidade e papel",
+    color: "var(--admin-success)",
+    bg: "rgba(57, 210, 138, 0.08)",
+    border: "rgba(57, 210, 138, 0.2)",
+  },
 ] as const;
 
 export default async function AdminPage({
@@ -100,7 +109,7 @@ export default async function AdminPage({
     prisma.jobPost.count({ where: { status: "OPEN" } }),
     getAdminMetrics(windowDays),
     prisma.user.findMany({
-      where: { status: "PENDING", passwordHash: { not: null } },
+      where: { status: "PENDING" },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, email: true, createdAt: true, status: true },
       take: 200,
@@ -184,6 +193,32 @@ export default async function AdminPage({
         />
         <DataCard label="Taxa de resposta 24h" value={`${metrics.responseRate24h}%`} tone="surface" />
         <DataCard label="Contratos em andamento" value={metrics.contractsByStatus.IN_PROGRESS} tone="tint" />
+      </section>
+
+      <DataTableShell
+        title="Funil operacional"
+        description="Conversão dos principais marcos do marketplace na janela selecionada; cadastros ativos são o proxy de aprovação até existir timestamp dedicado."
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+          <DataCard label="Cadastros ativos" value={metrics.funnel.activeRegistrations} tone="surface" />
+          <DataCard label="Perfis completos" value={metrics.funnel.completeProfiles} tone="surface" />
+          <DataCard label="Vagas publicadas" value={metrics.funnel.publishedJobs} tone="surface" />
+          <DataCard label="Candidaturas" value={metrics.funnel.applications} tone="surface" />
+          <DataCard label="Aceitas" value={metrics.funnel.acceptedApplications} tone="surface" />
+          <DataCard label="Contratos iniciados" value={metrics.funnel.contractsStarted} tone="tint" />
+          <DataCard label="Contratos concluídos" value={metrics.funnel.contractsCompleted} tone="deep" />
+        </div>
+      </DataTableShell>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <DataCard label="Leads capturados" value={metrics.commercialEvents.lead_captured ?? 0} tone="tint" />
+        <DataCard label="Cadastros concluídos" value={metrics.commercialEvents.signup_completed ?? 0} tone="surface" />
+        <DataCard label="Candidaturas instrumentadas" value={metrics.commercialEvents.application_submitted ?? 0} tone="surface" />
+        <DataCard label="Contratos concluídos" value={metrics.commercialEvents.contract_completed ?? 0} tone="deep" />
+        <DataCard label="Perfis ativados" value={metrics.commercialEvents.profile_completed ?? 0} tone="surface" />
+        <DataCard label="Logins mobile" value={metrics.commercialEvents.login_completed ?? 0} tone="surface" />
+        <DataCard label="Avaliações enviadas" value={metrics.commercialEvents.review_submitted ?? 0} tone="surface" />
+        <DataCard label="Denúncias enviadas" value={metrics.commercialEvents.report_submitted ?? 0} tone="surface" />
       </section>
 
       {/* Quick Actions */}

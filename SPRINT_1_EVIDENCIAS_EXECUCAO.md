@@ -1,5 +1,42 @@
 # Sprint 1 - Matriz de Evidencias de Execucao
 
+## Execucao atualizada — 27/07/2026
+
+Esta rodada implementa o objetivo da Sprint 01 de tornar o baseline web/API/mobile
+reprodutível e a documentação coerente com a arquitetura vigente.
+
+### Entregas
+
+- Playwright isolado em `127.0.0.1:3100`, com `PLAYWRIGHT_BASE_URL` para ambientes externos e sem reutilização acidental de servidor.
+- Contratos E2E apontando para a mesma base configurada pelo Playwright.
+- Comandos separados para web, API, smoke E2E, versões e lint mobile.
+- `.env.exemple` tornado versionável (`.gitignore` deixa o arquivo de exemplo fora da regra de exclusão) e ampliado com variáveis Expo/Sentry/release.
+- `check:versions` agora registra Node, npm, Expo e a ausência opcional do Maestro; `check:health` aceita `HEALTHCHECK_URL` e `PLAYWRIGHT_PORT`.
+- Contratos de API validados também com `PLAYWRIGHT_PORT=3201`, sem voltar a usar a porta de outro projeto.
+- README, `spec.md`, `.env.exemple` e README mobile alinhados a Ably Realtime, WordPress e aos contratos atuais.
+- Smoke E2E ajustado para validar a semântica real dos formulários e aguardar o carregamento determinístico do marketplace.
+
+### Gates executados
+
+| Comando | Resultado |
+|---|---|
+| `npm run check:versions` | PASS — Node `v22.22.2`, npm `10.9.7`, Expo `54.0.23`; Maestro ausente (opcional) |
+| `npm run lint` | PASS |
+| `npm run typecheck` | PASS |
+| `npm test` | PASS — 65 testes |
+| `npm run test:e2e:api` | PASS — 30 testes |
+| `PLAYWRIGHT_PORT=3201 npm run test:e2e:api -- --project=chromium` | PASS — 15 testes |
+| `npm run test:e2e:smoke` | PASS — 16 testes (Chromium + mobile-chrome) |
+| `npm run test:e2e` | PASS — 46 testes (Chromium + mobile-chrome) |
+| `npm run test:mobile:lint` | PASS — 0 erros; 12 warnings existentes |
+| `git diff --check` | PASS |
+
+### Pendências mantidas para as próximas sprints
+
+- Endpoints de autenticação mobile e integração de sessão permanecem no escopo da Sprint 02.
+- Migração do chat mobile do WebSocket manual para o contrato Ably permanece no escopo da Sprint 03.
+- Testes E2E autenticados de ponta a ponta e execução Maestro em dispositivo permanecem como expansão posterior.
+
 Data base: 2026-04-08  
 Responsavel: Codex (implementacao), Time Cuidou (validacao operacional)
 

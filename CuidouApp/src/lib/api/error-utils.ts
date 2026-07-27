@@ -11,7 +11,11 @@ function normalizeCode(code: string | undefined): AuthErrorCode | undefined {
     code === "account_suspended" ||
     code === "account_banned" ||
     code === "credentials_invalid" ||
-    code === "unauthorized"
+    code === "unauthorized" ||
+    code === "account_inactive" ||
+    code === "refresh_token_invalid" ||
+    code === "google_not_configured" ||
+    code === "google_token_invalid"
   ) {
     return code;
   }
@@ -61,6 +65,18 @@ export function getAuthErrorMessage(error: unknown) {
 
   if (code === "unauthorized") {
     return "Você não tem permissão para acessar este recurso.";
+  }
+
+  if (code === "account_inactive" || code === "refresh_token_invalid") {
+    return "Sua sessão expirou. Entre novamente para continuar.";
+  }
+
+  if (code === "google_not_configured") {
+    return "O login Google ainda não está configurado neste ambiente.";
+  }
+
+  if (code === "google_token_invalid") {
+    return "Não foi possível validar sua conta Google.";
   }
 
   if (error instanceof ApiClientError) {

@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/theme/status-badge";
 import { resolveDesignImage } from "@/lib/design-media";
 import { prisma } from "@/lib/prisma";
 import { getWordPressMediaGallery, pickWordPressImage } from "@/lib/wordpress-content";
+import { UserStatus } from "@prisma/client";
 import { Eye, Filter, LogIn, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -30,13 +31,16 @@ export default async function MarketplaceJobsPage({
   searchParams: SearchParams;
 }) {
   const resolved = await searchParams;
-  const serviceType = resolved.serviceType || "";
+  const serviceType = ["", "BABYSITTER", "ELDER_CAREGIVER"].includes(resolved.serviceType ?? "")
+    ? resolved.serviceType || ""
+    : "";
   const state = resolved.state?.trim() || "";
   const city = resolved.city?.trim() || "";
 
   const where = {
     status: "OPEN" as const,
     isVisible: true,
+    family: { status: UserStatus.ACTIVE },
     ...(serviceType ? { serviceType: serviceType as "BABYSITTER" | "ELDER_CAREGIVER" } : {}),
     ...(state ? { state } : {}),
     ...(city ? { city } : {}),

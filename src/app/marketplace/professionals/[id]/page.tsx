@@ -6,6 +6,7 @@ import { ReportAction } from "@/components/reports/report-action";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { getScheduleMatchLevel } from "@/lib/job-schedule";
 import { prisma } from "@/lib/prisma";
+import { UserStatus, VerificationStatus } from "@prisma/client";
 import { LayoutDashboard, LogIn, Search } from "lucide-react";
 import { notFound } from "next/navigation";
 import { InviteToJobForm } from "./invite-to-job-form";
@@ -42,8 +43,18 @@ export default async function MarketplaceProfessionalDetailPage({ params }: Para
   const session = await auth();
 
   const professional = await prisma.professionalProfile.findUnique({
-    where: { id },
-    include: {
+    where: { id, user: { status: UserStatus.ACTIVE } },
+    select: {
+      id: true,
+      userId: true,
+      bio: true,
+      experienceYears: true,
+      serviceTypes: true,
+      state: true,
+      city: true,
+      hourlyRateMin: true,
+      hourlyRateMax: true,
+      verificationStatus: true,
       user: {
         select: {
           id: true,
@@ -53,15 +64,17 @@ export default async function MarketplaceProfessionalDetailPage({ params }: Para
       availabilitySlots: {
         where: { isAvailable: true },
         orderBy: [{ weekday: "asc" }, { shift: "asc" }],
+        select: { weekday: true, shift: true, isAvailable: true },
       },
       availabilityExceptions: {
         orderBy: [{ date: "asc" }, { shift: "asc" }],
         take: 10,
+        select: { id: true, date: true, shift: true, isAvailable: true, note: true },
       },
     },
   });
 
-  if (!professional) {
+  if (!professional || professional.verificationStatus !== VerificationStatus.VERIFIED) {
     notFound();
   }
 

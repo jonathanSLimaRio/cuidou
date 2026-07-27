@@ -1,25 +1,33 @@
 appId: com.cuidou.app
 ---
-# Assumes logged in as PROFESSIONAL
-- launchApp
-
-# Navigate to marketplace
+# Conta criada por prisma db seed (LOCAL_DEV_CAREGIVER_EMAIL/LOCAL_DEV_PASSWORD).
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "auth-email-input"
+    timeout: 10000
 - tapOn:
-    text: "Explorar vagas"
-
-# Tap first job
+    id: "auth-email-input"
+- inputText: "cuidadora.local@cuidou.dev"
 - tapOn:
-    id: "job-card-0"
-
-# Apply
+    id: "auth-password-input"
+- inputText: "Cuidou123!"
 - tapOn:
-    text: "Candidatar-se"
+    id: "auth-submit-button"
+- extendedWaitUntil:
+    visible:
+      id: "professional-marketplace-button"
+    timeout: 10000
 
-# Confirm dialog if present
 - tapOn:
-    text: "Confirmar"
-    optional: true
-
-# Should show success state
-- assertVisible:
-    text: "Candidatura enviada"
+    id: "professional-marketplace-button"
+- extendedWaitUntil:
+    visible:
+      id: "marketplace-job-card-0"
+    timeout: 10000
+- tapOn:
+    id: "marketplace-job-card-0"
+- tapOn:
+    id: "application-submit-button"
+- assertVisible: "Candidatura enviada"

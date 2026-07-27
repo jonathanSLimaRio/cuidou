@@ -1,11 +1,21 @@
 import { requireUser } from "@/lib/auth-guard";
+import { writeAuditLog } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import { fail, ok } from "@/lib/http";
 import { notifyMany } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { ProductEventName, trackProductEvent } from "@/lib/product-events";
 import { parseJsonBody } from "@/lib/request";
 import { acceptInvitationSchema } from "@/lib/schemas";
-import { ApplicationStatus, JobInvitationStatus, JobStatus, NotificationType, UserRole } from "@prisma/client";
+import {
+  ApplicationStatus,
+  AuditAction,
+  AuditTargetType,
+  JobInvitationStatus,
+  JobStatus,
+  NotificationType,
+  UserRole,
+} from "@prisma/client";
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -49,11 +59,6 @@ export async function POST(request: Request, { params }: Params) {
     return authResult.response;
   }
 
-  const bodyResult = await parseJsonBody(request, acceptInvitationSchema);
-  if ("response" in bodyResult) {
-    return bodyResult.response;
-  }
-
   const invitation = await prisma.jobInvitation.findUnique({
     where: { id: invitationId },
     include: {
@@ -89,6 +94,22 @@ export async function POST(request: Request, { params }: Params) {
 
   if (invitation.professionalId !== authResult.user.id) {
     return fail(403, "You can only respond to your own invitations");
+  }
+
+  if (invitation.status === JobInvitationStatus.ACCEPTED) {
+    const application = await prisma.jobApplication.findUnique({
+      where: {
+        jobId_professionalId: {
+          jobId: invitation.jobId,
+          professionalId: invitation.professionalId,
+        },
+      },
+    });
+    return ok({ invitation, application });
+  }
+
+  if (invitation.status !== JobInvitationStatus.PENDING) {
+    return fail(409, "This invitation is no longer pending");
   }
 
   if (
@@ -130,15 +151,24 @@ export async function POST(request: Request, { params }: Params) {
       });
     }
 
-    return fail(409, "Invitation has expired");
-  }
+    await writeAuditLog({
+      adminId: authResult.user.id,
+      action: AuditAction.INVITATION_STATUS_UPDATED,
+      targetType: AuditTargetType.INVITATION,
+      targetId: invitation.id,
+      metadata: { from: JobInvitationStatus.PENDING, to: JobInvitationStatus.EXPIRED, jobId: invitation.jobId },
+    });
 
-  if (invitation.status !== JobInvitationStatus.PENDING) {
-    return fail(409, "This invitation is no longer pending");
+    return fail(409, "Invitation has expired");
   }
 
   if (!invitation.job.isVisible || invitation.job.status !== JobStatus.OPEN) {
     return fail(409, "The job is no longer open for new applications");
+  }
+
+  const bodyResult = await parseJsonBody(request, acceptInvitationSchema);
+  if ("response" in bodyResult) {
+    return bodyResult.response;
   }
 
   const existingApplication = await prisma.jobApplication.findUnique({
@@ -160,29 +190,57 @@ export async function POST(request: Request, { params }: Params) {
 
   const now = new Date();
 
-  const result = await prisma.$transaction(async (tx) => {
-    const application = await tx.jobApplication.create({
-      data: {
-        jobId: invitation.jobId,
-        professionalId: invitation.professionalId,
-        coverMessage: bodyResult.data.coverMessage,
-        status: ApplicationStatus.SUBMITTED,
-      },
-    });
+  let result: {
+    application: Awaited<ReturnType<typeof prisma.jobApplication.create>>;
+    invitation: Awaited<ReturnType<typeof prisma.jobInvitation.update>>;
+  };
 
-    const updatedInvitation = await tx.jobInvitation.update({
-      where: { id: invitation.id },
-      data: {
-        status: JobInvitationStatus.ACCEPTED,
-        respondedAt: now,
-        responseMessage: bodyResult.data.coverMessage,
-      },
-    });
+  try {
+    result = await prisma.$transaction(async (tx) => {
+      const application = await tx.jobApplication.create({
+        data: {
+          jobId: invitation.jobId,
+          professionalId: invitation.professionalId,
+          coverMessage: bodyResult.data.coverMessage,
+          status: ApplicationStatus.SUBMITTED,
+        },
+      });
 
-    return {
-      application,
-      invitation: updatedInvitation,
-    };
+      const updatedInvitation = await tx.jobInvitation.update({
+        where: { id: invitation.id, status: JobInvitationStatus.PENDING },
+        data: {
+          status: JobInvitationStatus.ACCEPTED,
+          respondedAt: now,
+          responseMessage: bodyResult.data.coverMessage,
+        },
+      });
+
+      return { application, invitation: updatedInvitation };
+    });
+  } catch (error) {
+    // A repeated request can race with the first one. Return the committed state
+    // instead of creating duplicate side effects or reporting a false failure.
+    const current = await prisma.jobInvitation.findUnique({ where: { id: invitation.id } });
+    if (current?.status === JobInvitationStatus.ACCEPTED) {
+      const application = await prisma.jobApplication.findUnique({
+        where: {
+          jobId_professionalId: {
+            jobId: invitation.jobId,
+            professionalId: invitation.professionalId,
+          },
+        },
+      });
+      return ok({ invitation: current, application });
+    }
+    throw error;
+  }
+
+  await writeAuditLog({
+    adminId: authResult.user.id,
+    action: AuditAction.INVITATION_STATUS_UPDATED,
+    targetType: AuditTargetType.INVITATION,
+    targetId: invitation.id,
+    metadata: { from: JobInvitationStatus.PENDING, to: JobInvitationStatus.ACCEPTED, jobId: invitation.jobId },
   });
 
   await notifyMany([
@@ -227,6 +285,12 @@ export async function POST(request: Request, { params }: Params) {
       html: `<p>${invitation.professional.name ?? "O profissional"} aceitou seu convite e enviou candidatura para a vaga <strong>${invitation.job.title}</strong>.</p>`,
     });
   }
+
+  trackProductEvent({
+    name: ProductEventName.APPLICATION_SUBMITTED,
+    userId: invitation.professionalId,
+    metadata: { applicationId: result.application.id, jobId: invitation.jobId, source: "invitation" },
+  });
 
   return ok({
     invitation: result.invitation,

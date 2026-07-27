@@ -1,10 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
   familyProfileSchema,
+  leadCaptureSchema,
   localSignupSchema,
   onboardingRoleSchema,
   professionalProfileSchema,
 } from "../schemas";
+
+describe("leadCaptureSchema", () => {
+  it("normalizes a consented lead", () => {
+    const result = leadCaptureSchema.safeParse({
+      email: "  Lead@Example.com ",
+      consent: true,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.email).toBe("lead@example.com");
+  });
+
+  it("requires explicit consent", () => {
+    const result = leadCaptureSchema.safeParse({ email: "lead@example.com", consent: false });
+    expect(result.success).toBe(false);
+  });
+});
 
 describe("localSignupSchema", () => {
   it("accepts valid signup data", () => {

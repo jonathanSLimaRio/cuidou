@@ -11,6 +11,7 @@ import {
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { notifyUser } from "@/lib/notifications";
+import { parsePagination } from "@/lib/request";
 import { checkRateLimit, rateLimitHeaders, rateLimitKey } from "@/lib/rate-limiter";
 import { uploadMediaToWordPress } from "@/lib/wordpress-media";
 import {
@@ -145,8 +146,7 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const page = Math.max(Number(searchParams.get("page") ?? "1"), 1);
-  const pageSize = Math.min(Math.max(Number(searchParams.get("pageSize") ?? "20"), 1), 100);
+  const { page, pageSize } = parsePagination(searchParams, { defaultPageSize: 20, maxPageSize: 100 });
   const statusParam = searchParams.get("status");
   if (statusParam && !Object.values(VerificationStatus).includes(statusParam as VerificationStatus)) {
     return fail(422, "validation_error", {

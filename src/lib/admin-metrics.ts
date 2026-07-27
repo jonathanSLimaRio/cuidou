@@ -11,6 +11,16 @@ export type AdminMetrics = {
   reportsByTargetType: Record<ReportTargetType, number>;
   contractsByStatus: Record<ContractStatus, number>;
   applicationsTrendDaily: Array<{ date: string; count: number }>;
+  funnel: {
+    activeRegistrations: number;
+    completeProfiles: number;
+    publishedJobs: number;
+    applications: number;
+    acceptedApplications: number;
+    contractsStarted: number;
+    contractsCompleted: number;
+  };
+  commercialEvents: Record<string, number>;
 };
 
 function startDateFromWindow(windowDays: MetricsWindow) {
@@ -23,7 +33,7 @@ function startDateFromWindow(windowDays: MetricsWindow) {
 export async function getAdminMetrics(windowDays: MetricsWindow): Promise<AdminMetrics> {
   const since = startDateFromWindow(windowDays);
 
-  const [contractsStarted, applications, reportsGrouped, contractsGrouped] =
+  const [contractsStarted, applications, reportsGrouped, contractsGrouped, activeRegistrations, completeFamilyProfiles, completeProfessionalProfiles, publishedJobs, acceptedApplications, contractsCompleted, commercialEventsGrouped] =
     await Promise.all([
       prisma.contract.findMany({
         where: {
@@ -73,6 +83,17 @@ export async function getAdminMetrics(windowDays: MetricsWindow): Promise<AdminM
         _count: {
           status: true,
         },
+      }),
+      prisma.user.count({ where: { status: "ACTIVE", createdAt: { gte: since } } }),
+      prisma.familyProfile.count({ where: { updatedAt: { gte: since }, contactName: { not: null }, bio: { not: null }, state: { not: null }, city: { not: null } } }),
+      prisma.professionalProfile.count({ where: { updatedAt: { gte: since }, bio: { not: null }, state: { not: null }, city: { not: null }, serviceTypes: { isEmpty: false } } }),
+      prisma.jobPost.count({ where: { createdAt: { gte: since }, isVisible: true } }),
+      prisma.jobApplication.count({ where: { acceptedAt: { gte: since } } }),
+      prisma.contract.count({ where: { completedAt: { gte: since } } }),
+      prisma.productEvent.groupBy({
+        by: ["name"],
+        where: { createdAt: { gte: since } },
+        _count: { name: true },
       }),
     ]);
 
@@ -135,6 +156,10 @@ export async function getAdminMetrics(windowDays: MetricsWindow): Promise<AdminM
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, count]) => ({ date, count }));
 
+  const commercialEvents = Object.fromEntries(
+    commercialEventsGrouped.map((row) => [row.name, row._count.name]),
+  );
+
   return {
     windowDays,
     since: since.toISOString(),
@@ -143,5 +168,15 @@ export async function getAdminMetrics(windowDays: MetricsWindow): Promise<AdminM
     reportsByTargetType,
     contractsByStatus,
     applicationsTrendDaily,
+    funnel: {
+      activeRegistrations,
+      completeProfiles: completeFamilyProfiles + completeProfessionalProfiles,
+      publishedJobs,
+      applications: applications.length,
+      acceptedApplications,
+      contractsStarted: contractsStarted.length,
+      contractsCompleted,
+    },
+    commercialEvents,
   };
 }

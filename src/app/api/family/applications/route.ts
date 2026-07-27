@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth-guard";
 import { fail, ok } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
+import { parsePagination } from "@/lib/request";
 import { ApplicationStatus, JobInvitationStatus, UserRole } from "@prisma/client";
 
 export async function GET(request: Request) {
@@ -10,8 +11,7 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const page = Math.max(Number(searchParams.get("page") ?? "1"), 1);
-  const pageSize = Math.min(Math.max(Number(searchParams.get("pageSize") ?? "20"), 1), 100);
+  const { page, pageSize } = parsePagination(searchParams, { defaultPageSize: 20, maxPageSize: 100 });
   const jobId = searchParams.get("jobId");
   const statusParam = searchParams.get("status");
 
@@ -120,4 +120,3 @@ export async function GET(request: Request) {
     totalPages: Math.ceil(total / pageSize),
   });
 }
-

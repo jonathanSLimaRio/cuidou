@@ -4,7 +4,8 @@ export type AdminMetrics = {
   responseRate24h: number;
   contractsByStatus: Record<string, number>;
   reportsByTargetType: Record<string, number>;
-  applicationsTrendDaily: Array<{ date: string; count: number }>;
+  applicationsTrendDaily: { date: string; count: number }[];
+  commercialEvents: Record<string, number>;
 };
 
 export type AdminUser = {

@@ -1,28 +1,42 @@
 appId: com.cuidou.app
 ---
-# Assumes already logged in as FAMILY
-- launchApp
-
-# Navigate to jobs section
+# Conta criada por prisma db seed (LOCAL_DEV_FAMILY_EMAIL/LOCAL_DEV_PASSWORD).
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "auth-email-input"
+    timeout: 10000
 - tapOn:
-    text: "Vagas"
-
-# Tap create job
+    id: "auth-email-input"
+- inputText: "familia.local@cuidou.dev"
 - tapOn:
-    text: "Nova vaga"
+    id: "auth-password-input"
+- inputText: "Cuidou123!"
+- tapOn:
+    id: "auth-submit-button"
+- extendedWaitUntil:
+    visible:
+      id: "family-section-family-jobs"
+    timeout: 10000
 
-# Fill job details
+- tapOn:
+    id: "family-section-family-jobs"
+- tapOn:
+    id: "family-create-job"
 - tapOn:
     id: "job-title-input"
-- inputText: "Babysitter para criança de 2 anos"
-
+- inputText: "Babysitter para crianca"
 - tapOn:
     id: "job-description-input"
-- inputText: "Precisamos de babysitter para nosso filho de 2 anos, três vezes por semana."
-
-# Submit
+- inputText: "Precisamos de apoio para nossa familia tres vezes por semana."
 - tapOn:
-    text: "Publicar vaga"
+    id: "job-state-input"
+- inputText: "SP"
+- tapOn:
+    id: "job-city-input"
+- inputText: "Sao Paulo"
+- tapOn:
+    id: "job-submit-button"
 
-# Confirm success
-- assertVisible: "Vaga publicada"
+- assertVisible: "Vaga criada"

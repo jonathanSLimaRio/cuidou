@@ -17,7 +17,8 @@ model User {
   phone             String?
   passwordHash      String?
   role              UserRole?
-  status            UserStatus @default(ACTIVE)
+  // New accounts, including OAuth-created users, require admin approval.
+  status            UserStatus @default(PENDING)
   acceptedTermsAt   DateTime?
   acceptedPrivacyAt DateTime?
   createdAt         DateTime   @default(now())
@@ -25,6 +26,7 @@ model User {
 
   accounts                    Account[]
   sessions                    Session[]
+  mobileRefreshTokens         MobileRefreshToken[]
   familyProfile               FamilyProfile?
   professionalProfile         ProfessionalProfile?
   jobs                        JobPost[]              @relation("FamilyJobs")
@@ -75,6 +77,49 @@ model Session {
   expires      DateTime
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WaitlistLead {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  role        UserRole?
+  city        String?
+  source      String   @default("landing")
+  consentAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([role, city])
+}
+
+model ProductEvent {
+  id          String   @id @default(cuid())
+  name        String
+  userId      String?
+  anonymousId String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([userId, createdAt])
+}
+
+model MobileRefreshToken {
+  id                 String    @id @default(cuid())
+  userId             String
+  tokenHash          String    @unique
+  expiresAt          DateTime
+  revokedAt          DateTime?
+  replacedByTokenHash String?
+  createdAt          DateTime  @default(now())
+  lastUsedAt         DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
 }
 
 model VerificationToken {
@@ -578,6 +623,8 @@ enum AuditAction {
   ADMIN_INVITE_CREATED
   CONTRACT_COMPLETED
   CONTRACT_CANCELED
+  APPLICATION_WITHDRAWN
+  INVITATION_STATUS_UPDATED
 }
 
 enum AuditTargetType {
@@ -587,4 +634,6 @@ enum AuditTargetType {
   REPORT
   ADMIN_INVITE
   CONTRACT
+  APPLICATION
+  INVITATION
 }

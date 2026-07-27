@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
 import { checkRateLimit, rateLimitHeaders, rateLimitKey } from "@/lib/rate-limiter";
 import { localSignupSchema } from "@/lib/schemas";
-import { UserStatus } from "@prisma/client";
+import { ProductEventName, trackProductEvent } from "@/lib/product-events";
+import { Prisma, UserStatus } from "@prisma/client";
 import { hash } from "bcryptjs";
 
 const RATE_LIMIT = { max: 5, windowMs: 60 * 60 * 1000 }; // 5 per hour
@@ -56,15 +57,29 @@ export async function POST(request: Request) {
 
   const passwordHash = await hash(payload.password, 12);
 
-  await prisma.user.create({
-    data: {
-      name: payload.name.trim(),
-      email,
-      passwordHash,
-      status: UserStatus.PENDING,
-      // If the user selected a role at signup, store it so onboarding can skip the picker.
-      role: payload.role ?? null,
-    },
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        name: payload.name.trim(),
+        email,
+        passwordHash,
+        status: UserStatus.PENDING,
+        // If the user selected a role at signup, store it so onboarding can skip the picker.
+        role: payload.role ?? null,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return withSignupRateLimitHeaders(fail(409, "JÃ¡ existe uma conta com este e-mail."), rl);
+    }
+    throw error;
+  }
+
+  trackProductEvent({
+    name: ProductEventName.SIGNUP_COMPLETED,
+    userId: user.id,
+    metadata: { role: payload.role ?? null },
   });
 
   const roleLabel =

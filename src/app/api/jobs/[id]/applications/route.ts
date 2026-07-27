@@ -5,6 +5,7 @@ import { getScheduleMatchWarning } from "@/lib/job-schedule";
 import { notifyMany, notifyUser } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
+import { ProductEventName, trackProductEvent } from "@/lib/product-events";
 import { applicationSchema } from "@/lib/schemas";
 import { JobInvitationStatus, JobStatus, NotificationType, UserRole } from "@prisma/client";
 
@@ -190,6 +191,12 @@ export async function POST(request: Request, { params }: Params) {
       },
     ]);
   }
+
+  trackProductEvent({
+    name: ProductEventName.APPLICATION_SUBMITTED,
+    userId: authResult.user.id,
+    metadata: { applicationId: application.id, jobId },
+  });
 
   return ok(
     {

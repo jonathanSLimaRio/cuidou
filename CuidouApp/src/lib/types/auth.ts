@@ -12,7 +12,11 @@ export type AuthErrorCode =
   | "account_suspended"
   | "account_banned"
   | "credentials_invalid"
-  | "unauthorized";
+  | "unauthorized"
+  | "account_inactive"
+  | "refresh_token_invalid"
+  | "google_not_configured"
+  | "google_token_invalid";
 
 export type SessionUser = {
   id: string;

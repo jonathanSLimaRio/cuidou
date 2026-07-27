@@ -1,4 +1,5 @@
 import * as DocumentPicker from "expo-document-picker";
+import type { TokenRequest } from "ably";
 
 import { apiRequest } from "@/src/lib/api/client";
 import type { Conversation, ConversationDetail, Message, QuickReply } from "@/src/lib/types/chat";
@@ -104,8 +105,8 @@ export const chatRepository = {
     );
   },
 
-  async getWsToken(conversationId: string): Promise<{ token: string }> {
-    return apiRequest<{ token: string }>("/api/ws-token", {
+  async getRealtimeToken(conversationId: string): Promise<{ tokenRequest: TokenRequest }> {
+    return apiRequest<{ tokenRequest: TokenRequest }>("/api/ws-token", {
       method: "GET",
       auth: true,
       query: { conversationId },

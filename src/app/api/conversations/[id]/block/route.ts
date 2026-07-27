@@ -18,7 +18,7 @@ const conversationBlockSchema = z.object({
 export async function PATCH(request: Request, { params }: Params) {
   const { id } = await params;
 
-  const authResult = await requireUser([UserRole.FAMILY, UserRole.PROFESSIONAL]);
+  const authResult = await requireUser([UserRole.FAMILY, UserRole.PROFESSIONAL], request);
   if ("response" in authResult) {
     return authResult.response;
   }

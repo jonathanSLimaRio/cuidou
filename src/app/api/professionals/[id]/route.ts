@@ -1,5 +1,6 @@
 import { fail, ok } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
+import { UserStatus, VerificationStatus } from "@prisma/client";
 
 type Params = {
   params: Promise<{
@@ -11,8 +12,21 @@ export async function GET(_: Request, { params }: Params) {
   const { id } = await params;
 
   const professional = await prisma.professionalProfile.findUnique({
-    where: { id },
-    include: {
+    where: { id, user: { status: UserStatus.ACTIVE } },
+    select: {
+      id: true,
+      userId: true,
+      bio: true,
+      experienceYears: true,
+      serviceTypes: true,
+      availability: true,
+      state: true,
+      city: true,
+      neighborhood: true,
+      hourlyRateMin: true,
+      hourlyRateMax: true,
+      verificationStatus: true,
+      updatedAt: true,
       user: {
         select: {
           id: true,
@@ -23,15 +37,21 @@ export async function GET(_: Request, { params }: Params) {
       availabilitySlots: {
         where: { isAvailable: true },
         orderBy: [{ weekday: "asc" }, { shift: "asc" }],
+        select: { weekday: true, shift: true, isAvailable: true },
       },
       availabilityExceptions: {
         orderBy: [{ date: "asc" }, { shift: "asc" }],
         take: 10,
+        select: { date: true, shift: true, isAvailable: true },
       },
     },
   });
 
   if (!professional) {
+    return fail(404, "Professional not found");
+  }
+
+  if (professional.verificationStatus !== VerificationStatus.VERIFIED) {
     return fail(404, "Professional not found");
   }
 

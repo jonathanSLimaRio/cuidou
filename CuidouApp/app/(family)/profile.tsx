@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "expo-router";
 import { useEffect, useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { appTheme } from "@/constants/theme";
 import { Button } from "@/src/components/ui/button";
@@ -176,4 +176,3 @@ const styles = StyleSheet.create({
     paddingTop: appTheme.spacing.sm,
   },
 });
-

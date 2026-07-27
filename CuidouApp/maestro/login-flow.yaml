@@ -3,17 +3,27 @@ appId: com.cuidou.app
 - launchApp:
     clearState: true
 
-# Wait for login screen
-- assertVisible: "E-mail"
-- assertVisible: "Senha"
-
-# Enter credentials
-- tapOn: "E-mail"
-- inputText: "test-family@cuidou.app"
-- tapOn: "Senha"
-- inputText: "Senha123"
+- assertVisible:
+    id: "auth-email-input"
+- assertVisible:
+    id: "auth-password-input"
 - tapOn:
-    text: "Entrar"
+    id: "auth-email-input"
+- inputText: "familia.local@cuidou.dev"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "Cuidou123!"
+- tapOn:
+    id: "auth-submit-button"
 
-# Should navigate away from login
-- assertNotVisible: "Entrar"
+- extendedWaitUntil:
+    notVisible:
+      id: "auth-submit-button"
+    timeout: 10000
+
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "family-section-family-jobs"
+    timeout: 10000

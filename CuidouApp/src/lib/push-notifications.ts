@@ -37,9 +37,9 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   try {
     const projectId =
       // EAS build: populated via app.json extra.eas.projectId
-      (Constants.expoConfig?.extra as Record<string, unknown> | undefined)?.eas
-        ?.projectId as string | undefined ??
-      Constants.easConfig?.projectId;
+      ((Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas
+        ?.projectId as string | undefined) ??
+      (Constants.easConfig as { projectId?: string } | null | undefined)?.projectId;
 
     const tokenResult = await Notifications.getExpoPushTokenAsync(
       projectId ? { projectId } : undefined,

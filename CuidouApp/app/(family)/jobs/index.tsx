@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -12,7 +12,6 @@ import { ScreenShell } from "@/src/components/ui/screen-shell";
 import { familyRepository } from "@/src/lib/api/family-repository";
 import { moneyRange, serviceTypeLabel } from "@/src/lib/marketplace-formatters";
 import type { JobStatus } from "@/src/lib/types/marketplace";
-import { useRouter } from "expo-router";
 
 const PAGE_SIZE = 20;
 
@@ -54,7 +53,7 @@ export default function FamilyJobsScreen() {
         <Button label="Voltar ao hub" variant="secondary" />
       </Link>
       <Link href="/(family)/jobs/new" asChild>
-        <Button label="Criar nova vaga" />
+        <Button label="Criar nova vaga" testID="family-create-job" />
       </Link>
 
       <View style={styles.panel}>
@@ -202,4 +201,3 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
-

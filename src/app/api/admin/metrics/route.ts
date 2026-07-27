@@ -5,7 +5,7 @@ import { adminMetricsQuerySchema } from "@/lib/schemas";
 import { UserRole } from "@prisma/client";
 
 export async function GET(request: Request) {
-  const authResult = await requireUser([UserRole.ADMIN]);
+  const authResult = await requireUser([UserRole.ADMIN], request);
   if ("response" in authResult) {
     return authResult.response;
   }

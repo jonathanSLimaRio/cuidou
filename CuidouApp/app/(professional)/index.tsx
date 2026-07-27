@@ -107,7 +107,11 @@ export default function ProfessionalHomeScreen() {
       </View>
 
       <Link href="/(marketplace)/jobs" asChild>
-        <Button label="Buscar vagas no marketplace" variant="secondary" />
+        <Button
+          label="Buscar vagas no marketplace"
+          testID="professional-marketplace-button"
+          variant="secondary"
+        />
       </Link>
       <Button label="Sair" onPress={() => void logout()} variant="secondary" />
     </ScreenShell>

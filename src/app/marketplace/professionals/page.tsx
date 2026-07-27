@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/theme/status-badge";
 import { resolveDesignImage } from "@/lib/design-media";
 import { prisma } from "@/lib/prisma";
 import { getWordPressMediaGallery, pickWordPressImage } from "@/lib/wordpress-content";
-import { VerificationStatus } from "@prisma/client";
+import { UserStatus, VerificationStatus } from "@prisma/client";
 import { BriefcaseBusiness, Eye, Filter, LogIn } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -15,7 +15,6 @@ type SearchParams = Promise<{
   serviceType?: string;
   state?: string;
   city?: string;
-  verifiedOnly?: string;
 }>;
 
 export const dynamic = "force-dynamic";
@@ -35,7 +34,6 @@ export default async function MarketplaceProfessionalsPage({
   const serviceType = resolved.serviceType || "";
   const state = resolved.state?.trim() || "";
   const city = resolved.city?.trim() || "";
-  const verifiedOnly = resolved.verifiedOnly !== "false";
 
   const where = {
     ...(serviceType
@@ -43,7 +41,8 @@ export default async function MarketplaceProfessionalsPage({
       : {}),
     ...(state ? { state } : {}),
     ...(city ? { city } : {}),
-    ...(verifiedOnly ? { verificationStatus: VerificationStatus.VERIFIED } : {}),
+    verificationStatus: VerificationStatus.VERIFIED,
+    user: { status: UserStatus.ACTIVE },
   };
 
   const [professionals, gallery] = await Promise.all([
@@ -52,7 +51,13 @@ export default async function MarketplaceProfessionalsPage({
       orderBy: {
         updatedAt: "desc",
       },
-      include: {
+      select: {
+        id: true,
+        bio: true,
+        serviceTypes: true,
+        state: true,
+        city: true,
+        verificationStatus: true,
         user: {
           select: {
             name: true,
@@ -117,14 +122,6 @@ export default async function MarketplaceProfessionalsPage({
             <label className="space-y-1">
               <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Cidade</span>
               <input name="city" defaultValue={city} placeholder="Ex: Niterói" className="theme-field" />
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Verificação</span>
-              <select name="verifiedOnly" defaultValue={verifiedOnly ? "true" : "false"} className="theme-select">
-                <option value="true">Somente verificados</option>
-                <option value="false">Todos os perfis</option>
-              </select>
             </label>
 
             <ActionButton type="submit" icon={Filter} className="w-full md:w-auto">

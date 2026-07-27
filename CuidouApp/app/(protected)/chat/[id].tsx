@@ -1,4 +1,5 @@
 import * as DocumentPicker from "expo-document-picker";
+import { Realtime, type Message as AblyMessage, type TokenRequest } from "ably";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -21,12 +22,11 @@ import { LoadingBlock } from "@/src/components/ui/loading-block";
 import { ReportAction } from "@/src/components/marketplace/report-action";
 import { useAuth } from "@/src/hooks/use-auth";
 import { useToast } from "@/src/hooks/use-toast";
-import { appConfig } from "@/src/lib/config";
 import { chatRepository } from "@/src/lib/api/chat-repository";
+import { ABLY_MESSAGE_EVENT, conversationChannelName } from "@/src/lib/realtime";
 import type { Message, QuickReply } from "@/src/lib/types/chat";
 
-const RECONNECT_BASE_MS = 1_000;
-const RECONNECT_MAX_MS = 30_000;
+type RealtimeStatus = "connecting" | "connected" | "reconnecting" | "disconnected";
 
 function mergeMessages(current: Message[], incoming: Message[]): Message[] {
   const byId = new Map<string, Message>();
@@ -80,77 +80,9 @@ export default function ChatRoomScreen() {
   const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [blockedBySelf, setBlockedBySelf] = useState(false);
 
-  // WebSocket refs
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectDelayRef = useRef(RECONNECT_BASE_MS);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>("connecting");
+  const realtimeRef = useRef<Realtime | null>(null);
   const unmountedRef = useRef(false);
-
-  // Stable function refs to avoid closure/dep-loop issues
-  const connectWebSocketRef = useRef<() => void>(() => undefined);
-  const scheduleReconnectRef = useRef<() => void>(() => undefined);
-
-  scheduleReconnectRef.current = () => {
-    const delay = reconnectDelayRef.current;
-    reconnectDelayRef.current = Math.min(delay * 2, RECONNECT_MAX_MS);
-    reconnectTimerRef.current = setTimeout(() => connectWebSocketRef.current(), delay);
-  };
-
-  connectWebSocketRef.current = () => {
-    if (unmountedRef.current || !conversationId) return;
-
-    chatRepository
-      .getWsToken(conversationId)
-      .then(({ token }) => {
-        if (unmountedRef.current) return;
-
-        const wsBase = appConfig.apiBaseUrl
-          .replace(/^http:/, "ws:")
-          .replace(/^https:/, "wss:");
-
-        const ws = new WebSocket(
-          `${wsBase}/ws?token=${encodeURIComponent(token)}&conversationId=${encodeURIComponent(conversationId)}`,
-        );
-
-        ws.onopen = () => {
-          reconnectDelayRef.current = RECONNECT_BASE_MS;
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data as string) as {
-              type: string;
-              conversationId?: string;
-              message?: Message;
-            };
-            if (
-              data.type === "new_message" &&
-              data.conversationId === conversationId &&
-              data.message
-            ) {
-              setAllMessages((current) => mergeMessages(current, [data.message!]));
-              setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
-            }
-          } catch {
-            // Ignore malformed frames
-          }
-        };
-
-        ws.onclose = () => {
-          wsRef.current = null;
-          if (!unmountedRef.current) scheduleReconnectRef.current();
-        };
-
-        ws.onerror = () => {
-          ws.close();
-        };
-
-        wsRef.current = ws;
-      })
-      .catch(() => {
-        if (!unmountedRef.current) scheduleReconnectRef.current();
-      });
-  };
 
   // Fetch initial messages via React Query
   const messagesQuery = useQuery({
@@ -186,18 +118,59 @@ export default function ChatRoomScreen() {
     staleTime: 5 * 60_000,
   });
 
-  // Connect WebSocket on mount, clean up on unmount
+  // Ably owns reconnect/backoff; the app only reflects the connection state.
   useEffect(() => {
     unmountedRef.current = false;
-    connectWebSocketRef.current();
+    if (!conversationId) return;
+
+    const realtime = new Realtime({
+      authCallback: async (_tokenParams, callback) => {
+        try {
+          const response = await chatRepository.getRealtimeToken(conversationId);
+          callback(null, response.tokenRequest as TokenRequest);
+        } catch (error) {
+          callback(error instanceof Error ? error.message : "Falha ao obter token do chat", null);
+        }
+      },
+    });
+
+    realtime.connection.on((stateChange) => {
+      if (unmountedRef.current) return;
+
+      if (stateChange.current === "connected") {
+        setRealtimeStatus("connected");
+      } else if (stateChange.current === "failed" || stateChange.current === "closed") {
+        setRealtimeStatus("disconnected");
+      } else if (stateChange.current === "disconnected" || stateChange.current === "suspended") {
+        setRealtimeStatus("reconnecting");
+      } else {
+        setRealtimeStatus("connecting");
+      }
+    });
+
+    const channel = realtime.channels.get(conversationChannelName(conversationId));
+    const onMessage = (event: AblyMessage) => {
+      const data = event.data as {
+        conversationId?: string;
+        message?: Message;
+      };
+
+      if (data.conversationId === conversationId && data.message) {
+        setAllMessages((current) => mergeMessages(current, [data.message!]));
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+      }
+    };
+
+    void channel.subscribe(ABLY_MESSAGE_EVENT, onMessage);
+    realtimeRef.current = realtime;
 
     return () => {
       unmountedRef.current = true;
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-      wsRef.current?.close();
-      wsRef.current = null;
+      void channel.unsubscribe(ABLY_MESSAGE_EVENT, onMessage);
+      realtime.close();
+      realtimeRef.current = null;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [conversationId]);
 
   async function loadMore() {
     if (!nextCursor || isLoadingMore) return;
@@ -314,6 +287,15 @@ export default function ChatRoomScreen() {
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backButtonText}>← Voltar</Text>
         </Pressable>
+        <Text style={styles.realtimeStatus}>
+          {realtimeStatus === "connected"
+            ? "Ao vivo"
+            : realtimeStatus === "reconnecting"
+              ? "Reconectando..."
+              : realtimeStatus === "disconnected"
+                ? "Offline"
+                : "Conectando..."}
+        </Text>
         <View style={styles.headerActions}>
           <Button
             label={blockedBySelf ? "Desbloquear" : "Bloquear"}
@@ -446,6 +428,12 @@ const styles = StyleSheet.create({
   },
   backButton: { paddingVertical: 4 },
   backButtonText: { color: appTheme.colors.indigo, fontSize: appTheme.typography.size.md },
+  realtimeStatus: {
+    color: appTheme.colors.textMuted,
+    fontSize: appTheme.typography.size.xs,
+    flex: 1,
+    textAlign: "center",
+  },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",

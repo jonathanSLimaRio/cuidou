@@ -2,10 +2,11 @@ import { auth } from "@/auth";
 import { requireUser } from "@/lib/auth-guard";
 import { fail, ok } from "@/lib/http";
 import { buildScheduleSummary } from "@/lib/job-schedule";
+import { getMobileUserFromBearer } from "@/lib/mobile-auth";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
 import { updateJobSchema } from "@/lib/schemas";
-import { ContractStatus, JobStatus, UserRole } from "@prisma/client";
+import { ContractStatus, JobStatus, UserRole, UserStatus } from "@prisma/client";
 
 type Params = {
   params: Promise<{
@@ -13,11 +14,12 @@ type Params = {
   }>;
 };
 
-export async function GET(_: Request, { params }: Params) {
+export async function GET(request: Request, { params }: Params) {
   const { id } = await params;
 
   const session = await auth();
-  const user = session?.user;
+  const hasBearer = request.headers.get("authorization")?.toLowerCase().startsWith("bearer ") ?? false;
+  const user = hasBearer ? await getMobileUserFromBearer(request) : session?.user;
 
   const job = await prisma.jobPost.findUnique({
     where: { id },
@@ -27,6 +29,7 @@ export async function GET(_: Request, { params }: Params) {
           id: true,
           name: true,
           image: true,
+          status: true,
         },
       },
       _count: {
@@ -45,11 +48,11 @@ export async function GET(_: Request, { params }: Params) {
   }
 
   const canAccessPrivate =
-    user &&
+    user?.status === "ACTIVE" &&
     (user.role === UserRole.ADMIN ||
       (user.role === UserRole.FAMILY && user.id === job.familyId));
 
-  if (!job.isVisible && !canAccessPrivate) {
+  if ((!job.isVisible || job.family.status !== UserStatus.ACTIVE) && !canAccessPrivate) {
     return fail(404, "Job not found");
   }
 
@@ -164,10 +167,10 @@ export async function PUT(request: Request, { params }: Params) {
   });
 }
 
-export async function DELETE(_: Request, { params }: Params) {
+export async function DELETE(request: Request, { params }: Params) {
   const { id } = await params;
 
-  const authResult = await requireUser([UserRole.FAMILY, UserRole.ADMIN]);
+  const authResult = await requireUser([UserRole.FAMILY, UserRole.ADMIN], request);
   if ("response" in authResult) {
     return authResult.response;
   }

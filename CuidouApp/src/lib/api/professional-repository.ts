@@ -136,6 +136,13 @@ export const professionalRepository = {
     });
   },
 
+  async withdrawApplication(applicationId: string) {
+    return apiRequest<{ application: { id: string; status: ApplicationStatus } }>(
+      `/api/applications/${applicationId}/withdraw`,
+      { method: "POST", auth: true },
+    );
+  },
+
   async listContracts() {
     return apiRequest<{
       items: import("@/src/lib/types/family").FamilyContract[];
@@ -155,7 +162,7 @@ export const professionalRepository = {
 
   async getNotifications(params?: { page?: number; unreadOnly?: boolean }) {
     return apiRequest<{
-      items: Array<{
+      items: {
         id: string;
         type: string;
         title: string;
@@ -163,7 +170,7 @@ export const professionalRepository = {
         createdAt: string;
         readAt: string | null;
         data: Record<string, string> | null;
-      }>;
+      }[];
       total: number;
       totalPages: number;
       page: number;

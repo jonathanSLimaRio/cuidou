@@ -1,9 +1,10 @@
 import { requireUser } from "@/lib/auth-guard";
+import { writeAuditLog } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import { fail, ok } from "@/lib/http";
 import { notifyMany } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
-import { JobInvitationStatus, NotificationType, UserRole } from "@prisma/client";
+import { AuditAction, AuditTargetType, JobInvitationStatus, NotificationType, UserRole } from "@prisma/client";
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -51,6 +52,10 @@ export async function POST(request: Request, { params }: Params) {
     return fail(403, "You can only cancel invitations from your own jobs");
   }
 
+  if (invitation.status === JobInvitationStatus.CANCELED) {
+    return ok({ invitation });
+  }
+
   if (invitation.status === JobInvitationStatus.PENDING && invitation.expiresAt.getTime() < Date.now()) {
     const expired = await prisma.jobInvitation.update({
       where: { id: invitation.id },
@@ -93,6 +98,14 @@ export async function POST(request: Request, { params }: Params) {
       });
     }
 
+    await writeAuditLog({
+      adminId: authResult.user.id,
+      action: AuditAction.INVITATION_STATUS_UPDATED,
+      targetType: AuditTargetType.INVITATION,
+      targetId: invitation.id,
+      metadata: { from: JobInvitationStatus.PENDING, to: JobInvitationStatus.EXPIRED, jobId: invitation.job.id },
+    });
+
     return fail(409, "Invitation has expired");
   }
 
@@ -100,12 +113,25 @@ export async function POST(request: Request, { params }: Params) {
     return fail(409, "Only pending invitations can be canceled");
   }
 
-  const updated = await prisma.jobInvitation.update({
-    where: { id: invitation.id },
-    data: {
-      status: JobInvitationStatus.CANCELED,
-      respondedAt: new Date(),
-    },
+  const updateResult = await prisma.jobInvitation.updateMany({
+    where: { id: invitation.id, status: JobInvitationStatus.PENDING },
+    data: { status: JobInvitationStatus.CANCELED, respondedAt: new Date() },
+  });
+
+  if (updateResult.count === 0) {
+    const current = await prisma.jobInvitation.findUnique({ where: { id: invitation.id } });
+    if (current?.status === JobInvitationStatus.CANCELED) return ok({ invitation: current });
+    return fail(409, "Invitation changed while it was being canceled");
+  }
+
+  const updated = await prisma.jobInvitation.findUniqueOrThrow({ where: { id: invitation.id } });
+
+  await writeAuditLog({
+    adminId: authResult.user.id,
+    action: AuditAction.INVITATION_STATUS_UPDATED,
+    targetType: AuditTargetType.INVITATION,
+    targetId: invitation.id,
+    metadata: { from: JobInvitationStatus.PENDING, to: JobInvitationStatus.CANCELED, jobId: invitation.job.id },
   });
 
   await notifyMany([

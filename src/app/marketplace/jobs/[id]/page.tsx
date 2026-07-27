@@ -7,6 +7,7 @@ import { ReportAction } from "@/components/reports/report-action";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { getScheduleMatchLevel, WEEKDAY_LABEL } from "@/lib/job-schedule";
 import { prisma } from "@/lib/prisma";
+import { UserStatus } from "@prisma/client";
 import { LayoutDashboard, LogIn, UserRoundSearch } from "lucide-react";
 import { notFound } from "next/navigation";
 import { ApplyToJobForm } from "./apply-to-job-form";
@@ -32,6 +33,7 @@ export default async function MarketplaceJobDetailPage({ params }: Params) {
         select: {
           id: true,
           name: true,
+          status: true,
         },
       },
       _count: {
@@ -51,10 +53,11 @@ export default async function MarketplaceJobDetailPage({ params }: Params) {
 
   const canAccessPrivate =
     session?.user &&
+    session.user.status === UserStatus.ACTIVE &&
     (session.user.role === "ADMIN" ||
       (session.user.role === "FAMILY" && session.user.id === job.familyId));
 
-  if (!job.isVisible && !canAccessPrivate) {
+  if ((!job.isVisible || job.family.status !== UserStatus.ACTIVE) && !canAccessPrivate) {
     notFound();
   }
 

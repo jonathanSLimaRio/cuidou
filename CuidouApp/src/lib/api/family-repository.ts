@@ -191,7 +191,7 @@ export const familyRepository = {
 
   async getNotifications(params?: { page?: number; unreadOnly?: boolean }) {
     return apiRequest<{
-      items: Array<{
+      items: {
         id: string;
         type: string;
         title: string;
@@ -199,7 +199,7 @@ export const familyRepository = {
         createdAt: string;
         readAt: string | null;
         data: Record<string, string> | null;
-      }>;
+      }[];
       total: number;
       totalPages: number;
       page: number;
@@ -228,4 +228,3 @@ export const familyRepository = {
     });
   },
 };
-

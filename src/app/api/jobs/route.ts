@@ -2,9 +2,10 @@ import { requireUser } from "@/lib/auth-guard";
 import { fail, ok } from "@/lib/http";
 import { buildScheduleSummary } from "@/lib/job-schedule";
 import { prisma } from "@/lib/prisma";
-import { parseJsonBody } from "@/lib/request";
+import { parseJsonBody, parsePagination } from "@/lib/request";
+import { ProductEventName, trackProductEvent } from "@/lib/product-events";
 import { createJobSchema } from "@/lib/schemas";
-import { JobStatus, UserRole } from "@prisma/client";
+import { JobStatus, ServiceType, UserRole, UserStatus } from "@prisma/client";
 
 export async function POST(request: Request) {
   const authResult = await requireUser([UserRole.FAMILY], request);
@@ -64,6 +65,12 @@ export async function POST(request: Request) {
     });
   });
 
+  trackProductEvent({
+    name: ProductEventName.JOB_PUBLISHED,
+    userId: authResult.user.id,
+    metadata: { jobId: job.id, serviceType: job.serviceType, city: job.city, state: job.state },
+  });
+
   return ok(
     {
       job: {
@@ -77,13 +84,20 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const serviceType = searchParams.get("serviceType") ?? undefined;
+  const serviceTypeParam = searchParams.get("serviceType") ?? undefined;
   const state = searchParams.get("state") ?? undefined;
   const city = searchParams.get("city") ?? undefined;
-  const status = searchParams.get("status") ?? undefined;
+  const statusParam = searchParams.get("status") ?? undefined;
+  if (serviceTypeParam && !Object.values(ServiceType).includes(serviceTypeParam as ServiceType)) {
+    return fail(422, "Invalid serviceType filter");
+  }
+  if (statusParam && !Object.values(JobStatus).includes(statusParam as JobStatus)) {
+    return fail(422, "Invalid status filter");
+  }
+  const serviceType = serviceTypeParam as ServiceType | undefined;
+  const status = statusParam as JobStatus | undefined;
   const mine = searchParams.get("mine") === "true";
-  const page = Math.max(Number(searchParams.get("page") ?? "1"), 1);
-  const pageSize = Math.min(Math.max(Number(searchParams.get("pageSize") ?? "20"), 1), 100);
+  const { page, pageSize } = parsePagination(searchParams, { defaultPageSize: 20, maxPageSize: 100 });
 
   let familyId: string | undefined;
   if (mine) {
@@ -101,7 +115,9 @@ export async function GET(request: Request) {
     city,
     status: status as JobStatus | undefined,
     familyId,
-    ...(mine ? {} : { isVisible: true, status: JobStatus.OPEN }),
+    ...(mine
+      ? {}
+      : { isVisible: true, status: JobStatus.OPEN, family: { status: UserStatus.ACTIVE } }),
   };
 
   const [items, total] = await Promise.all([

@@ -22,7 +22,7 @@ type Params = {
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
 
-  const authResult = await requireUser([UserRole.ADMIN]);
+  const authResult = await requireUser([UserRole.ADMIN], request);
   if ("response" in authResult) {
     return authResult.response;
   }

@@ -3,6 +3,7 @@ import { ok } from "@/lib/http";
 import { notifyMany } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
+import { ProductEventName, trackProductEvent } from "@/lib/product-events";
 import { checkRateLimit, rateLimitHeaders, rateLimitKey } from "@/lib/rate-limiter";
 import { reportSchema } from "@/lib/schemas";
 import { NotificationType } from "@prisma/client";
@@ -68,6 +69,12 @@ export async function POST(request: Request) {
       },
     })),
   );
+
+  trackProductEvent({
+    name: ProductEventName.REPORT_SUBMITTED,
+    userId: authResult.user.id,
+    metadata: { reportId: report.id, targetType: data.targetType },
+  });
 
   return ok({ report }, 201);
 }

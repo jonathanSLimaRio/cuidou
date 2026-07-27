@@ -3,6 +3,7 @@ import { sendEmail } from "@/lib/email";
 import { fail, ok } from "@/lib/http";
 import { notifyMany } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { ProductEventName, trackProductEvent } from "@/lib/product-events";
 import {
   ApplicationStatus,
   ContractStatus,
@@ -66,6 +67,10 @@ export async function POST(request: Request, { params }: Params) {
 
   if (application.job.familyId !== authResult.user.id) {
     return fail(403, "You can only accept applications from your own jobs");
+  }
+
+  if (application.job.status !== JobStatus.OPEN) {
+    return fail(409, "Only applications for open jobs can be accepted");
   }
 
   if (
@@ -202,6 +207,12 @@ export async function POST(request: Request, { params }: Params) {
       html: `<p>Sua candidatura para a vaga <strong>${application.job.title}</strong> foi aprovada. O contrato foi iniciado e você já pode conversar com a família na plataforma.</p>`,
     });
   }
+
+  trackProductEvent({
+    name: ProductEventName.APPLICATION_ACCEPTED,
+    userId: authResult.user.id,
+    metadata: { applicationId, jobId: application.jobId, contractId: result.contract.id },
+  });
 
   return ok({
     application: result.updatedApplication,

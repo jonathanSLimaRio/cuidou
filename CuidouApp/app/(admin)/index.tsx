@@ -94,6 +94,14 @@ export default function AdminHomeScreen() {
             </Text>
             <Text style={styles.metricLabel}>Total de denúncias</Text>
           </View>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricValue}>{metricsQuery.data.commercialEvents.lead_captured ?? 0}</Text>
+            <Text style={styles.metricLabel}>Leads capturados</Text>
+          </View>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricValue}>{metricsQuery.data.commercialEvents.signup_completed ?? 0}</Text>
+            <Text style={styles.metricLabel}>Cadastros concluídos</Text>
+          </View>
         </View>
       ) : null}
 

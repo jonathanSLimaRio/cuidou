@@ -125,6 +125,7 @@ export default function JobDetailScreen() {
               <View style={styles.form}>
                 <Text style={styles.meta}>Mensagem de candidatura</Text>
                 <TextInput
+                  testID="application-message-input"
                   style={styles.textArea}
                   value={coverMessage}
                   onChangeText={setCoverMessage}
@@ -134,6 +135,7 @@ export default function JobDetailScreen() {
                 />
                 <Button
                   label="Enviar candidatura"
+                  testID="application-submit-button"
                   onPress={onApply}
                   loading={applyMutation.isPending}
                 />

@@ -26,7 +26,9 @@ function needsAuthForApi(pathname: string) {
 
   if (
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/mobile/auth/") ||
     pathname === "/api/health" ||
+    pathname === "/api/leads" ||
     pathname.startsWith("/api/jobs") ||
     pathname.startsWith("/api/professionals")
   ) {
@@ -61,6 +63,7 @@ export default auth((req) => {
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
   const isApiProtected = needsAuthForApi(pathname);
+  const hasBearerToken = req.headers.get("authorization")?.toLowerCase().startsWith("bearer ") ?? false;
 
   // Inject pathname into request headers so Server Components (e.g. SiteHeader)
   // can detect the current route without using usePathname (client-only).
@@ -70,7 +73,7 @@ export default auth((req) => {
   let response: NextResponse;
 
   // 1. Basic Auth Check for protected pages/APIs
-  if ((isProtectedPage || isApiProtected) && !session?.user) {
+  if ((isProtectedPage || (isApiProtected && !hasBearerToken)) && !session?.user) {
     if (pathname.startsWith("/api")) {
       response = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     } else {

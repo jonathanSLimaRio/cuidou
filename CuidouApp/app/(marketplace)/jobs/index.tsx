@@ -144,9 +144,10 @@ export default function MarketplaceJobsScreen() {
 
       {!jobsQuery.isPending && !jobsQuery.isError && items.length > 0 ? (
         <View style={styles.list}>
-          {items.map((job) => (
+          {items.map((job, index) => (
             <Pressable
               key={job.id}
+              testID={`marketplace-job-card-${index}`}
               onPress={() => router.push(`/(marketplace)/jobs/${job.id}`)}
               style={styles.card}
             >

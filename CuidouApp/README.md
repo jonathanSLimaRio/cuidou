@@ -84,7 +84,17 @@ maestro test maestro/family-create-job.yaml
 maestro test maestro/professional-apply.yaml
 ```
 
-## Estado atual e pontos de atencao (Sprint 1)
+Os tres fluxos fazem login por email/senha e usam as contas locais criadas pelo seed:
+
+| Fluxo | Conta |
+| --- | --- |
+| login | `familia.local@cuidou.dev` |
+| family-create-job | `familia.local@cuidou.dev` |
+| professional-apply | `cuidadora.local@cuidou.dev` |
+
+Senha local dos tres fluxos: `Cuidou123!`. Essas credenciais sao somente para desenvolvimento; nao as reutilize em ambientes compartilhados.
+
+## Estado atual e pontos de atencao (Sprint 4)
 
 - README atualizado para refletir o app real (antes estava no template padrao Expo).
 - Roteamento de push corrigido:
@@ -98,12 +108,22 @@ maestro test maestro/professional-apply.yaml
   - bootstrap do Sentry no root layout.
   - captura no `ErrorBoundary`.
   - tags basicas de ambiente/release/user.
+- Chat mobile alinhado ao Ably: nao ha mais conexao direta com `/ws`; o cliente usa `tokenRequest`, reconexao do SDK e indicador de conexao.
+- Push registra tokens Expo e direciona notificacoes de candidatura, convite, contrato, documento e chat para as rotas correspondentes.
 
 ## Relacao com o backend
 
 Este app depende das rotas do projeto web em `../src/app/api`.
 Antes de validar fluxos mobile, garantir que o backend esteja com:
-- banco migrado,
+- banco migrado com `npm run prisma:migrate:deploy`,
 - seed executado (quando necessario),
 - auth configurada,
 - endpoint de health disponivel.
+
+## Contrato de integracao atual
+
+O backend web e a fonte de verdade da API. Configure `EXPO_PUBLIC_API_BASE_URL` explicitamente para o ambiente que sera validado.
+
+O login mobile usa as rotas `/api/mobile/auth/login`, `/refresh`, `/session`, `/logout` e `/google`, com access token curto, refresh token rotativo persistido e armazenamento no Secure Store. O backend web também aceita o Bearer token mobile nas APIs protegidas.
+
+O chat web e mobile usam Ably Realtime. Os fluxos Maestro continuam sendo roteiros de validação e não representam, por si só, um release mobile aprovado: ainda dependem de banco migrado, seed, credenciais locais e um emulador/dispositivo com Maestro instalado.

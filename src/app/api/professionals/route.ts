@@ -1,23 +1,28 @@
-import { ok } from "@/lib/http";
+import { fail, ok } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
-import { VerificationStatus, Weekday } from "@prisma/client";
+import { parsePagination } from "@/lib/request";
+import { ServiceType, UserStatus, VerificationStatus, Weekday } from "@prisma/client";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const serviceType = searchParams.get("serviceType") ?? undefined;
+  const serviceTypeParam = searchParams.get("serviceType") ?? undefined;
   const state = searchParams.get("state") ?? undefined;
   const city = searchParams.get("city") ?? undefined;
-  const verifiedOnly = searchParams.get("verifiedOnly") !== "false";
-  const page = Math.max(Number(searchParams.get("page") ?? "1"), 1);
-  const pageSize = Math.min(Math.max(Number(searchParams.get("pageSize") ?? "20"), 1), 100);
+  if (serviceTypeParam && !Object.values(ServiceType).includes(serviceTypeParam as ServiceType)) {
+    return fail(422, "Invalid serviceType filter");
+  }
+  const serviceType = serviceTypeParam as ServiceType | undefined;
+  const { page, pageSize } = parsePagination(searchParams, { defaultPageSize: 20, maxPageSize: 100 });
 
   const where = {
     ...(serviceType
-      ? { serviceTypes: { has: serviceType as "BABYSITTER" | "ELDER_CAREGIVER" } }
+      ? { serviceTypes: { has: serviceType } }
       : {}),
     state,
     city,
-    ...(verifiedOnly ? { verificationStatus: VerificationStatus.VERIFIED } : {}),
+    // Public marketplace must never expose unverified professional profiles.
+    verificationStatus: VerificationStatus.VERIFIED,
+    user: { status: UserStatus.ACTIVE },
   };
 
   const [items, total] = await Promise.all([
@@ -26,7 +31,20 @@ export async function GET(request: Request) {
       orderBy: { updatedAt: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        bio: true,
+        experienceYears: true,
+        serviceTypes: true,
+        availability: true,
+        state: true,
+        city: true,
+        neighborhood: true,
+        hourlyRateMin: true,
+        hourlyRateMax: true,
+        verificationStatus: true,
+        updatedAt: true,
         user: {
           select: {
             id: true,

@@ -24,6 +24,8 @@ const ACTION_OPTIONS = [
   { label: "Convite criado", value: "ADMIN_INVITE_CREATED" },
   { label: "Contrato concluído", value: "CONTRACT_COMPLETED" },
   { label: "Contrato cancelado", value: "CONTRACT_CANCELED" },
+  { label: "Candidatura retirada", value: "APPLICATION_WITHDRAWN" },
+  { label: "Convite atualizado", value: "INVITATION_STATUS_UPDATED" },
 ];
 
 const TARGET_TYPE_OPTIONS = [
@@ -34,6 +36,8 @@ const TARGET_TYPE_OPTIONS = [
   { label: "Denúncia", value: "REPORT" },
   { label: "Convite admin", value: "ADMIN_INVITE" },
   { label: "Contrato", value: "CONTRACT" },
+  { label: "Candidatura", value: "APPLICATION" },
+  { label: "Convite", value: "INVITATION" },
 ];
 
 function formatDate(iso: string): string {

@@ -21,6 +21,10 @@ Scope: notification tap routing validation after Sprint 1 fixes.
 - [ ] Foreground/background/cold-start on `INVITATION_STATUS_UPDATED` opens `/(professional)/invitations`.
 - [ ] Foreground/background/cold-start on `APPLICATION_STATUS_UPDATED` opens `/(professional)/applications`.
 
+## Family Account - application status
+
+- [ ] Foreground/background/cold-start on `APPLICATION_STATUS_UPDATED` opens `/(family)/pipeline`.
+
 ## Cross-checks
 
 - [ ] Same notification response is not handled twice (no duplicate navigation).

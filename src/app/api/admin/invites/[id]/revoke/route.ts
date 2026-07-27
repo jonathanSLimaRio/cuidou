@@ -6,10 +6,10 @@ import { AuditAction, AuditTargetType, UserRole } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function POST(_: Request, { params }: Params) {
+export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
 
-  const authResult = await requireUser([UserRole.ADMIN]);
+  const authResult = await requireUser([UserRole.ADMIN], request);
   if ("response" in authResult) {
     return authResult.response;
   }

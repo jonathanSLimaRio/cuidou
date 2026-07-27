@@ -51,14 +51,14 @@ export function resolveNotificationNavigationTarget(
       return conversationId ? `/(protected)/chat/${conversationId}` : null;
 
     case "APPLICATION_RECEIVED":
-      return "/(family)/pipeline";
+      return role === "FAMILY" ? "/(family)/pipeline" : null;
 
     case "APPLICATION_STATUS_UPDATED":
       if (role === "PROFESSIONAL") {
         return "/(professional)/applications";
       }
       if (role === "FAMILY") {
-        return "/(family)/applications";
+        return "/(family)/pipeline";
       }
       return null;
 
@@ -82,7 +82,11 @@ export function resolveNotificationNavigationTarget(
       return null;
 
     case "DOCUMENT_STATUS_UPDATED":
-      return "/(professional)/documents";
+      return role === "PROFESSIONAL" ? "/(professional)/documents" : null;
+
+    case "REPORT_STATUS_UPDATED":
+    case "SYSTEM":
+      return "/(protected)/notifications";
 
     default:
       return null;

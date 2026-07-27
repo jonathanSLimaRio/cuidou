@@ -1,7 +1,7 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { appTheme } from "@/constants/theme";
 import { Button } from "@/src/components/ui/button";
@@ -44,6 +44,11 @@ export default function ProfessionalApplicationsScreen() {
     () => applicationsQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [applicationsQuery.data?.pages],
   );
+
+  const withdrawMutation = useMutation({
+    mutationFn: (applicationId: string) => professionalRepository.withdrawApplication(applicationId),
+    onSuccess: () => applicationsQuery.refetch(),
+  });
 
   return (
     <ScreenShell
@@ -113,6 +118,27 @@ export default function ProfessionalApplicationsScreen() {
                 <Text style={styles.body} numberOfLines={4}>
                   {application.coverMessage}
                 </Text>
+              ) : null}
+              {application.status === "SUBMITTED" || application.status === "SHORTLISTED" ? (
+                <Button
+                  label="Retirar candidatura"
+                  variant="secondary"
+                  loading={withdrawMutation.isPending && withdrawMutation.variables === application.id}
+                  onPress={() =>
+                    Alert.alert(
+                      "Retirar candidatura?",
+                      "A família será avisada e você não poderá desfazer esta ação.",
+                      [
+                        { text: "Continuar analisando", style: "cancel" },
+                        {
+                          text: "Retirar",
+                          style: "destructive",
+                          onPress: () => withdrawMutation.mutate(application.id),
+                        },
+                      ],
+                    )
+                  }
+                />
               ) : null}
               <Link href={`/(marketplace)/jobs/${application.job.id}`} asChild>
                 <Button label="Ver vaga" variant="ghost" />

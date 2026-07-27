@@ -6,7 +6,7 @@ import { fail, ok } from "@/lib/http";
 import { logger } from "@/lib/logger";
 import { notifyUser } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
-import { parseJsonBody } from "@/lib/request";
+import { parseBoundedInt, parseJsonBody } from "@/lib/request";
 import { checkRateLimit, rateLimitHeaders, rateLimitKey } from "@/lib/rate-limiter";
 import { messageSchema } from "@/lib/schemas";
 import {
@@ -70,7 +70,7 @@ function toPublicMessage<T extends { attachments: Parameters<typeof toPublicAtta
 export async function GET(request: Request, { params }: Params) {
   const { id: conversationId } = await params;
 
-  const authResult = await requireUser([UserRole.FAMILY, UserRole.PROFESSIONAL, UserRole.ADMIN]);
+  const authResult = await requireUser([UserRole.FAMILY, UserRole.PROFESSIONAL, UserRole.ADMIN], request);
   if ("response" in authResult) {
     return authResult.response;
   }
@@ -97,7 +97,7 @@ export async function GET(request: Request, { params }: Params) {
 
   const { searchParams } = new URL(request.url);
   const cursor = searchParams.get("cursor") ?? undefined;
-  const take = Math.min(Math.max(Number(searchParams.get("take") ?? "20"), 1), 50);
+  const take = parseBoundedInt(searchParams.get("take"), 20, 50);
 
   const messages = await prisma.message.findMany({
     where: {
@@ -169,7 +169,7 @@ export async function POST(request: Request, { params }: Params) {
     });
   }
 
-  const authResult = await requireUser([UserRole.FAMILY, UserRole.PROFESSIONAL]);
+  const authResult = await requireUser([UserRole.FAMILY, UserRole.PROFESSIONAL], request);
   if ("response" in authResult) {
     return authResult.response;
   }
@@ -428,7 +428,16 @@ export async function POST(request: Request, { params }: Params) {
 
   const publicMessage = toPublicMessage(message);
 
-  await publishConversationMessage(conversationId, publicMessage as Record<string, unknown>);
+  try {
+    await publishConversationMessage(conversationId, publicMessage as Record<string, unknown>);
+  } catch (error) {
+    // PostgreSQL is the source of truth. A transient Ably outage must not make
+    // the client retry a message that was already persisted.
+    logger.error("Failed to publish persisted message to Ably", error, {
+      conversationId,
+      messageId: message.id,
+    });
+  }
 
   return ok({ message: publicMessage }, 201);
 }

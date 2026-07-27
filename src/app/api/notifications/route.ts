@@ -1,17 +1,17 @@
 import { requireUser } from "@/lib/auth-guard";
 import { ok } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
+import { parsePagination } from "@/lib/request";
 
 export async function GET(request: Request) {
-  const authResult = await requireUser();
+  const authResult = await requireUser(undefined, request);
   if ("response" in authResult) {
     return authResult.response;
   }
 
   const { searchParams } = new URL(request.url);
   const unreadOnly = searchParams.get("unreadOnly") === "true";
-  const page = Math.max(Number(searchParams.get("page") ?? "1"), 1);
-  const pageSize = Math.min(Math.max(Number(searchParams.get("pageSize") ?? "20"), 1), 100);
+  const { page, pageSize } = parsePagination(searchParams, { defaultPageSize: 20, maxPageSize: 100 });
 
   const where = {
     userId: authResult.user.id,
@@ -37,8 +37,8 @@ export async function GET(request: Request) {
   });
 }
 
-export async function PATCH() {
-  const authResult = await requireUser();
+export async function PATCH(request: Request) {
+  const authResult = await requireUser(undefined, request);
   if ("response" in authResult) {
     return authResult.response;
   }

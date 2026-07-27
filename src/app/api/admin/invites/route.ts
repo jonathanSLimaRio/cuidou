@@ -7,8 +7,8 @@ import { parseJsonBody } from "@/lib/request";
 import { adminInviteSchema } from "@/lib/schemas";
 import { AuditAction, AuditTargetType, UserRole } from "@prisma/client";
 
-export async function GET() {
-  const authResult = await requireUser([UserRole.ADMIN]);
+export async function GET(request: Request) {
+  const authResult = await requireUser([UserRole.ADMIN], request);
   if ("response" in authResult) {
     return authResult.response;
   }
@@ -22,7 +22,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const authResult = await requireUser([UserRole.ADMIN]);
+  const authResult = await requireUser([UserRole.ADMIN], request);
   if ("response" in authResult) {
     return authResult.response;
   }

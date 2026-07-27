@@ -57,7 +57,6 @@ export default function InviteProfessionalsScreen() {
   const [draftServiceType, setDraftServiceType] = useState<ServiceType | "">("");
   const [draftState, setDraftState] = useState("");
   const [draftCity, setDraftCity] = useState("");
-  const [draftVerifiedOnly, setDraftVerifiedOnly] = useState(true);
 
   // Applied filters that actually drive the query
   const [filters, setFilters] = useState<ProfessionalsFilter>({ verifiedOnly: true });
@@ -122,7 +121,7 @@ export default function InviteProfessionalsScreen() {
       serviceType: draftServiceType,
       state: draftState.trim(),
       city: draftCity.trim(),
-      verifiedOnly: draftVerifiedOnly,
+      verifiedOnly: true,
     });
   }
 
@@ -130,7 +129,6 @@ export default function InviteProfessionalsScreen() {
     setDraftServiceType("");
     setDraftState("");
     setDraftCity("");
-    setDraftVerifiedOnly(true);
     setFilters({ verifiedOnly: true });
   }
 
@@ -190,18 +188,6 @@ export default function InviteProfessionalsScreen() {
           placeholder="Cidade (ex: Niterói)"
           placeholderTextColor={appTheme.colors.textMuted}
         />
-
-        <Pressable
-          style={styles.checkboxRow}
-          onPress={() => setDraftVerifiedOnly((v) => !v)}
-        >
-          <View
-            style={[styles.checkbox, draftVerifiedOnly && styles.checkboxChecked]}
-          />
-          <Text style={styles.checkboxLabel}>
-            Apenas profissionais verificados
-          </Text>
-        </Pressable>
 
         <View style={styles.actionRow}>
           <Button label="Aplicar" onPress={applyFilters} />
@@ -387,28 +373,6 @@ const styles = StyleSheet.create({
   textArea: {
     minHeight: 110,
     textAlignVertical: "top",
-  },
-  checkboxRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: appTheme.spacing.sm,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 1,
-    borderColor: appTheme.colors.border,
-    borderRadius: 6,
-    backgroundColor: appTheme.colors.white,
-  },
-  checkboxChecked: {
-    backgroundColor: appTheme.colors.indigo,
-    borderColor: appTheme.colors.indigo,
-  },
-  checkboxLabel: {
-    color: appTheme.colors.text,
-    fontSize: appTheme.typography.size.sm,
-    flex: 1,
   },
   actionRow: {
     flexDirection: "row",

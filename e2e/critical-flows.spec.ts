@@ -40,7 +40,7 @@ test("signup form shows error for mismatched passwords", async ({ page }) => {
 test("login form shows error for empty fields", async ({ page }) => {
   await page.goto("/login", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /Entrar com email e senha/i }).click();
-  await expect(page.locator('input[name="email"]:invalid, [role="alert"]').first()).toBeVisible({
+  await expect(page.locator('input[type="email"]:invalid, [role="alert"]').first()).toBeVisible({
     timeout: 5_000,
   });
 });
@@ -49,7 +49,7 @@ test("login form shows error for empty fields", async ({ page }) => {
 // Flow 3 — Marketplace is accessible
 // ---------------------------------------------------------------------------
 test("marketplace page loads", async ({ page }) => {
-  await page.goto("/marketplace");
+  await page.goto("/marketplace", { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/marketplace/);
   // Should not redirect to login (public page)
   await expect(page).not.toHaveURL(/login/);

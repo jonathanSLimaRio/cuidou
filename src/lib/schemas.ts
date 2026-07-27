@@ -14,6 +14,23 @@ const strongPasswordSchema = z
   .min(8, "Password must have at least 8 characters")
   .regex(/[A-Za-z]/, "Password must contain at least one letter")
   .regex(/[0-9]/, "Password must contain at least one number");
+
+export const mobileLoginSchema = z.object({
+  email: z.email().trim().toLowerCase(),
+  password: z.string().min(1).max(200),
+});
+
+export const mobileRefreshSchema = z.object({
+  refreshToken: z.string().min(32).max(500),
+});
+
+export const mobileLogoutSchema = z.object({
+  refreshToken: z.string().min(32).max(500).nullable().optional(),
+});
+
+export const mobileGoogleSchema = z.object({
+  idToken: z.string().min(20).max(10_000),
+});
 export const weekdaySchema = z.enum([
   "MONDAY",
   "TUESDAY",
@@ -45,6 +62,15 @@ export const localSignupSchema = z
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
+
+export const leadCaptureSchema = z.object({
+  email: z.string().trim().toLowerCase().pipe(z.email()),
+  name: z.string().trim().min(2).max(120).optional(),
+  role: roleSchema.optional(),
+  city: z.string().trim().max(120).optional(),
+  source: z.string().trim().min(2).max(80).default("landing"),
+  consent: z.literal(true),
+});
 
 export const familyProfileSchema = z.object({
   contactName: z.string().min(2).max(120),

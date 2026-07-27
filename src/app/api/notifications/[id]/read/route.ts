@@ -6,10 +6,10 @@ type Params = {
   params: Promise<{ id: string }>;
 };
 
-export async function PATCH(_: Request, { params }: Params) {
+export async function PATCH(request: Request, { params }: Params) {
   const { id } = await params;
 
-  const authResult = await requireUser();
+  const authResult = await requireUser(undefined, request);
   if ("response" in authResult) {
     return authResult.response;
   }

@@ -1,11 +1,12 @@
 import { requireUser } from "@/lib/auth-guard";
+import { writeAuditLog } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import { fail, ok } from "@/lib/http";
 import { notifyMany } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
 import { declineInvitationSchema } from "@/lib/schemas";
-import { JobInvitationStatus, NotificationType, UserRole } from "@prisma/client";
+import { AuditAction, AuditTargetType, JobInvitationStatus, NotificationType, UserRole } from "@prisma/client";
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -17,11 +18,6 @@ export async function POST(request: Request, { params }: Params) {
   const authResult = await requireUser([UserRole.PROFESSIONAL], request);
   if ("response" in authResult) {
     return authResult.response;
-  }
-
-  const bodyResult = await parseJsonBody(request, declineInvitationSchema);
-  if ("response" in bodyResult) {
-    return bodyResult.response;
   }
 
   const invitation = await prisma.jobInvitation.findUnique({
@@ -56,6 +52,10 @@ export async function POST(request: Request, { params }: Params) {
 
   if (invitation.professionalId !== authResult.user.id) {
     return fail(403, "You can only respond to your own invitations");
+  }
+
+  if (invitation.status === JobInvitationStatus.DECLINED) {
+    return ok({ invitation });
   }
 
   if (invitation.status === JobInvitationStatus.PENDING && invitation.expiresAt.getTime() < Date.now()) {
@@ -98,11 +98,24 @@ export async function POST(request: Request, { params }: Params) {
       });
     }
 
+    await writeAuditLog({
+      adminId: authResult.user.id,
+      action: AuditAction.INVITATION_STATUS_UPDATED,
+      targetType: AuditTargetType.INVITATION,
+      targetId: invitation.id,
+      metadata: { from: JobInvitationStatus.PENDING, to: JobInvitationStatus.EXPIRED, jobId: invitation.job.id },
+    });
+
     return fail(409, "Invitation has expired");
   }
 
   if (invitation.status !== JobInvitationStatus.PENDING) {
     return fail(409, "This invitation is no longer pending");
+  }
+
+  const bodyResult = await parseJsonBody(request, declineInvitationSchema);
+  if ("response" in bodyResult) {
+    return bodyResult.response;
   }
 
   const updated = await prisma.jobInvitation.update({
@@ -112,6 +125,14 @@ export async function POST(request: Request, { params }: Params) {
       responseMessage: bodyResult.data.reason,
       respondedAt: new Date(),
     },
+  });
+
+  await writeAuditLog({
+    adminId: authResult.user.id,
+    action: AuditAction.INVITATION_STATUS_UPDATED,
+    targetType: AuditTargetType.INVITATION,
+    targetId: invitation.id,
+    metadata: { from: JobInvitationStatus.PENDING, to: JobInvitationStatus.DECLINED, jobId: invitation.job.id },
   });
 
   await notifyMany([

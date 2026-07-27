@@ -10,7 +10,7 @@ const acceptAdminInviteSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const authResult = await requireUser();
+  const authResult = await requireUser(undefined, request);
   if ("response" in authResult) {
     return authResult.response;
   }
@@ -54,7 +54,22 @@ export async function POST(request: Request) {
 
   const now = new Date();
 
-  const updatedUser = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
+    // Claim the invite atomically so two concurrent requests cannot promote
+    // the same account or report two successful acceptances.
+    const claimed = await tx.adminInvite.updateMany({
+      where: {
+        id: invite.id,
+        acceptedAt: null,
+        expiresAt: { gt: now },
+      },
+      data: { acceptedAt: now },
+    });
+
+    if (claimed.count !== 1) {
+      return null;
+    }
+
     const user = await tx.user.update({
       where: { id: authResult.user.id },
       data: {
@@ -69,19 +84,16 @@ export async function POST(request: Request) {
       },
     });
 
-    await tx.adminInvite.update({
-      where: { id: invite.id },
-      data: {
-        acceptedAt: now,
-      },
-    });
-
-    return user;
+    return { user, acceptedAt: now };
   });
 
+  if (!result) {
+    return fail(409, "Invite token already used or expired");
+  }
+
   return ok({
-    user: updatedUser,
-    acceptedAt: now.toISOString(),
+    user: result.user,
+    acceptedAt: result.acceptedAt.toISOString(),
     nextPath: "/admin",
   });
 }

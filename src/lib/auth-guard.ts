@@ -4,6 +4,7 @@ import { fail } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { UserRole, UserStatus } from "@prisma/client";
 import { getToken } from "next-auth/jwt";
+import { getMobileUserFromBearer } from "@/lib/mobile-auth";
 
 export type CurrentUser = {
   id: string;
@@ -41,11 +42,21 @@ async function getUserFromBearer(request?: Request): Promise<CurrentUser | null>
     return null;
   }
 
-  const token = await getToken({
-    req: request as never,
-    secret: authSecret,
-    secureCookie: process.env.NODE_ENV === "production",
-  });
+  const mobileUser = await getMobileUserFromBearer(request);
+  if (mobileUser) {
+    return buildCurrentUser(mobileUser);
+  }
+
+  let token;
+  try {
+    token = await getToken({
+      req: request as never,
+      secret: authSecret,
+      secureCookie: process.env.NODE_ENV === "production",
+    });
+  } catch {
+    return null;
+  }
 
   const userId =
     (typeof token?.id === "string" && token.id.length > 0 ? token.id : token?.sub) ?? null;
@@ -75,8 +86,16 @@ async function getUserFromBearer(request?: Request): Promise<CurrentUser | null>
 export async function requireUser(roles?: UserRole[], request?: Request) {
   const session = await auth();
   const user = session?.user;
+  const hasBearer = request?.headers.get("authorization")?.toLowerCase().startsWith("bearer ") ?? false;
 
-  const currentUser = user?.id ? buildCurrentUser(user) : await getUserFromBearer(request);
+  // An explicit Bearer credential must take precedence over a browser cookie.
+  // Otherwise a request carrying an invalid/low-privilege mobile token could
+  // accidentally inherit a different user's web session on the same origin.
+  const currentUser = hasBearer
+    ? await getUserFromBearer(request)
+    : user?.id
+      ? buildCurrentUser(user)
+      : null;
 
   if (!currentUser?.id) {
     return { response: fail(401, "Unauthorized") } as const;

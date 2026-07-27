@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth-guard";
 import { ok } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
+import { ProductEventName, trackProductEvent } from "@/lib/product-events";
 import { professionalProfileSchema } from "@/lib/schemas";
 import { UserRole } from "@prisma/client";
 
@@ -70,6 +71,12 @@ export async function PUT(request: Request) {
       data: { phone: data.phone },
     });
   }
+
+  trackProductEvent({
+    name: ProductEventName.PROFILE_COMPLETED,
+    userId: authResult.user.id,
+    metadata: { role: UserRole.PROFESSIONAL },
+  });
 
   return ok({ profile });
 }

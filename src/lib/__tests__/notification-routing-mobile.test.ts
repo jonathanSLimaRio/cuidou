@@ -31,6 +31,7 @@ describe("mobile notification routing", () => {
     });
 
     expect(resolveNotificationNavigationTarget(payload, "FAMILY")).toBe("/(family)/pipeline");
+    expect(resolveNotificationNavigationTarget(payload, "PROFESSIONAL")).toBeNull();
   });
 
   it("routes invitation status updates by authenticated role", () => {
@@ -61,7 +62,7 @@ describe("mobile notification routing", () => {
     expect(resolveNotificationNavigationTarget(payload, "PROFESSIONAL")).toBe(
       "/(professional)/applications",
     );
-    expect(resolveNotificationNavigationTarget(payload, "FAMILY")).toBe("/(family)/applications");
+    expect(resolveNotificationNavigationTarget(payload, "FAMILY")).toBe("/(family)/pipeline");
     expect(resolveNotificationNavigationTarget(payload, undefined)).toBeNull();
   });
 
@@ -72,6 +73,27 @@ describe("mobile notification routing", () => {
 
     expect(resolveNotificationNavigationTarget(payload, "FAMILY")).toBeNull();
   });
+
+  it("routes documents only to professionals", () => {
+    const payload = normalizeNotificationPayload({
+      notificationType: "DOCUMENT_STATUS_UPDATED",
+    });
+
+    expect(resolveNotificationNavigationTarget(payload, "PROFESSIONAL")).toBe(
+      "/(professional)/documents",
+    );
+    expect(resolveNotificationNavigationTarget(payload, "FAMILY")).toBeNull();
+  });
+
+  it.each(["REPORT_STATUS_UPDATED", "SYSTEM"])(
+    "routes %s to the notifications center",
+    (notificationType) => {
+      const payload = normalizeNotificationPayload({ notificationType });
+      expect(resolveNotificationNavigationTarget(payload, "FAMILY")).toBe(
+        "/(protected)/notifications",
+      );
+    },
+  );
 
   it("ignores malformed payload fields", () => {
     const payload = normalizeNotificationPayload({

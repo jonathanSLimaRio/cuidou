@@ -106,6 +106,7 @@ export default function LoginScreen() {
 
         <Input
           label="Email"
+          testID="auth-email-input"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -116,6 +117,7 @@ export default function LoginScreen() {
 
         <Input
           label="Senha"
+          testID="auth-password-input"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -126,6 +128,7 @@ export default function LoginScreen() {
 
         <Button
           label="Entrar com email e senha"
+          testID="auth-submit-button"
           onPress={handleCredentialsLogin}
           loading={status === "authenticating" && !googleLoading}
           disabled={!email || !password}

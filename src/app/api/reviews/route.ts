@@ -2,7 +2,8 @@ import { requireUser } from "@/lib/auth-guard";
 import { fail, ok } from "@/lib/http";
 import { notifyUser } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
-import { parseJsonBody } from "@/lib/request";
+import { parseJsonBody, parsePagination } from "@/lib/request";
+import { ProductEventName, trackProductEvent } from "@/lib/product-events";
 import { checkRateLimit, rateLimitHeaders, rateLimitKey } from "@/lib/rate-limiter";
 import { reviewSchema } from "@/lib/schemas";
 import {
@@ -20,8 +21,7 @@ export async function GET(request: Request) {
   const revieweeId = searchParams.get("revieweeId") ?? undefined;
   const reviewerId = searchParams.get("reviewerId") ?? undefined;
   const jobId = searchParams.get("jobId") ?? undefined;
-  const page = Math.max(Number(searchParams.get("page") ?? "1"), 1);
-  const pageSize = Math.min(Math.max(Number(searchParams.get("pageSize") ?? "10"), 1), 50);
+  const { page, pageSize } = parsePagination(searchParams, { defaultPageSize: 10, maxPageSize: 50 });
 
   if (!revieweeId && !reviewerId && !jobId) {
     return fail(400, "At least one of revieweeId, reviewerId or jobId is required");
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const authResult = await requireUser([UserRole.FAMILY, UserRole.PROFESSIONAL]);
+  const authResult = await requireUser([UserRole.FAMILY, UserRole.PROFESSIONAL], request);
   if ("response" in authResult) {
     return authResult.response;
   }
@@ -172,6 +172,12 @@ export async function POST(request: Request) {
       reviewId: review.id,
       applicationId: data.applicationId,
     },
+  });
+
+  trackProductEvent({
+    name: ProductEventName.REVIEW_SUBMITTED,
+    userId: reviewerId,
+    metadata: { reviewId: review.id, applicationId: data.applicationId, rating: data.rating },
   });
 
   return ok({ review }, 201);

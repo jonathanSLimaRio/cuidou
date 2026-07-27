@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { ActionButton } from "@/components/theme/action-button";
+import { LeadCaptureForm } from "./lead-capture-form";
 import { AppIcon } from "@/components/theme/app-icon";
 import { BlobDecor } from "@/components/theme/blob-decor";
 import { CtaButton } from "@/components/theme/cta-button";
@@ -16,7 +16,6 @@ import {
   CalendarClock,
   LayoutDashboard,
   LogIn,
-  Mail,
   MessageCircleMore,
   ShieldCheck,
   Users,
@@ -142,10 +141,14 @@ function VisualFallback() {
 export default async function Home() {
   const session = await auth();
 
-  const [openJobs, verifiedProfessionals, featuredProfessionals, gallery] = await Promise.all([
-    prisma.jobPost.count({ where: { status: "OPEN", isVisible: true } }),
-    prisma.professionalProfile.count({ where: { verificationStatus: "VERIFIED" } }),
-    prisma.professionalProfile.findMany({
+  const openJobsPromise = prisma.jobPost
+    .count({ where: { status: "OPEN", isVisible: true } })
+    .catch(() => 0);
+  const verifiedProfessionalsPromise = prisma.professionalProfile
+    .count({ where: { verificationStatus: "VERIFIED" } })
+    .catch(() => 0);
+  const featuredProfessionalsPromise = prisma.professionalProfile
+    .findMany({
       where: { verificationStatus: "VERIFIED" },
       include: {
         user: {
@@ -156,8 +159,15 @@ export default async function Home() {
       },
       take: 3,
       orderBy: { updatedAt: "desc" },
-    }),
-    getWordPressMediaGallery(32),
+    })
+    .catch(() => []);
+  const galleryPromise = getWordPressMediaGallery(32).catch(() => []);
+
+  const [openJobs, verifiedProfessionals, featuredProfessionals, gallery] = await Promise.all([
+    openJobsPromise,
+    verifiedProfessionalsPromise,
+    featuredProfessionalsPromise,
+    galleryPromise,
   ]);
 
   const heroImage = resolveDesignImage(
@@ -416,15 +426,10 @@ export default async function Home() {
             <div>
               <h2 className="text-2xl">Receba novidades sobre o marketplace</h2>
               <p className="mt-2 text-sm text-[var(--theme-muted)]">
-                Bloco visual de newsletter para reforçar retenção e conteúdo educativo (sem envio nesta fase).
+                Entre na lista de espera para receber novidades do marketplace e avisos sobre o piloto na sua região.
               </p>
             </div>
-            <div className="flex w-full gap-2 md:w-auto">
-              <input type="email" placeholder="Seu e-mail" className="theme-field min-w-[14rem]" disabled />
-              <ActionButton type="button" icon={Mail} disabled>
-                Enviar
-              </ActionButton>
-            </div>
+            <LeadCaptureForm />
           </div>
         </footer>
       </div>

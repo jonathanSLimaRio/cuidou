@@ -21,7 +21,7 @@ type Params = {
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
 
-  const authResult = await requireUser([UserRole.ADMIN]);
+  const authResult = await requireUser([UserRole.ADMIN], request);
   if ("response" in authResult) {
     return authResult.response;
   }
@@ -39,11 +39,17 @@ export async function POST(request: Request, { params }: Params) {
       id: true,
       familyId: true,
       title: true,
+      status: true,
+      isVisible: true,
     },
   });
 
   if (!job) {
     return fail(404, "Job not found");
+  }
+
+  if (job.status === data.status && job.isVisible === data.isVisible) {
+    return ok({ job });
   }
 
   const updated = await prisma.jobPost.update({

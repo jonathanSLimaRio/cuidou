@@ -76,11 +76,11 @@ export type FamilyJob = {
   createdAt: string;
   updatedAt: string;
   scheduleSlots: JobScheduleSlotInput[];
-  scheduleSummary?: Array<{
+  scheduleSummary?: {
     weekday: Weekday;
     label: string;
     ranges: string[];
-  }>;
+  }[];
   _count?: {
     applications: number;
   };

@@ -43,12 +43,12 @@ export type Conversation = {
     title: string;
     serviceType: string;
   };
-  messages: Array<{
+  messages: {
     id: string;
     content: string;
     senderId: string;
     createdAt: string;
-  }>;
+  }[];
 };
 
 export type QuickReply = {

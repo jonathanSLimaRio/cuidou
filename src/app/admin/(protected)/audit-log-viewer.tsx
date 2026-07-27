@@ -42,6 +42,8 @@ const ACTION_OPTIONS = [
   "ADMIN_INVITE_CREATED",
   "CONTRACT_COMPLETED",
   "CONTRACT_CANCELED",
+  "APPLICATION_WITHDRAWN",
+  "INVITATION_STATUS_UPDATED",
 ] as const;
 
 const TARGET_TYPE_OPTIONS = [
@@ -51,6 +53,8 @@ const TARGET_TYPE_OPTIONS = [
   "REPORT",
   "ADMIN_INVITE",
   "CONTRACT",
+  "APPLICATION",
+  "INVITATION",
 ] as const;
 
 type ActionTone = "success" | "danger" | "warning" | "info" | "neutral";
@@ -68,6 +72,8 @@ function actionConfig(action: string): { tone: ActionTone; icon: typeof CheckCir
   if (action === "ADMIN_INVITE_CREATED") return { tone: "info", icon: ShieldCheck, label: "Convite criado" };
   if (action === "CONTRACT_COMPLETED") return { tone: "success", icon: CheckCircle, label: "Contrato concluído" };
   if (action === "CONTRACT_CANCELED") return { tone: "danger", icon: Trash2, label: "Contrato cancelado" };
+  if (action === "APPLICATION_WITHDRAWN") return { tone: "warning", icon: XCircle, label: "Candidatura retirada" };
+  if (action === "INVITATION_STATUS_UPDATED") return { tone: "info", icon: RefreshCw, label: "Convite atualizado" };
   return { tone: "neutral", icon: Flag, label: action };
 }
 

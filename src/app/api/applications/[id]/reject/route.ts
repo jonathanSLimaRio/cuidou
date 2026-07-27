@@ -21,11 +21,6 @@ export async function POST(request: Request, { params }: Params) {
     return authResult.response;
   }
 
-  const bodyResult = await parseJsonBody(request, applicationDecisionSchema);
-  if ("response" in bodyResult) {
-    return bodyResult.response;
-  }
-
   const application = await prisma.jobApplication.findUnique({
     where: { id: applicationId },
     include: {
@@ -52,8 +47,17 @@ export async function POST(request: Request, { params }: Params) {
     return fail(403, "You can only reject applications from your own jobs");
   }
 
+  if (application.status === ApplicationStatus.REJECTED) {
+    return ok({ application });
+  }
+
   if (application.status !== ApplicationStatus.SUBMITTED && application.status !== ApplicationStatus.SHORTLISTED) {
     return fail(400, "Application cannot be rejected in current status");
+  }
+
+  const bodyResult = await parseJsonBody(request, applicationDecisionSchema);
+  if ("response" in bodyResult) {
+    return bodyResult.response;
   }
 
   const updated = await prisma.jobApplication.update({

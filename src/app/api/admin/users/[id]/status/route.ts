@@ -21,7 +21,7 @@ type Params = {
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
 
-  const authResult = await requireUser([UserRole.ADMIN]);
+  const authResult = await requireUser([UserRole.ADMIN], request);
   if ("response" in authResult) {
     return authResult.response;
   }
@@ -36,11 +36,16 @@ export async function POST(request: Request, { params }: Params) {
     select: {
       id: true,
       role: true,
+      status: true,
     },
   });
 
   if (!user) {
     return fail(404, "User not found");
+  }
+
+  if (user.status === bodyResult.data.status) {
+    return ok({ user });
   }
 
   const updated = await prisma.user.update({

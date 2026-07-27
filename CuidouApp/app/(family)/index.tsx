@@ -115,7 +115,10 @@ export default function FamilyHomeScreen() {
             <Text style={styles.cardTitle}>{section.title}</Text>
             <Text style={styles.cardDescription}>{section.description}</Text>
             <Link href={section.href} asChild>
-              <Button label="Abrir modulo" />
+              <Button
+                label="Abrir modulo"
+                testID={`family-section-${section.href.replace(/[^a-z]+/gi, "-").replace(/^-|-$/g, "")}`}
+              />
             </Link>
           </View>
         ))}
@@ -169,4 +172,3 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
-

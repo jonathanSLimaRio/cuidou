@@ -6,7 +6,7 @@ import { onboardingRoleSchema } from "@/lib/schemas";
 import { UserRole } from "@prisma/client";
 
 export async function POST(request: Request) {
-  const authResult = await requireUser();
+  const authResult = await requireUser(undefined, request);
   if ("response" in authResult) {
     return authResult.response;
   }

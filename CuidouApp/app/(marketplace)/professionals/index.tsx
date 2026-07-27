@@ -62,7 +62,6 @@ export default function MarketplaceProfessionalsScreen() {
   const [draftState, setDraftState] = useState("");
   const [draftCity, setDraftCity] = useState("");
   const [draftServiceType, setDraftServiceType] = useState<ServiceType | "">("");
-  const [draftVerifiedOnly, setDraftVerifiedOnly] = useState(true);
   const [filters, setFilters] = useState<ProfessionalsFilter>({ verifiedOnly: true });
 
   const professionalsQuery = useInfiniteQuery({
@@ -84,7 +83,7 @@ export default function MarketplaceProfessionalsScreen() {
       serviceType: draftServiceType,
       state: draftState.trim(),
       city: draftCity.trim(),
-      verifiedOnly: draftVerifiedOnly,
+      verifiedOnly: true,
     });
   };
 
@@ -92,7 +91,6 @@ export default function MarketplaceProfessionalsScreen() {
     setDraftServiceType("");
     setDraftState("");
     setDraftCity("");
-    setDraftVerifiedOnly(true);
     setFilters({ verifiedOnly: true });
   };
 
@@ -122,19 +120,6 @@ export default function MarketplaceProfessionalsScreen() {
           placeholder="Cidade (ex: Niterói)"
           placeholderTextColor={appTheme.colors.textMuted}
         />
-
-        <Pressable
-          style={styles.checkboxRow}
-          onPress={() => setDraftVerifiedOnly((current) => !current)}
-        >
-          <View
-            style={[
-              styles.checkbox,
-              draftVerifiedOnly && styles.checkboxChecked,
-            ]}
-          />
-          <Text style={styles.checkboxLabel}>Mostrar apenas profissionais verificados</Text>
-        </Pressable>
 
         <View style={styles.actionRow}>
           <Button label="Aplicar filtros" onPress={onApplyFilters} />
@@ -252,27 +237,6 @@ const styles = StyleSheet.create({
     color: appTheme.colors.textStrong,
     paddingHorizontal: appTheme.spacing.md,
     fontSize: appTheme.typography.size.md,
-  },
-  checkboxRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: appTheme.spacing.sm,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 1,
-    borderColor: appTheme.colors.border,
-    borderRadius: 6,
-    backgroundColor: appTheme.colors.white,
-  },
-  checkboxChecked: {
-    backgroundColor: appTheme.colors.indigo,
-    borderColor: appTheme.colors.indigo,
-  },
-  checkboxLabel: {
-    color: appTheme.colors.text,
-    fontSize: appTheme.typography.size.sm,
   },
   actionRow: {
     flexDirection: "row",

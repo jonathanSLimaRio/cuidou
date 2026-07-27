@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { appTheme } from "@/constants/theme";
 import { EmptyState } from "@/src/components/ui/empty-state";
@@ -9,7 +9,6 @@ import { ScreenShell } from "@/src/components/ui/screen-shell";
 import { useToast } from "@/src/hooks/use-toast";
 import { adminRepository } from "@/src/lib/api/admin-repository";
 import type { AdminUser } from "@/src/lib/types/admin";
-import { Pressable } from "react-native";
 
 function statusColor(status: AdminUser["status"]) {
   if (status === "ACTIVE") return appTheme.colors.success ?? "#16a34a";
