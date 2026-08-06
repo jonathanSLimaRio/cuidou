@@ -109,4 +109,12 @@ export const authRepository = {
       json: input,
     });
   },
+
+  async acceptCurrentLegalConsent(): Promise<void> {
+    await apiRequest("/api/legal/consent", {
+      method: "POST",
+      auth: true,
+      json: { acceptedTerms: true, acceptedPrivacy: true },
+    });
+  },
 };

@@ -10,7 +10,6 @@ import {
   LogIn,
   LogOut,
   MessageCircleMore,
-  Phone,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -49,21 +48,6 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40">
-      <div className="border-b border-white/10 bg-[var(--theme-indigo-strong)] text-white">
-        <div className="theme-container flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-2 py-2 text-[13px]">
-          <p className="font-display font-medium tracking-[0.025em] text-white">
-            Cuidou: contratação segura de babás e cuidadoras, sem intermediação de pagamento.
-          </p>
-          <a
-            href="tel:+550800123456"
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/25 px-3 py-1 text-white hover:bg-white/10"
-          >
-            <AppIcon icon={Phone} size="sm" />
-            Suporte: 0800 123-456
-          </a>
-        </div>
-      </div>
-
       <div className="border-b border-[var(--theme-border)] bg-white/92 backdrop-blur-md">
         <div className="theme-container flex min-h-[4.4rem] items-center justify-between gap-3 py-3">
           <Link

@@ -19,6 +19,36 @@ const protectedPagePrefixes = [
 // an infinite redirect loop: /admin/login → blocked → /admin/login → ...
 const publicAdminPaths = ["/admin/login", "/admin/invite/accept"];
 
+function buildContentSecurityPolicy(nonce: string) {
+  const wordpressHostname = process.env.NEXT_PUBLIC_WORDPRESS_API_HOSTNAME;
+  const scriptSrc = ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'"];
+  if (process.env.NODE_ENV !== "production") scriptSrc.push("'unsafe-eval'");
+  const imgSrc = ["'self'", "data:", "blob:"];
+  if (wordpressHostname) imgSrc.push(`https://${wordpressHostname}`);
+
+  return [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    `script-src ${scriptSrc.join(" ")}`,
+    "style-src 'self' 'unsafe-inline'",
+    `img-src ${imgSrc.join(" ")}`,
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.ably.io https://*.ably-realtime.com wss://*.ably.io wss://*.ably-realtime.com https://*.ingest.sentry.io",
+    "form-action 'self'",
+    "upgrade-insecure-requests",
+  ].join("; ");
+}
+
+function applyResponseHeaders(response: NextResponse, nonce: string, csp: string, requestId: string, pathname: string) {
+  response.headers.set("Content-Security-Policy", csp);
+  response.headers.set("x-nonce", nonce);
+  response.headers.set("x-request-id", requestId);
+  response.headers.set("x-pathname", pathname);
+  return response;
+}
+
 function needsAuthForApi(pathname: string) {
   if (!pathname.startsWith("/api")) {
     return false;
@@ -27,7 +57,7 @@ function needsAuthForApi(pathname: string) {
   if (
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/mobile/auth/") ||
-    pathname === "/api/health" ||
+    pathname.startsWith("/api/health") ||
     pathname === "/api/leads" ||
     pathname.startsWith("/api/jobs") ||
     pathname.startsWith("/api/professionals")
@@ -41,6 +71,8 @@ function needsAuthForApi(pathname: string) {
 export default auth((req) => {
   const start = Date.now();
   const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID();
+  const nonce = btoa(crypto.randomUUID());
+  const csp = buildContentSecurityPolicy(nonce);
   const { pathname } = req.nextUrl;
   const method = req.method;
   const session = req.auth;
@@ -56,7 +88,10 @@ export default auth((req) => {
     // Inject pathname so SiteHeader can suppress itself on /admin/* routes
     const reqHeaders = new Headers(req.headers);
     reqHeaders.set("x-pathname", pathname);
-    return NextResponse.next({ request: { headers: reqHeaders } });
+    reqHeaders.set("x-nonce", nonce);
+    reqHeaders.set("Content-Security-Policy", csp);
+    reqHeaders.set("x-request-id", requestId);
+    return applyResponseHeaders(NextResponse.next({ request: { headers: reqHeaders } }), nonce, csp, requestId, pathname);
   }
 
   const isProtectedPage = protectedPagePrefixes.some(
@@ -69,6 +104,9 @@ export default auth((req) => {
   // can detect the current route without using usePathname (client-only).
   const reqHeaders = new Headers(req.headers);
   reqHeaders.set("x-pathname", pathname);
+  reqHeaders.set("x-nonce", nonce);
+  reqHeaders.set("Content-Security-Policy", csp);
+  reqHeaders.set("x-request-id", requestId);
 
   let response: NextResponse;
 
@@ -84,14 +122,35 @@ export default auth((req) => {
       response = NextResponse.redirect(loginUrl);
     }
   }
-  // 2. Admin Role Check for /admin routes
+  // 2. Block inactive browser sessions at the edge. Bearer sessions are
+  // validated against the database by requireUser in each protected API.
+  else if (
+    (isProtectedPage || (isApiProtected && !hasBearerToken)) &&
+    session?.user?.status !== "ACTIVE"
+  ) {
+    if (pathname.startsWith("/api")) {
+      response = NextResponse.json({ error: "User account is not active" }, { status: 403 });
+    } else {
+      const code = session?.user?.status === "PENDING" ? "pending_approval" : "account_inactive";
+      response = NextResponse.redirect(new URL(`/login?code=${code}`, req.url));
+    }
+  }
+  // 3. Require current legal consent before protected journeys.
+  else if (
+    isProtectedPage &&
+    session?.user?.needsLegalConsent &&
+    !pathname.startsWith("/onboarding")
+  ) {
+    response = NextResponse.redirect(new URL("/onboarding/consent", req.url));
+  }
+  // 4. Admin Role Check for /admin routes
   else if (
     pathname.startsWith("/admin") &&
     session?.user?.role !== UserRole.ADMIN
   ) {
     response = NextResponse.redirect(new URL("/dashboard", req.url));
   }
-  // 3. Default allow — pass along injected request headers
+  // 5. Default allow — pass along injected request headers
   else {
     response = NextResponse.next({ request: { headers: reqHeaders } });
   }
@@ -106,15 +165,12 @@ export default auth((req) => {
       path: pathname,
       status: response.status,
       durationMs: duration,
-      userId: session?.user?.id ?? null,
+      authenticated: Boolean(session?.user?.id),
     }),
   );
 
   // Forward requestId and pathname for downstream correlation and route detection
-  response.headers.set("x-request-id", requestId);
-  response.headers.set("x-pathname", pathname);
-
-  return response;
+  return applyResponseHeaders(response, nonce, csp, requestId, pathname);
 });
 
 export const config = {

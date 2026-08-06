@@ -7,12 +7,14 @@ declare module "next-auth" {
       id: string;
       role?: UserRole | null;
       status?: UserStatus;
+      needsLegalConsent?: boolean;
     } & DefaultSession["user"];
   }
 
   interface User {
     role?: UserRole | null;
     status?: UserStatus;
+    needsLegalConsent?: boolean;
   }
 }
 
@@ -22,5 +24,6 @@ declare module "next-auth/jwt" {
     role?: UserRole | null;
     status?: UserStatus;
     roleSyncedAt?: number;
+    needsLegalConsent?: boolean;
   }
 }

@@ -3,21 +3,22 @@ import { CtaButton } from "@/components/theme/cta-button";
 import { EmptyState } from "@/components/theme/empty-state";
 import { PageHeader } from "@/components/theme/page-header";
 import { StatusBadge } from "@/components/theme/status-badge";
-import { resolveDesignImage } from "@/lib/design-media";
 import { prisma } from "@/lib/prisma";
-import { getWordPressMediaGallery, pickWordPressImage } from "@/lib/wordpress-content";
 import { UserStatus, VerificationStatus } from "@prisma/client";
 import { BriefcaseBusiness, Eye, Filter, LogIn } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 
 type SearchParams = Promise<{
   serviceType?: string;
   state?: string;
   city?: string;
+  availability?: string;
 }>;
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Profissionais de cuidado | Cuidou", description: "Busque profissionais verificados por especialidade, região e disponibilidade." };
 
 const serviceTypeOptions = [
   { value: "", label: "Todas especialidades" },
@@ -34,6 +35,11 @@ export default async function MarketplaceProfessionalsPage({
   const serviceType = resolved.serviceType || "";
   const state = resolved.state?.trim() || "";
   const city = resolved.city?.trim() || "";
+  const availability = ["MORNING", "AFTERNOON", "EVENING", "OVERNIGHT"].includes(
+    resolved.availability ?? "",
+  )
+    ? resolved.availability
+    : undefined;
 
   const where = {
     ...(serviceType
@@ -43,10 +49,12 @@ export default async function MarketplaceProfessionalsPage({
     ...(city ? { city } : {}),
     verificationStatus: VerificationStatus.VERIFIED,
     user: { status: UserStatus.ACTIVE },
+    ...(availability
+      ? { availabilitySlots: { some: { shift: availability as "MORNING" | "AFTERNOON" | "EVENING" | "OVERNIGHT", isAvailable: true } } }
+      : {}),
   };
 
-  const [professionals, gallery] = await Promise.all([
-    prisma.professionalProfile.findMany({
+  const professionals = await prisma.professionalProfile.findMany({
       where,
       orderBy: {
         updatedAt: "desc",
@@ -74,9 +82,7 @@ export default async function MarketplaceProfessionalsPage({
         },
       },
       take: 60,
-    }),
-    getWordPressMediaGallery(40),
-  ]);
+    });
 
   return (
     <main className="theme-page">
@@ -124,6 +130,17 @@ export default async function MarketplaceProfessionalsPage({
               <input name="city" defaultValue={city} placeholder="Ex: Niterói" className="theme-field" />
             </label>
 
+            <label className="space-y-1">
+              <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Disponibilidade</span>
+              <select name="availability" defaultValue={availability ?? ""} className="theme-select">
+                <option value="">Qualquer horário</option>
+                <option value="MORNING">Manhã</option>
+                <option value="AFTERNOON">Tarde</option>
+                <option value="EVENING">Noite</option>
+                <option value="OVERNIGHT">Pernoite</option>
+              </select>
+            </label>
+
             <ActionButton type="submit" icon={Filter} className="w-full md:w-auto">
               Filtrar
             </ActionButton>
@@ -144,16 +161,7 @@ export default async function MarketplaceProfessionalsPage({
         ) : (
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {professionals.map((professional, index) => {
-              const image =
-                index === 0
-                  ? resolveDesignImage(
-                      "professionalsHero",
-                      gallery,
-                      index + 12,
-                      professional.user.name ?? "Profissional",
-                    )
-                  : pickWordPressImage(gallery, index + 12, professional.user.name ?? "Profissional");
-
+              const profileImage = professional.user.image;
               return (
                 <Link
                   key={professional.id}
@@ -161,15 +169,15 @@ export default async function MarketplaceProfessionalsPage({
                   className="theme-list-card block p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--theme-indigo)]"
                 >
                   <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-cream)]">
-                    {image ? (
-                      <Image
-                        src={image.src}
-                        alt={image.alt}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                        className="object-cover"
-                      />
-                    ) : null}
+                    <Image
+                      src={profileImage || "/illustrations/cuidou-marketplace-v1.webp"}
+                      alt={profileImage ? `Foto de perfil de ${professional.user.name ?? "profissional"}` : ""}
+                      fill
+                      priority={index === 0}
+                      loading={index === 0 ? "eager" : "lazy"}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                      className="object-cover"
+                    />
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">

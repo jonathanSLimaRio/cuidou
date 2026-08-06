@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { checkRateLimit, rateLimitKey } from "../rate-limiter";
+import { checkRateLimit, rateLimitHeaders, rateLimitKey } from "../rate-limiter";
 
 describe("checkRateLimit", () => {
   beforeEach(() => {
@@ -75,5 +75,25 @@ describe("rateLimitKey", () => {
     const request = new Request("http://localhost/api/test");
     const key = rateLimitKey("signup", request);
     expect(key).toContain("unknown");
+  });
+
+  it("uses only the first address from a forwarded proxy chain", () => {
+    const request = new Request("http://localhost/api/test", {
+      headers: { "x-forwarded-for": "1.2.3.4, 10.0.0.1" },
+    });
+
+    expect(rateLimitKey("signup", request)).toBe("signup:1.2.3.4");
+  });
+});
+
+describe("rateLimitHeaders", () => {
+  it("serializes limit metadata and rounds reset time to seconds", () => {
+    expect(
+      rateLimitHeaders({ allowed: true, remaining: 2, resetAt: 1_501 }, 3),
+    ).toEqual({
+      "X-RateLimit-Limit": "3",
+      "X-RateLimit-Remaining": "2",
+      "X-RateLimit-Reset": "2",
+    });
   });
 });

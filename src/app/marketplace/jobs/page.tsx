@@ -3,15 +3,15 @@ import { CtaButton } from "@/components/theme/cta-button";
 import { EmptyState } from "@/components/theme/empty-state";
 import { PageHeader } from "@/components/theme/page-header";
 import { StatusBadge } from "@/components/theme/status-badge";
-import { resolveDesignImage } from "@/lib/design-media";
 import { prisma } from "@/lib/prisma";
-import { getWordPressMediaGallery, pickWordPressImage } from "@/lib/wordpress-content";
 import { UserStatus } from "@prisma/client";
 import { Eye, Filter, LogIn, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Vagas de cuidado | Cuidou", description: "Encontre vagas de cuidado infantil e de idosos por cidade e estado." };
 
 type SearchParams = Promise<{
   serviceType?: string;
@@ -46,8 +46,7 @@ export default async function MarketplaceJobsPage({
     ...(city ? { city } : {}),
   };
 
-  const [jobs, gallery] = await Promise.all([
-    prisma.jobPost.findMany({
+  const jobs = await prisma.jobPost.findMany({
       where,
       orderBy: {
         createdAt: "desc",
@@ -65,9 +64,7 @@ export default async function MarketplaceJobsPage({
         },
       },
       take: 60,
-    }),
-    getWordPressMediaGallery(40),
-  ]);
+    });
 
   return (
     <main className="theme-page">
@@ -135,11 +132,6 @@ export default async function MarketplaceJobsPage({
         ) : (
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {jobs.map((job, index) => {
-              const image =
-                index === 0
-                  ? resolveDesignImage("jobsHero", gallery, index + 5, job.title)
-                  : pickWordPressImage(gallery, index + 5, job.title);
-
               return (
                 <Link
                   key={job.id}
@@ -147,15 +139,15 @@ export default async function MarketplaceJobsPage({
                   className="theme-list-card block p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--theme-indigo)]"
                 >
                   <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-cream)]">
-                    {image ? (
-                      <Image
-                        src={image.src}
-                        alt={image.alt}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                        className="object-cover"
-                      />
-                    ) : null}
+                    <Image
+                      src="/illustrations/cuidou-marketplace-v1.webp"
+                      alt=""
+                      fill
+                      priority={index === 0}
+                      loading={index === 0 ? "eager" : "lazy"}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                      className="object-cover"
+                    />
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">

@@ -2,13 +2,13 @@ import { auth } from "@/auth";
 import { SignupForm } from "@/components/auth/signup-form";
 import { AppIcon } from "@/components/theme/app-icon";
 import { BlobDecor } from "@/components/theme/blob-decor";
-import { resolveDesignImage } from "@/lib/design-media";
-import { getWordPressMediaGallery } from "@/lib/wordpress-content";
 import { BadgeCheck, Clock4, ShieldCheck } from "lucide-react";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Criar conta | Cuidou", description: "Crie seu perfil de família ou profissional na Cuidou." };
 
 type SearchParams = Promise<{
   next?: string;
@@ -46,9 +46,6 @@ export default async function SignupPage({
     redirect("/dashboard");
   }
 
-  const gallery = await getWordPressMediaGallery(20);
-  const heroImage = resolveDesignImage("onboardingHero", gallery, 3, "Cadastro local com aprovação");
-
   const roleLabel =
     presetRole === "FAMILY"
       ? "Sou família"
@@ -73,15 +70,15 @@ export default async function SignupPage({
 
               <div className="overflow-hidden rounded-3xl border border-white/20 bg-white/12 p-2">
                 <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-white/20">
-                  {heroImage ? (
-                    <Image
-                      src={heroImage.src}
-                      alt={heroImage.alt}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                      className="object-cover"
-                    />
-                  ) : null}
+                  <Image
+                    src="/illustrations/cuidou-marketplace-v1.webp"
+                    alt="Profissionais organizando oportunidades de cuidado"
+                    fill
+                    priority
+                    loading="eager"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover"
+                  />
                 </div>
               </div>
 

@@ -27,7 +27,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   soft:
     "bg-[rgba(143,62,236,0.08)] text-[var(--brand-purple-primary)] shadow-[0_10px_24px_-18px_var(--brand-purple-secondary)] hover:bg-[rgba(73,98,199,0.16)] hover:text-[var(--brand-purple-primary)]",
   light:
-    "border border-white/50 bg-white/20 text-white backdrop-blur hover:bg-white/35",
+    "border border-white/70 bg-transparent text-white backdrop-blur hover:bg-white/10",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

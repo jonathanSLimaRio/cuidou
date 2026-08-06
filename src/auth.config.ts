@@ -37,7 +37,10 @@ const authConfig = {
       if (user) {
         token.id = user.id;
         token.role = (user.role ?? null) as UserRole | null;
-        token.status = (user.status ?? "ACTIVE") as UserStatus;
+        // Fail closed for partial/legacy OAuth adapter payloads. The database
+        // default is PENDING and only an explicit ACTIVE status grants access.
+        token.status = (user.status ?? "PENDING") as UserStatus;
+        token.needsLegalConsent = user.needsLegalConsent ?? true;
       }
 
       return token;
@@ -46,7 +49,8 @@ const authConfig = {
       if (session.user) {
         session.user.id = (token.id ?? token.sub ?? session.user.id) as string;
         session.user.role = (token.role ?? null) as UserRole | null;
-        session.user.status = (token.status ?? "ACTIVE") as UserStatus;
+        session.user.status = (token.status ?? "PENDING") as UserStatus;
+        session.user.needsLegalConsent = token.needsLegalConsent ?? true;
       }
 
       return session;

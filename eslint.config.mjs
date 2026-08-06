@@ -13,6 +13,7 @@ const eslintConfig = defineConfig([
     "build/**",
     "CuidouApp/**",
     "playwright-report/**",
+    "coverage/**",
     "test-results/**",
     "next-env.d.ts",
     "types/**",

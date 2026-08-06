@@ -7,44 +7,80 @@ on:
     branches: [develop, main]
 
 jobs:
-  build:
+  web-api:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: cuidou
+          POSTGRES_PASSWORD: cuidou_ci
+          POSTGRES_DB: cuidou_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U cuidou -d cuidou_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://cuidou:cuidou_ci@127.0.0.1:5432/cuidou_ci
+      AUTH_SECRET: ci-auth-secret-at-least-32-characters
+      NEXT_PUBLIC_WORDPRESS_API_HOSTNAME: example.com
+      ABLY_API_KEY: ci.key:placeholder
+      E2E_RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
+      RUN_AUTH_E2E: "1"
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.22.2
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        run: npm run prisma:generate
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Unit tests
-        run: npm run test
-
-      - name: Build
+      - run: npm ci
+      - name: Validate and deploy migrations
+        run: npm run prisma:validate && npm run prisma:migrate:deploy
+      - name: Static checks
+        run: npm run lint && npm run typecheck
+      - name: Unit tests with coverage
+        run: npm run test:coverage
+      - name: Production build
         run: npm run build
-        env:
-          AUTH_SECRET: ci-auth-secret-at-least-32-characters
-          DATABASE_URL: postgresql://user:password@localhost:5432/cuidou
-          NEXT_PUBLIC_WORDPRESS_API_HOSTNAME: example.com
-          ABLY_API_KEY: ci.key:placeholder
-          UPSTASH_REDIS_REST_URL: https://example.upstash.io
-          UPSTASH_REDIS_REST_TOKEN: ci-token
-
-      - name: Audit high severity
+      - name: Dependency security gate
         run: npm audit --audit-level=high
+      - name: Isolated E2E fixtures
+        run: npm run fixtures:e2e
+      - name: Smoke, API, authenticated contracts and accessibility
+        run: npm run test:e2e:smoke && npm run test:e2e:api && npm run test:e2e:auth && npm run test:a11y
+      - name: Cleanup E2E fixtures
+        if: always()
+        run: npm run fixtures:e2e:cleanup
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-test-evidence-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+            coverage/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+          cache-dependency-path: CuidouApp/package-lock.json
+      - run: npm ci --prefix CuidouApp
+      - name: Mobile lint and types
+        run: npm run lint --prefix CuidouApp && npx tsc --noEmit -p CuidouApp/tsconfig.json
+      - name: Expo Doctor
+        run: npm run test:expo-doctor
+      - name: Dependency security gate
+        run: npm audit --prefix CuidouApp --audit-level=high

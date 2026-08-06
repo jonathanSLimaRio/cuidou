@@ -24,6 +24,7 @@ export type SessionUser = {
   email: string;
   role: UserRole;
   status: UserStatus;
+  needsLegalConsent: boolean;
 };
 
 export type AuthSession = {
@@ -44,6 +45,9 @@ export type SignupPayload = {
   email: string;
   password: string;
   confirmPassword: string;
+  acceptedTerms: true;
+  acceptedPrivacy: true;
+  role: "FAMILY" | "PROFESSIONAL";
 };
 
 export type SignupResult = {

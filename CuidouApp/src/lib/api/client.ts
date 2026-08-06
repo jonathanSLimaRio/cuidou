@@ -78,6 +78,7 @@ function withQuery(path: string, query?: Record<string, QueryValue>) {
 function toHeaders(headers?: HeadersInit) {
   const nextHeaders = new Headers(headers);
   nextHeaders.set("Accept", "application/json");
+  nextHeaders.set("x-cuidou-client", "mobile");
   return nextHeaders;
 }
 

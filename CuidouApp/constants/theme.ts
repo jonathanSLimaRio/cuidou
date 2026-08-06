@@ -1,4 +1,3 @@
-import { DefaultTheme as NavigationDefaultTheme } from "@react-navigation/native";
 import { Platform } from "react-native";
 
 export const appTheme = {
@@ -7,7 +6,7 @@ export const appTheme = {
     surface: "#FFFFFF",
     text: "#445388",
     textStrong: "#0D1A66",
-    textMuted: "#7580A8",
+    textMuted: "#586586",
     navy: "#212D71",
     indigo: "#4962C7",
     indigoStrong: "#0D1A66",
@@ -16,7 +15,7 @@ export const appTheme = {
     mint: "#DBF4EC",
     yellow: "#FFD88A",
     border: "#D7DFF6",
-    success: "#2F9757",
+    success: "#1F6C40",
     warning: "#A87316",
     danger: "#BE3E56",
     info: "#275DBF",
@@ -118,16 +117,3 @@ export const Fonts = Platform.select({
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace",
   },
 });
-
-export const navigationTheme = {
-  ...NavigationDefaultTheme,
-  colors: {
-    ...NavigationDefaultTheme.colors,
-    primary: appTheme.colors.indigo,
-    background: appTheme.colors.background,
-    card: appTheme.colors.surface,
-    text: appTheme.colors.text,
-    border: appTheme.colors.border,
-    notification: appTheme.colors.info,
-  },
-};

@@ -3,7 +3,8 @@ import { fail, ok } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/request";
 import { onboardingRoleSchema } from "@/lib/schemas";
-import { UserRole } from "@prisma/client";
+import { recordCurrentLegalConsent } from "@/lib/legal-consent";
+import { LegalConsentSource, UserRole } from "@prisma/client";
 
 export async function POST(request: Request) {
   const authResult = await requireUser(undefined, request);
@@ -29,14 +30,17 @@ export async function POST(request: Request) {
       where: { id: user.id },
       data: {
         role,
-        acceptedTermsAt: new Date(),
-        acceptedPrivacyAt: new Date(),
       },
       select: {
         id: true,
         role: true,
       },
     });
+
+    const consentSource = request.headers.get("x-cuidou-client") === "mobile"
+      ? LegalConsentSource.MOBILE
+      : LegalConsentSource.WEB;
+    await recordCurrentLegalConsent(tx, user.id, consentSource);
 
     if (role === UserRole.FAMILY) {
       await tx.familyProfile.upsert({

@@ -3,13 +3,13 @@ import { CredentialsLoginForm } from "@/components/auth/credentials-login-form";
 import { AppIcon } from "@/components/theme/app-icon";
 import { BlobDecor } from "@/components/theme/blob-decor";
 import { CtaButton } from "@/components/theme/cta-button";
-import { resolveDesignImage } from "@/lib/design-media";
-import { getWordPressMediaGallery } from "@/lib/wordpress-content";
 import { BadgeCheck, Baby, HeartHandshake, LockKeyhole, LogIn, Users } from "lucide-react";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Entrar | Cuidou", description: "Acesse sua conta Cuidou com Google ou senha." };
 
 type SearchParams = Promise<{
   next?: string;
@@ -35,9 +35,6 @@ export default async function LoginPage({
     redirect("/dashboard");
   }
 
-  const gallery = await getWordPressMediaGallery(20);
-  const heroImage = resolveDesignImage("loginHero", gallery, 2, "Família e profissional de cuidado");
-
   return (
     <main className="theme-page">
       <div className="theme-container">
@@ -51,15 +48,15 @@ export default async function LoginPage({
 
               <div className="overflow-hidden rounded-3xl border border-white/20 bg-white/12 p-2">
                 <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-white/20">
-                  {heroImage ? (
-                    <Image
-                      src={heroImage.src}
-                      alt={heroImage.alt}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                      className="object-cover"
-                    />
-                  ) : null}
+                  <Image
+                    src="/illustrations/cuidou-marketplace-v1.webp"
+                    alt="Profissionais e família conversando sobre oportunidades de cuidado"
+                    fill
+                    priority
+                    loading="eager"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover"
+                  />
                 </div>
               </div>
 

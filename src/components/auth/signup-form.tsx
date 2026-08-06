@@ -2,7 +2,7 @@
 
 import { useToast } from "@/components/notifications/use-toast";
 import { ActionButton } from "@/components/theme/action-button";
-import { Baby, HeartHandshake, UserPlus, Users } from "lucide-react";
+import { Baby, CheckCircle2, Eye, EyeOff, HeartHandshake, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 
@@ -28,6 +28,10 @@ export function SignupForm({
   const [role, setRole] = useState<UserRoleOption | undefined>(presetRole);
   const [subtype, setSubtype] = useState<SubtypeOption | undefined>(presetSubtype);
   const [loading, setLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [submittedMessage, setSubmittedMessage] = useState<string | null>(null);
 
   const loginHref = useMemo(
     () => `/login${nextPath ? `?next=${encodeURIComponent(nextPath)}` : ""}`,
@@ -57,6 +61,8 @@ export function SignupForm({
           confirmPassword,
           role,
           subtype: role === "PROFESSIONAL" ? subtype : undefined,
+          acceptedTerms,
+          acceptedPrivacy,
         }),
       });
 
@@ -70,15 +76,38 @@ export function SignupForm({
         "Cadastro enviado com sucesso.",
         payload.message ?? "Sua conta está pendente de aprovação administrativa.",
       );
+      setSubmittedMessage(
+        payload.message ?? "Sua conta está pendente de aprovação administrativa.",
+      );
       setName("");
       setEmail("");
       setPassword("");
       setConfirmPassword("");
+      setAcceptedTerms(false);
+      setAcceptedPrivacy(false);
     } catch {
       showError("Erro inesperado ao criar conta.");
     } finally {
       setLoading(false);
     }
+  }
+
+  if (submittedMessage) {
+    return (
+      <section className="mt-6 rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] p-6" role="status">
+        <CheckCircle2 className="size-9 text-[var(--theme-success)]" aria-hidden="true" />
+        <h2 className="mt-4 text-2xl">Cadastro recebido</h2>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--theme-body)]">{submittedMessage}</p>
+        <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-[var(--theme-muted)]">
+          <li>A equipe administrativa analisa os dados; não há liberação automática.</li>
+          <li>Depois da ativação, entre novamente e complete seu perfil.</li>
+          <li>Use o painel para publicar uma vaga ou buscar oportunidades.</li>
+        </ol>
+        <Link href={loginHref} className="mt-5 inline-flex min-h-11 items-center rounded-full bg-[var(--theme-indigo)] px-5 py-2.5 font-display text-white">
+          Ir para o login
+        </Link>
+      </section>
+    );
   }
 
   return (
@@ -103,7 +132,7 @@ export function SignupForm({
             >
               <Users size={16} />
               <span className="font-semibold">Família</span>
-              <span className="text-xs opacity-70">Quero contratar</span>
+              <span className="text-xs text-[var(--theme-muted)]">Quero contratar</span>
             </button>
 
             <button
@@ -118,7 +147,7 @@ export function SignupForm({
             >
               <HeartHandshake size={16} />
               <span className="font-semibold">Profissional</span>
-              <span className="text-xs opacity-70">Quero trabalhar</span>
+              <span className="text-xs text-[var(--theme-muted)]">Quero trabalhar</span>
             </button>
           </div>
         </fieldset>
@@ -206,23 +235,38 @@ export function SignupForm({
         />
       </label>
 
-      <label className="block space-y-1">
-        <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Senha</span>
-        <input
-          type="password"
-          className="theme-field"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          placeholder="Mínimo 8 caracteres com letra e número"
-          autoComplete="new-password"
-          required
-        />
-      </label>
+      <div className="block space-y-1">
+        <label htmlFor="signup-password" className="block text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Senha</label>
+        <span className="relative block">
+          <input
+            id="signup-password"
+            type={showPassword ? "text" : "password"}
+            className="theme-field pr-14"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Crie uma senha segura"
+            autoComplete="new-password"
+            aria-describedby="password-requirements"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((current) => !current)}
+            className="absolute right-1 top-1 inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl text-[var(--theme-indigo)] hover:bg-[var(--theme-surface-soft)]"
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </span>
+        <span id="password-requirements" className="block text-xs leading-relaxed text-[var(--theme-muted)]">
+          Use pelo menos 8 caracteres, incluindo uma letra e um número.
+        </span>
+      </div>
 
       <label className="block space-y-1">
         <span className="text-xs uppercase tracking-[0.06em] text-[var(--theme-muted)]">Confirmar senha</span>
         <input
-          type="password"
+          type={showPassword ? "text" : "password"}
           className="theme-field"
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
@@ -231,6 +275,44 @@ export function SignupForm({
           required
         />
       </label>
+
+      <fieldset className="space-y-2 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] p-3">
+        <legend className="px-1 text-xs font-semibold uppercase tracking-[0.06em] text-[var(--theme-muted)]">
+          Consentimentos obrigatórios
+        </legend>
+        <label className="flex min-h-11 items-start gap-3 text-sm leading-relaxed text-[var(--theme-body)]">
+          <input
+            type="checkbox"
+            checked={acceptedTerms}
+            onChange={(event) => setAcceptedTerms(event.target.checked)}
+            className="mt-1 h-5 w-5 shrink-0"
+            required
+          />
+          <span>
+            Li e aceito os{" "}
+            <Link href="/terms" target="_blank" className="font-medium underline underline-offset-2">
+              Termos de Uso
+            </Link>
+            .
+          </span>
+        </label>
+        <label className="flex min-h-11 items-start gap-3 text-sm leading-relaxed text-[var(--theme-body)]">
+          <input
+            type="checkbox"
+            checked={acceptedPrivacy}
+            onChange={(event) => setAcceptedPrivacy(event.target.checked)}
+            className="mt-1 h-5 w-5 shrink-0"
+            required
+          />
+          <span>
+            Li e aceito a{" "}
+            <Link href="/privacy" target="_blank" className="font-medium underline underline-offset-2">
+              Política de Privacidade
+            </Link>
+            .
+          </span>
+        </label>
+      </fieldset>
 
       <ActionButton type="submit" icon={UserPlus} className="w-full disabled:opacity-70" disabled={loading}>
         {loading ? "Enviando..." : "Criar conta"}

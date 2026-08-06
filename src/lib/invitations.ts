@@ -115,7 +115,7 @@ export async function expirePendingInvitationsWithNotifications(
 
   await Promise.all(
     expiring.flatMap((item) => {
-      const tasks: Promise<void>[] = [];
+      const tasks: Promise<unknown>[] = [];
 
       if (item.family.email) {
         tasks.push(

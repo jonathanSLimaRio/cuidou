@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const acceptUrl = `${appUrl}/admin/invite/accept?token=${encodeURIComponent(token)}`;
 
-  await sendEmail({
+  const emailDelivery = await sendEmail({
     to: email,
     subject: "Convite para administracao - Cuidou",
     html: `<p>Voce recebeu um convite para ser admin da plataforma Cuidou.</p><p>Clique no link abaixo para aceitar o convite:</p><p><a href="${acceptUrl}">${acceptUrl}</a></p><p>O link expira em ${expiresInDays} dia(s).</p>`,
@@ -79,5 +79,5 @@ export async function POST(request: Request) {
     },
   });
 
-  return ok({ invite }, 201);
+  return ok({ invite, emailDelivery }, 201);
 }

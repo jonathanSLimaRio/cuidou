@@ -3,11 +3,19 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { UserStatus } from "@prisma/client";
 import { compare } from "bcryptjs";
+import { hasCurrentLegalConsent } from "@/lib/legal-consent";
 import NextAuth, { CredentialsSignin } from "next-auth";
 import type { Adapter } from "next-auth/adapters";
 import Credentials from "next-auth/providers/credentials";
+import * as Sentry from "@sentry/nextjs";
 
-const ROLE_SYNC_INTERVAL_MS = 60 * 1000;
+async function anonymizeUserId(userId: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(userId));
+  return Array.from(new Uint8Array(digest))
+    .slice(0, 12)
+    .map((value) => value.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 class PendingApprovalError extends CredentialsSignin {
   code = "pending_approval";
@@ -21,7 +29,7 @@ class BannedAccountError extends CredentialsSignin {
   code = "account_banned";
 }
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma) as Adapter,
   providers: [
@@ -50,6 +58,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             passwordHash: true,
             role: true,
             status: true,
+            acceptedTermsAt: true,
+            acceptedPrivacyAt: true,
+            acceptedTermsVersion: true,
+            acceptedPrivacyVersion: true,
           },
         });
 
@@ -80,17 +92,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: user.email,
           role: user.role,
           status: user.status,
+          needsLegalConsent: !hasCurrentLegalConsent(user),
         };
       },
     }),
   ],
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.role = user.role ?? null;
-        token.status = user.status ?? UserStatus.ACTIVE;
+        token.status = user.status ?? UserStatus.PENDING;
+        token.needsLegalConsent = user.needsLegalConsent ?? true;
         token.roleSyncedAt = Date.now();
         return token;
       }
@@ -102,29 +116,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return token;
       }
 
-      const lastSync = typeof token.roleSyncedAt === "number" ? token.roleSyncedAt : 0;
-      const shouldSync =
-        trigger === "update" ||
-        token.role == null ||
-        token.status !== UserStatus.ACTIVE ||
-        Date.now() - lastSync > ROLE_SYNC_INTERVAL_MS;
-
-      if (!shouldSync) {
-        return token;
-      }
-
+      // Authorization state is security-sensitive. Re-read it for every
+      // server-side session resolution so suspension, banning, role changes
+      // and new legal versions take effect on the next protected request.
       try {
         const dbUser = await prisma.user.findUnique({
           where: { id: tokenUserId },
           select: {
             role: true,
             status: true,
+            acceptedTermsAt: true,
+            acceptedPrivacyAt: true,
+            acceptedTermsVersion: true,
+            acceptedPrivacyVersion: true,
           },
         });
 
         if (dbUser) {
           token.role = dbUser.role;
           token.status = dbUser.status;
+          token.needsLegalConsent = !hasCurrentLegalConsent(dbUser);
         }
       } catch (error) {
         // console.error used intentionally here — auth.ts runs in edge/middleware context
@@ -140,7 +151,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user) {
         session.user.id = (token.id ?? token.sub ?? session.user.id) as string;
         session.user.role = (token.role ?? null) as typeof session.user.role;
-        session.user.status = (token.status ?? UserStatus.ACTIVE) as typeof session.user.status;
+        session.user.status = (token.status ?? UserStatus.PENDING) as typeof session.user.status;
+        session.user.needsLegalConsent = token.needsLegalConsent ?? true;
+        const userId = session.user.id;
+        if (userId) Sentry.setUser({ id: await anonymizeUserId(userId) });
       }
 
       return session;

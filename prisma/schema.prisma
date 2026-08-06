@@ -21,6 +21,8 @@ model User {
   status            UserStatus @default(PENDING)
   acceptedTermsAt   DateTime?
   acceptedPrivacyAt DateTime?
+  acceptedTermsVersion   String?
+  acceptedPrivacyVersion String?
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
@@ -49,6 +51,22 @@ model User {
   adminInvitesCreated         AdminInvite[]          @relation("AdminInvitesCreatedBy")
   auditLogs                   AuditLog[]             @relation("AuditLogsByAdmin")
   pushTokens                  PushToken[]
+  legalConsents               LegalConsent[]
+}
+
+model LegalConsent {
+  id         String            @id @default(cuid())
+  userId     String
+  document   LegalDocumentType
+  version    String
+  source     LegalConsentSource
+  acceptedAt DateTime          @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, document, version])
+  @@index([userId, acceptedAt])
+  @@index([document, version, acceptedAt])
 }
 
 model Account {
@@ -636,4 +654,15 @@ enum AuditTargetType {
   CONTRACT
   APPLICATION
   INVITATION
+}
+
+enum LegalDocumentType {
+  TERMS
+  PRIVACY
+}
+
+enum LegalConsentSource {
+  WEB
+  MOBILE
+  LEGACY
 }

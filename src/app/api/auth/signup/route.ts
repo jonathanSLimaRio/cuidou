@@ -4,7 +4,8 @@ import { parseJsonBody } from "@/lib/request";
 import { checkRateLimit, rateLimitHeaders, rateLimitKey } from "@/lib/rate-limiter";
 import { localSignupSchema } from "@/lib/schemas";
 import { ProductEventName, trackProductEvent } from "@/lib/product-events";
-import { Prisma, UserStatus } from "@prisma/client";
+import { recordCurrentLegalConsent } from "@/lib/legal-consent";
+import { LegalConsentSource, Prisma, UserStatus } from "@prisma/client";
 import { hash } from "bcryptjs";
 
 const RATE_LIMIT = { max: 5, windowMs: 60 * 60 * 1000 }; // 5 per hour
@@ -52,26 +53,37 @@ export async function POST(request: Request) {
   });
 
   if (existing) {
-    return fail(409, "Já existe uma conta com este e-mail.");
+    return withSignupRateLimitHeaders(
+      fail(409, "Já existe uma conta com este e-mail."),
+      rl,
+    );
   }
 
   const passwordHash = await hash(payload.password, 12);
 
   let user;
   try {
-    user = await prisma.user.create({
-      data: {
-        name: payload.name.trim(),
-        email,
-        passwordHash,
-        status: UserStatus.PENDING,
-        // If the user selected a role at signup, store it so onboarding can skip the picker.
-        role: payload.role ?? null,
-      },
+    user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          name: payload.name.trim(),
+          email,
+          passwordHash,
+          status: UserStatus.PENDING,
+          // If the user selected a role at signup, store it so onboarding can skip the picker.
+          role: payload.role ?? null,
+        },
+      });
+
+      const consentSource = request.headers.get("x-cuidou-client") === "mobile"
+        ? LegalConsentSource.MOBILE
+        : LegalConsentSource.WEB;
+      await recordCurrentLegalConsent(tx, created.id, consentSource);
+      return created;
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return withSignupRateLimitHeaders(fail(409, "JÃ¡ existe uma conta com este e-mail."), rl);
+      return withSignupRateLimitHeaders(fail(409, "Já existe uma conta com este e-mail."), rl);
     }
     throw error;
   }

@@ -30,8 +30,23 @@ describe("localSignupSchema", () => {
       email: "maria@example.com",
       password: "Senha123",
       confirmPassword: "Senha123",
+      role: "FAMILY",
+      acceptedTerms: true,
+      acceptedPrivacy: true,
     });
     expect(result.success).toBe(true);
+  });
+
+  it("requires a profile choice", () => {
+    const result = localSignupSchema.safeParse({
+      name: "Maria Silva",
+      email: "maria@example.com",
+      password: "Senha123",
+      confirmPassword: "Senha123",
+      acceptedTerms: true,
+      acceptedPrivacy: true,
+    });
+    expect(result.success).toBe(false);
   });
 
   it("rejects short names", () => {
@@ -40,6 +55,9 @@ describe("localSignupSchema", () => {
       email: "a@example.com",
       password: "Senha123",
       confirmPassword: "Senha123",
+      role: "FAMILY",
+      acceptedTerms: true,
+      acceptedPrivacy: true,
     });
     expect(result.success).toBe(false);
   });
@@ -50,6 +68,9 @@ describe("localSignupSchema", () => {
       email: "maria@example.com",
       password: "SenhaSemNumero",
       confirmPassword: "SenhaSemNumero",
+      role: "FAMILY",
+      acceptedTerms: true,
+      acceptedPrivacy: true,
     });
     expect(result.success).toBe(false);
   });
@@ -60,6 +81,9 @@ describe("localSignupSchema", () => {
       email: "maria@example.com",
       password: "Senha123",
       confirmPassword: "Senha456",
+      role: "FAMILY",
+      acceptedTerms: true,
+      acceptedPrivacy: true,
     });
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -74,6 +98,9 @@ describe("localSignupSchema", () => {
       email: "not-an-email",
       password: "Senha123",
       confirmPassword: "Senha123",
+      role: "FAMILY",
+      acceptedTerms: true,
+      acceptedPrivacy: true,
     });
     expect(result.success).toBe(false);
   });

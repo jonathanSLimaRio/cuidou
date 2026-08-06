@@ -9,10 +9,7 @@ const WP_APP_PASS = process.env.WP_APP_PASS;
 
 /** Prefix used to identify locally-stored uploads (legacy — kept for backward compatibility with existing DB records). */
 const LOCAL_UPLOAD_SCHEME = "local-upload:";
-
-function getLocalUploadDir(): string {
-  return process.env.LOCAL_UPLOAD_DIR ?? "./uploads";
-}
+const LEGACY_UPLOAD_ROOT = path.join(process.cwd(), "uploads");
 
 function sanitizeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -182,7 +179,9 @@ export async function deleteWordPressMedia(mediaId: number) {
 export async function fetchWordPressMediaBinary(sourceUrl: string) {
   if (sourceUrl.startsWith(LOCAL_UPLOAD_SCHEME)) {
     const relpath = sourceUrl.slice(LOCAL_UPLOAD_SCHEME.length);
-    const uploadRoot = path.resolve(getLocalUploadDir());
+    // Legacy reads are constrained to one configured root. The ignore marker
+    // prevents the server tracer from treating a runtime volume as bundle input.
+    const uploadRoot = LEGACY_UPLOAD_ROOT;
     const absPath = path.resolve(uploadRoot, relpath);
     if (absPath !== uploadRoot && !absPath.startsWith(`${uploadRoot}${path.sep}`)) {
       throw new Error("Invalid local upload path");

@@ -8,6 +8,7 @@ import { parseJsonBody } from "@/lib/request";
 import { mobileGoogleSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 import { UserStatus } from "@prisma/client";
+import { hasCurrentLegalConsent } from "@/lib/legal-consent";
 
 type GoogleTokenInfo = {
   aud?: string;
@@ -76,7 +77,17 @@ export async function POST(request: Request) {
         // New OAuth accounts follow the same approval policy as password signups.
         status: UserStatus.PENDING,
       },
-      select: { id: true, email: true, name: true, role: true, status: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        status: true,
+        acceptedTermsAt: true,
+        acceptedPrivacyAt: true,
+        acceptedTermsVersion: true,
+        acceptedPrivacyVersion: true,
+      },
     });
 
     if (user.status === UserStatus.PENDING) {
@@ -89,7 +100,16 @@ export async function POST(request: Request) {
       throw new MobileAuthError(403, "account_banned", "Sua conta foi banida.");
     }
 
-    return ok(await createMobileSession(user));
+    return ok(
+      await createMobileSession({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        status: user.status,
+        needsLegalConsent: !hasCurrentLegalConsent(user),
+      }),
+    );
   } catch (error) {
     return mobileAuthErrorResponse(error);
   }

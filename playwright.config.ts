@@ -29,10 +29,10 @@ export default defineConfig({
       use: { ...devices["Pixel 5"] },
     },
   ],
-  // CI and PLAYWRIGHT_BASE_URL are externally managed. Local runs always start
+  // PLAYWRIGHT_BASE_URL is externally managed. Other runs start an isolated server.
   // an isolated Cuidou server and fail if the dedicated port is occupied.
   webServer:
-    process.env.CI || externalBaseUrl
+    externalBaseUrl
       ? undefined
       : {
           command: `npm run dev -- --hostname 127.0.0.1 --port ${playwrightPort}`,

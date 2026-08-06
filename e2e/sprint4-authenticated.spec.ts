@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
 
 const enabled = process.env.RUN_AUTH_E2E === "1";
-const email = process.env.AUTH_E2E_EMAIL;
-const password = process.env.AUTH_E2E_PASSWORD;
+const email = process.env.AUTH_E2E_EMAIL ??
+  (process.env.E2E_RUN_ID ? `professional+${process.env.E2E_RUN_ID}@e2e.cuidou.local` : undefined);
+const password = process.env.AUTH_E2E_PASSWORD ?? process.env.E2E_PASSWORD ?? "Cuidou-E2E-2026!";
 
 test.describe("Sprint 04 authenticated contracts", () => {
   test.skip(!enabled || !email || !password, "Set RUN_AUTH_E2E=1, AUTH_E2E_EMAIL and AUTH_E2E_PASSWORD");

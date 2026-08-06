@@ -5,6 +5,7 @@ import { getAuthSecret } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { UserRole, UserStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { hasCurrentLegalConsent } from "@/lib/legal-consent";
 
 export const MOBILE_ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 export const MOBILE_REFRESH_TOKEN_TTL_DAYS = 30;
@@ -18,6 +19,7 @@ export type MobileUser = {
   name: string | null;
   role: UserRole | null;
   status: UserStatus;
+  needsLegalConsent: boolean;
 };
 
 export class MobileAuthError extends Error {
@@ -61,6 +63,7 @@ export function toMobileUser(user: MobileUser) {
     name: user.name,
     role: user.role,
     status: user.status,
+    needsLegalConsent: user.needsLegalConsent,
   };
 }
 
@@ -96,10 +99,21 @@ export async function verifyMobileAccessToken(token: string) {
 }
 
 async function findMobileUser(userId: string) {
-  return prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true, role: true, status: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      status: true,
+      acceptedTermsAt: true,
+      acceptedPrivacyAt: true,
+      acceptedTermsVersion: true,
+      acceptedPrivacyVersion: true,
+    },
   });
+  return user ? { ...user, needsLegalConsent: !hasCurrentLegalConsent(user) } : null;
 }
 
 export async function getMobileUserFromBearer(request: Request): Promise<MobileUser | null> {
@@ -149,6 +163,10 @@ export async function authenticateMobilePassword(email: string, password: string
       passwordHash: true,
       role: true,
       status: true,
+      acceptedTermsAt: true,
+      acceptedPrivacyAt: true,
+      acceptedTermsVersion: true,
+      acceptedPrivacyVersion: true,
     },
   });
 
@@ -173,7 +191,7 @@ export async function authenticateMobilePassword(email: string, password: string
     throw new MobileAuthError(403, "account_banned", "Sua conta foi banida.");
   }
 
-  return user;
+  return { ...user, needsLegalConsent: !hasCurrentLegalConsent(user) };
 }
 
 export async function createMobileSession(user: MobileUser) {

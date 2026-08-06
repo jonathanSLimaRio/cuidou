@@ -1,14 +1,13 @@
-import { ThemeProvider as NavigationThemeProvider } from "@react-navigation/native";
 import { PropsWithChildren, createContext, useContext } from "react";
 
-import { appTheme, navigationTheme } from "@/constants/theme";
+import { appTheme } from "@/constants/theme";
 
 const ThemeContext = createContext(appTheme);
 
 export function AppThemeProvider({ children }: PropsWithChildren) {
   return (
     <ThemeContext.Provider value={appTheme}>
-      <NavigationThemeProvider value={navigationTheme}>{children}</NavigationThemeProvider>
+      {children}
     </ThemeContext.Provider>
   );
 }

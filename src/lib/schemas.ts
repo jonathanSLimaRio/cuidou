@@ -54,14 +54,21 @@ export const localSignupSchema = z
     email: z.email().trim().toLowerCase(),
     password: strongPasswordSchema,
     confirmPassword: z.string(),
-    // Optional: pre-assign role at signup to skip the onboarding role picker
-    role: roleSchema.optional(),
+    // Profile choice is part of the signup contract on every client.
+    role: roleSchema,
     subtype: serviceTypeSchema.optional(),
+    acceptedTerms: z.literal(true),
+    acceptedPrivacy: z.literal(true),
   })
   .refine((value) => value.password === value.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
+
+export const legalConsentSchema = z.object({
+  acceptedTerms: z.literal(true),
+  acceptedPrivacy: z.literal(true),
+});
 
 export const leadCaptureSchema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email()),

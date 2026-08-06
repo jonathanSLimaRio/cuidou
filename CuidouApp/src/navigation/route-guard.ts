@@ -9,6 +9,10 @@ export function resolveHomePath(user: SessionUser | null) {
     return "/(protected)/onboarding";
   }
 
+  if (user.needsLegalConsent) {
+    return "/(protected)/consent";
+  }
+
   if (user.role === "FAMILY") {
     return "/(family)";
   }

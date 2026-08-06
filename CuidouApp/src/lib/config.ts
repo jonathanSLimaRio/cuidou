@@ -7,6 +7,7 @@ type ExtraConfig = {
   googleIosClientId?: string;
   googleAndroidClientId?: string;
   googleWebClientId?: string;
+  appEnv?: string;
 };
 
 function getExtraConfig(): ExtraConfig {
@@ -22,10 +23,27 @@ function defaultApiBaseUrl() {
 }
 
 const extra = getExtraConfig();
+const appEnv = process.env.EXPO_PUBLIC_APP_ENV ?? extra.appEnv ?? "development";
+const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || extra.apiBaseUrl || defaultApiBaseUrl();
+
+if (appEnv !== "development") {
+  let parsedApiUrl: URL;
+  try {
+    parsedApiUrl = new URL(apiBaseUrl);
+  } catch {
+    throw new Error("EXPO_PUBLIC_API_BASE_URL must be a valid HTTPS URL for preview and production builds.");
+  }
+  if (
+    parsedApiUrl.protocol !== "https:" ||
+    ["localhost", "127.0.0.1", "10.0.2.2"].includes(parsedApiUrl.hostname)
+  ) {
+    throw new Error("Preview and production builds require a non-local HTTPS API URL.");
+  }
+}
 
 export const appConfig = {
-  apiBaseUrl:
-    process.env.EXPO_PUBLIC_API_BASE_URL ?? extra.apiBaseUrl ?? defaultApiBaseUrl(),
+  apiBaseUrl,
+  appEnv,
   authScheme: "cuidouapp",
   google: {
     expoClientId:

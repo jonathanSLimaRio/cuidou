@@ -18,6 +18,13 @@ function createPrismaClient() {
     );
   }
 
+  if (process.env.RELEASE_ENV === "production") {
+    const databaseUrl = new URL(connectionString);
+    if (databaseUrl.searchParams.get("sslmode") !== "verify-full") {
+      throw new Error("Production DATABASE_URL must explicitly use sslmode=verify-full.");
+    }
+  }
+
   const pool =
     globalForPrisma.pgPool ??
     new Pool({

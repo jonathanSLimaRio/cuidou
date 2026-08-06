@@ -1,5 +1,4 @@
 import { defineConfig } from "vitest/config";
-import path from "node:path";
 
 export default defineConfig({
   test: {
@@ -12,11 +11,29 @@ export default defineConfig({
       reporter: ["text", "json", "html"],
       include: ["src/lib/**/*.ts"],
       exclude: ["src/lib/__tests__/**", "src/lib/prisma.ts"],
+      thresholds: {
+        statements: 60,
+        lines: 60,
+        branches: 50,
+        functions: 50,
+        "src/lib/auth-guard.ts": {
+          lines: 80,
+        },
+        "src/lib/legal-consent.ts": {
+          lines: 80,
+        },
+        "src/lib/mobile-auth.ts": {
+          lines: 80,
+        },
+        "src/lib/rate-limiter.ts": {
+          lines: 80,
+        },
+      },
     },
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": `${import.meta.dirname}/src`,
     },
   },
 });

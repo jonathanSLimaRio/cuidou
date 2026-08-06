@@ -47,7 +47,7 @@ function toneIcon(tone: ToastTone) {
 
 export function ToastViewport({ toasts, onDismiss }: ToastViewportProps) {
   return (
-    <div className="theme-toast-viewport" aria-live="polite" aria-label="Notificações">
+    <div className="theme-toast-viewport" role="status" aria-live="polite" aria-label="Notificações">
       {toasts.map((toast) => {
         const Icon = toneIcon(toast.tone);
 

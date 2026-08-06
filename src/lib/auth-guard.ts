@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { UserRole, UserStatus } from "@prisma/client";
 import { getToken } from "next-auth/jwt";
 import { getMobileUserFromBearer } from "@/lib/mobile-auth";
+import { hasCurrentLegalConsent } from "@/lib/legal-consent";
 
 export type CurrentUser = {
   id: string;
@@ -12,6 +13,7 @@ export type CurrentUser = {
   name: string | null;
   role: UserRole | null;
   status: UserStatus;
+  needsLegalConsent: boolean;
 };
 
 const authSecret = getAuthSecret();
@@ -22,13 +24,15 @@ function buildCurrentUser(user: {
   name?: string | null;
   role?: UserRole | null;
   status?: UserStatus;
+  needsLegalConsent?: boolean;
 }): CurrentUser {
   return {
     id: user.id,
     email: user.email ?? null,
     name: user.name ?? null,
     role: user.role ?? null,
-    status: user.status ?? UserStatus.ACTIVE,
+    status: user.status ?? UserStatus.PENDING,
+    needsLegalConsent: user.needsLegalConsent ?? false,
   };
 }
 
@@ -73,6 +77,10 @@ async function getUserFromBearer(request?: Request): Promise<CurrentUser | null>
       name: true,
       role: true,
       status: true,
+      acceptedTermsAt: true,
+      acceptedPrivacyAt: true,
+      acceptedTermsVersion: true,
+      acceptedPrivacyVersion: true,
     },
   });
 
@@ -80,7 +88,10 @@ async function getUserFromBearer(request?: Request): Promise<CurrentUser | null>
     return null;
   }
 
-  return buildCurrentUser(user);
+  return buildCurrentUser({
+    ...user,
+    needsLegalConsent: !hasCurrentLegalConsent(user),
+  });
 }
 
 export async function requireUser(roles?: UserRole[], request?: Request) {
@@ -103,6 +114,13 @@ export async function requireUser(roles?: UserRole[], request?: Request) {
 
   if (currentUser.status !== UserStatus.ACTIVE) {
     return { response: fail(403, "User account is not active") } as const;
+  }
+
+  const pathname = request ? new URL(request.url).pathname : "";
+  const isConsentEndpoint =
+    pathname === "/api/legal/consent" || pathname === "/api/onboarding/role";
+  if (currentUser.needsLegalConsent && !isConsentEndpoint) {
+    return { response: fail(403, "Current legal consent is required") } as const;
   }
 
   if (roles?.length && (!currentUser.role || !roles.includes(currentUser.role))) {

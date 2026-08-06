@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/theme/page-header";
 import { StatusBadge } from "@/components/theme/status-badge";
 import { prisma } from "@/lib/prisma";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function AdminLeadsPage() {
   const leads = await prisma.waitlistLead.findMany({

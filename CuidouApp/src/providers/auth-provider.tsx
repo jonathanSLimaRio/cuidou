@@ -45,6 +45,7 @@ type AuthContextValue = {
   signInWithGoogle: (idToken: string) => Promise<void>;
   signUp: (payload: SignupPayload) => Promise<SignupResult>;
   completeOnboarding: (payload: OnboardingPayload) => Promise<void>;
+  acceptCurrentLegalConsent: () => Promise<void>;
   refreshSession: () => Promise<boolean>;
   syncSession: () => Promise<boolean>;
   logout: () => Promise<void>;
@@ -236,6 +237,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [syncSession],
   );
 
+  const acceptCurrentLegalConsent = useCallback(async () => {
+    setStatus("refreshing");
+    try {
+      await authRepository.acceptCurrentLegalConsent();
+      const synced = await syncSession();
+      if (!synced) throw new Error("failed_to_sync_session");
+    } catch (error) {
+      setStatus(getRuntimeSession() ? "authenticated" : "unauthenticated");
+      throw error;
+    }
+  }, [syncSession]);
+
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
@@ -287,12 +300,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
       signInWithGoogle,
       signUp,
       completeOnboarding,
+      acceptCurrentLegalConsent,
       refreshSession,
       syncSession,
       logout,
     }),
     [
       completeOnboarding,
+      acceptCurrentLegalConsent,
       isHydrated,
       logout,
       refreshSession,

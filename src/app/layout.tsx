@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fredoka, Nunito } from "next/font/google";
 import { ToastProvider } from "@/components/notifications/toast-provider";
 import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -48,9 +49,11 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${nunito.variable} ${fredoka.variable} min-h-screen antialiased`}>
+        <a href="#page-content" className="skip-link">Pular para o conteúdo</a>
         <ToastProvider>
           <SiteHeader />
-          {children}
+          <div id="page-content" tabIndex={-1}>{children}</div>
+          <SiteFooter />
         </ToastProvider>
       </body>
     </html>

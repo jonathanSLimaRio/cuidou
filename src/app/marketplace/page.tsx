@@ -1,69 +1,94 @@
 import { CtaButton } from "@/components/theme/cta-button";
-import { MetricCard } from "@/components/theme/metric-card";
-import { PageHeader } from "@/components/theme/page-header";
-import { SectionShell } from "@/components/theme/section-shell";
-import { prisma } from "@/lib/prisma";
-import { VerificationStatus } from "@prisma/client";
-import { BriefcaseBusiness, Users } from "lucide-react";
+import type { Metadata } from "next";
+import { BriefcaseBusiness, Search, ShieldCheck, Users } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Buscar cuidado e vagas | Cuidou",
+  description: "Busque profissionais e vagas de cuidado por especialidade, estado, cidade e disponibilidade.",
+};
 
-export default async function MarketplacePage() {
-  const [openJobsCount, verifiedProfessionalsCount] = await Promise.all([
-    prisma.jobPost.count({ where: { status: "OPEN", isVisible: true } }),
-    prisma.professionalProfile.count({
-      where: { verificationStatus: VerificationStatus.VERIFIED },
-    }),
-  ]);
-
+export default function MarketplacePage() {
   return (
-    <main className="theme-page">
-      <div className="theme-container space-y-6">
-        <PageHeader
-          eyebrow="Marketplace público"
-          title="Encontre cuidado com segurança"
-          description="Conectamos famílias a babás e cuidadoras de idosos verificadas. Explore vagas abertas ou procure profissionais disponíveis na sua região."
-          breadcrumbs={[{ label: "Home", href: "/" }, { label: "Marketplace" }]}
-        />
+    <main id="main-content" className="theme-page">
+      <div className="theme-container space-y-8">
+        <section className="marketplace-search" aria-labelledby="marketplace-title">
+          <div className="max-w-3xl">
+            <p className="editorial-kicker">Busca pública</p>
+            <h1 id="marketplace-title" className="mt-3 text-4xl sm:text-5xl">
+              Que tipo de cuidado faz sentido para você hoje?
+            </h1>
+            <p className="mt-4 text-lg leading-relaxed text-[var(--theme-body)]">
+              Use os filtros uma vez e escolha se quer encontrar profissionais ou oportunidades de trabalho.
+            </p>
+          </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <MetricCard
-            label="Vagas abertas"
-            value={openJobsCount}
-            hint="Oportunidades publicadas por famílias aguardando candidaturas."
-            tone="pink"
-          />
-          <MetricCard
-            label="Profissionais verificados"
-            value={verifiedProfessionalsCount}
-            hint="Perfis com documentação revisada e aprovada pela equipe Cuidou."
-            tone="blue"
-          />
-        </div>
+          <form className="mt-8 grid gap-4" role="search">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <label className="field-label">
+                <span>Tipo de cuidado</span>
+                <select name="serviceType" className="theme-select" defaultValue="">
+                  <option value="">Todos</option>
+                  <option value="BABYSITTER">Cuidado infantil</option>
+                  <option value="ELDER_CAREGIVER">Cuidado de idosos</option>
+                </select>
+              </label>
+              <label className="field-label">
+                <span>Estado</span>
+                <input name="state" className="theme-field" maxLength={2} placeholder="Ex.: SP" autoComplete="address-level1" />
+              </label>
+              <label className="field-label">
+                <span>Cidade</span>
+                <input name="city" className="theme-field" placeholder="Ex.: Campinas" autoComplete="address-level2" />
+              </label>
+              <label className="field-label">
+                <span>Disponibilidade</span>
+                <select name="availability" className="theme-select" defaultValue="">
+                  <option value="">Qualquer horário</option>
+                  <option value="MORNING">Manhã</option>
+                  <option value="AFTERNOON">Tarde</option>
+                  <option value="EVENING">Noite</option>
+                  <option value="OVERNIGHT">Pernoite</option>
+                </select>
+              </label>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 sm:max-w-2xl">
+              <button className="search-path-button" formAction="/marketplace/professionals">
+                <Users className="size-5" aria-hidden="true" />
+                Buscar profissionais
+                <Search className="ml-auto size-5" aria-hidden="true" />
+              </button>
+              <button className="search-path-button search-path-button-alt" formAction="/marketplace/jobs">
+                <BriefcaseBusiness className="size-5" aria-hidden="true" />
+                Buscar vagas
+                <Search className="ml-auto size-5" aria-hidden="true" />
+              </button>
+            </div>
+          </form>
+        </section>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <SectionShell
-            eyebrow="Para profissionais"
-            title="Vagas abertas"
-            description="Explore oportunidades publicadas por famílias. Filtre por serviço, estado e cidade para encontrar vagas compatíveis com sua disponibilidade."
-            tone="tint"
-          >
-            <CtaButton href="/marketplace/jobs" icon={BriefcaseBusiness} variant="primary">
+        <section className="grid gap-4 md:grid-cols-2" aria-labelledby="marketplace-help-title">
+          <h2 id="marketplace-help-title" className="sr-only">Como usar o marketplace</h2>
+          <article className="theme-card p-6 sm:p-8">
+            <ShieldCheck className="size-8 text-[var(--theme-teal)]" aria-hidden="true" />
+            <h3 className="mt-4 text-2xl">Para quem precisa contratar</h3>
+            <p className="mt-3 leading-relaxed text-[var(--theme-muted)]">
+              Veja especialidade, localização, disponibilidade e verificação antes de iniciar uma conversa.
+            </p>
+            <CtaButton className="mt-6" href="/marketplace/professionals" variant="outline" icon={Users}>
+              Ver todos os profissionais
+            </CtaButton>
+          </article>
+          <article className="theme-card-deep p-6 sm:p-8">
+            <BriefcaseBusiness className="size-8 text-[var(--theme-coral)]" aria-hidden="true" />
+            <h3 className="mt-4 text-2xl text-white">Para quem quer trabalhar</h3>
+            <p className="mt-3 leading-relaxed text-white/80">
+              Explore oportunidades com local, tipo de cuidado e expectativas definidos pela família.
+            </p>
+            <CtaButton className="mt-6" href="/marketplace/jobs" variant="light" icon={BriefcaseBusiness}>
               Ver todas as vagas
             </CtaButton>
-          </SectionShell>
-
-          <SectionShell
-            eyebrow="Para famílias"
-            title="Profissionais disponíveis"
-            description="Veja perfis com especialidade, disponibilidade semanal e status de verificação. Conheça quem está pronto para cuidar da sua família."
-            tone="deep"
-          >
-            <CtaButton href="/marketplace/professionals" icon={Users} variant="light">
-              Ver profissionais
-            </CtaButton>
-          </SectionShell>
-        </div>
+          </article>
+        </section>
       </div>
     </main>
   );
